@@ -123,20 +123,22 @@ jobs:
     name: Firmware — ESP32-S3 emulator smoke test (Wokwi)
     runs-on: ubuntu-latest
     # Runs the real firmware binary on emulated silicon as a boot/loop smoke test (complements the
-    # host unit tests + sim). Non-blocking until the controller bindings + a Wokwi token land; full
-    # signal fidelity stays with HIL (WI-EE-08). Self-skips if no token is configured.
+    # host unit tests + sim). Non-blocking; full signal fidelity stays with HIL (WI-EE-08).
+    # Self-skips if WOKWI_CLI_TOKEN is not configured (e.g. on forks).
     continue-on-error: true
+    env:
+      WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - name: Detect emulator build
+      - name: Detect emulator build + token
         id: detect
         shell: bash
         run: |
-          if [ -f firmware/controller/src/emulator.rs ] && [ -f firmware/controller/wokwi/wokwi.toml ]; then
+          if [ -f firmware/controller/src/emulator.rs ] && [ -f firmware/controller/wokwi/wokwi.toml ] && [ -n "${WOKWI_CLI_TOKEN:-}" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "NOTICE: no emulator build / Wokwi project yet — skipping smoke test."
+            echo "NOTICE: emulator project missing or WOKWI_CLI_TOKEN unset — skipping smoke test."
           fi
       - name: Install Xtensa (ESP32-S3) Rust toolchain
         if: steps.detect.outputs.present == 'true'
@@ -148,20 +150,17 @@ jobs:
         if: steps.detect.outputs.present == 'true'
         working-directory: firmware/controller
         run: cargo build --release --features emulator
-      - name: Run Wokwi smoke test
+      # Official Wokwi CI action handles wokwi-cli install + invocation robustly (vs a manual curl).
+      - name: Wokwi smoke test
         if: steps.detect.outputs.present == 'true'
-        env:
-          WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${WOKWI_CLI_TOKEN:-}" ]; then
-            echo "NOTICE: WOKWI_CLI_TOKEN secret not set — skipping emulator smoke test."
-            exit 0
-          fi
-          curl -L https://wokwi.com/ci/install.sh | sh
-          cd firmware/controller/wokwi
-          wokwi-cli --timeout 30000 --fail-text "panicked" --scenario scenario.yaml .
+        uses: wokwi/wokwi-ci-action@v1
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: firmware/controller/wokwi
+          timeout: 30000
+          scenario: scenario.yaml
+          expect_text: 'EMULATOR SMOKE TEST COMPLETE'
+          fail_text: 'panicked'
 
   bom:
     name: BOM — §16.3 grow-light gate
