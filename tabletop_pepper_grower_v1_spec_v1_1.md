@@ -642,7 +642,7 @@ Airflow goal:
 | Reservoir level | Float switch + optional analog/pressure/optical | Reservoir | Low-water safety |
 | Leak sensor | Conductive trace or sensor strip | Bottom tray below reservoir/pump | Pump lockout |
 | Fan tach | Fan output | Fan | Fault detection |
-| Pump current optional | Current sense resistor/INA219-class | Pump rail | Pump fault/clog/dry run inference |
+| Pump current | Current sense resistor/INA219-class | Pump rail | Pump fault/clog/dry-run detection — **required** in V1 (watering reliability is the core function; see §23 DR-04) |
 
 #### Optional sensors
 
@@ -1930,6 +1930,7 @@ This is not a final BOM. It is a constraint list that the final BOM must satisfy
 | LED driver interface | PWM/0–10V matching selected LED driver |
 | Status LEDs | 5 positions, dimmable |
 | Power | Certified 24 VDC external PSU |
+| RTC | Battery-backed (DS3231 / RV-3028-class), I²C | Stable photoperiod across power loss; the firmware assumes a wall clock (§9.4 boot, §10.3 "RTC invalid") but no clock source was previously in the BOM — see §23 DR-05 |
 | Connectors | Locking, keyed, labeled |
 
 ### 16.2 Mechanical
@@ -2196,3 +2197,44 @@ The key engineering risks are:
 7. Scope creep from AI/app/display/enclosure features.
 
 Prioritize light quality, root volume, pump safety, moisture calibration, thermal behavior, and serviceability.
+
+---
+
+## 23. Design Review — Escalated Concerns (2026-06-13)
+
+This section records a fresh-eyes engineering review of the V1 spec, focused on two questions: **what
+will the finished product be missing once every work item is done**, and **what should be validated
+before parts are ordered and assembly starts**. The spec is strong at the *requirements* level; the
+recurring theme below is that several targets are only *verified after the unit is built*, on a slow
+n=1 gate, plus a few requirement↔BOM mismatches. Severity: **C**=critical, **H**=high, **M**=medium.
+
+Each finding has an ID (`DR-nn`). Items DR-04 and DR-05 have already been applied inline above
+(§7.5, §16.1); the rest require a project-lead decision and, where accepted, new/updated work items.
+
+| ID | Sev | Concern | Why it matters | Recommended action | Status |
+|---|---|---|---|---|---|
+| DR-01 | C | No pre-order **photometric + thermal model**. §7.2 sets PPFD (350–450 µmol/m²/s), uniformity (≥0.6), and a PPF budget, but whether *the chosen fixture in the chosen geometry* meets them — and stays thermally safe at 80–100 W in a compact open frame — is only measured post-build (WG-QA-03, `ppfd-measurements/`). | The light and frame are the most expensive and least reversible parts. "Build then measure" risks a full hardware respin. ≥0.6 uniformity across 300–400 mm at 150 mm clearance from one compact bar is genuinely hard. | Add a modeling gate **between M1 and M2**: a multi-emitter inverse-square + reflectance PPFD-map model and a junction→heatsink→canopy thermal budget. Gate light purchase and CAD freeze on passing it. | **Open — needs new WI** |
+| DR-02 | C | **Simulation validates control logic, not device physics.** §10.3 models ("pump raises moisture after delay", "LED increases heat") are *assumed* transfer functions. Passing all 11 scenarios proves the state machine/priorities, not that the real capacitive probe in real substrate or the real pump/sensor lag behave like the model. | Risk of false confidence ("sim green → safe to build a live-plant loop"). The biggest unknowns (sensor/actuator physics) are exactly what the sim cannot cover. | State the sim's scope limits in §10.1. Add a **bench-characterization** phase that parameterizes the sim models from measured data (real dry-down curve, ml/s-vs-on-time, thermal step response) *before* closed-loop watering runs on a live plant. | **Open — augment §10 / M2** |
+| DR-03 | H | **Release gate is n=1 and ~3–4 months** (§21: "at least one real plant trial"). | One overwater/underlight/nutrient-drift failure burns a whole cycle and sits on the critical path. | Front-load DR-01/DR-02; run a fast surrogate crop for a full-loop shakedown before the long pepper trial; prefer ≥2 parallel units so n>1. | **Open — strengthen §13.4 / M7** |
+| DR-04 | H | **Watering rests on one capacitive probe; its backstop was optional.** A single capacitive point in a 10 L pot (channeling, placement, media-specific) is the dominant reliability risk (R3). Pump current-sense — dry-run/clog detection — was listed optional. | "Keep the plant alive" is the core promise; its main failure-detector shouldn't be optional. Load-cell weight sensing (deferred in §7.5 for complexity) is the more robust signal. | **Applied:** pump current-sense made required (§7.5). **Decide:** whether to promote load-cell weight sensing into V1, or use the trial to decide. | **Partly applied** |
+| DR-05 | H | **Firmware assumes an RTC the BOM lacked.** §9.4/§10.3 rely on a wall clock; offline-first means no NTP; the ESP32-S3 internal RTC isn't battery-backed → every power blip scrambles time-of-day. | Photoperiod stability matters over a months-long fruiting cycle; drift degrades growth and confounds the trial. | **Applied:** battery-backed RTC added to §16.1. Firmware (WI-FW-*) should use it as the time source, with NTP as optional sync when a network is present. | **Partly applied** |
+| DR-06 | M | **Nutrient/EC has no feedback over the 3–4 month cycle.** EC/pH dosing is correctly out of scope, but manual nutrient + plain-water top-ups drift the substrate EC/pH with nothing observing it. | Drift can stall the grow trial and be **misread as a control failure**, confounding the n=1 result (DR-03). | Document the manual regimen rigorously; consider a single EC probe (header exists, §4.3) on the *trial* unit to observe drift even with no dosing. | **Open** |
+| DR-07 | M | **Vertical stack-up vs variety spread.** 650–750 mm frame − reservoir − 10 L pot (~250 mm) − substrate − 150 mm light clearance − fixture may leave only ~250–350 mm of canopy height; many hot-pepper varieties (esp. the superhots implied by the §17.4 capsaicin warning) exceed that. "Fixed hot-pepper profile" spans very different heights/DLI/cycle lengths. | Product may not physically fit the crop the user grows. | Do a dimensional stack-up before CAD freeze (M0-04 / M5); narrow the recommended cultivar list to compact/dwarf types matching the envelope. | **Open** |
+| DR-08 | M | **Wet supply tube crosses the dry zone.** The pump pushes water from the *lower* reservoir up to the *upper* pot, so the supply tube inherently rises past the electronics region. | A burst/leak in that run above the electronics is exactly the R4 failure; "drip loops" alone don't prevent it. | Make "supply-tube path never passes over the electronics bay" an explicit mechanical routing rule (§8.5, WG-ME routing). | **Open** |
+| DR-09 | M | **LED thermal-shutdown layering is implicit.** §17.2 wants the LED to "derate/shut down on high temperature," but the only firmware-visible temperature is the *shaded air* sensor (§7.5) — a weak proxy for LED/junction temp. | A safety requirement should not rest on a poor proxy. | Make the **driver thermal foldback** (§7.2) the primary LED protection; treat firmware air-temp derate as secondary, and state this layering in §9.5/§17.2. | **Open** |
+
+### Recommended disposition
+
+Before committing spend (M2 part orders, M5 CAD freeze, M7 trial), the project lead should ratify:
+
+1. **Add an analysis/modeling gate between M1 and M2** (DR-01) and a **bench-characterization step**
+   (DR-02) — these de-risk the items that are expensive or slow to fix later, and directly answer
+   "more rigorous validation before ordering/assembly."
+2. **Strengthen the grow-trial gate** beyond n=1 (DR-03), ideally with a surrogate shakedown and
+   parallel units.
+3. Ratify the already-applied BOM changes (DR-04 pump current-sense, DR-05 RTC) and decide the
+   open product-fit questions (DR-06 EC observation, DR-07 variety/height, DR-08 routing, DR-09
+   thermal layering).
+
+These do not change the core architecture; they change *when* and *how rigorously* the riskiest
+assumptions are tested, and close small requirement↔BOM gaps.
