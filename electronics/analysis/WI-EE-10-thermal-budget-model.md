@@ -22,8 +22,10 @@ reversible parts (light + frame) are committed. This work item is the **thermal 
 
 The **photometric half** — PPFD map, ≥0.6 uniformity across 300–400 mm at 150 mm clearance — is
 [WI-PL-06](../../plan/work-items/01-plant-science/WI-PL-06-photometric-model.md) (Plant Science),
-**not yet started**. The combined DR-01 go/no-go cannot be signed until both halves pass; this
-report closes the thermal side and states the thermal envelope the fixture choice must live within.
+now **Done — PASS**. With this thermal half also passing, **both halves of DR-01 now pass**. Note
+the PL-06 result: a **panel** fixture meets ≥0.6 uniformity at the 150 mm clearance target, whereas a
+single **bar** only reaches it at ≥200–225 mm — a constraint that flows into the light-candidate
+choice ([WI-EE-01](WI-EE-01-component-poc.md)) and the mechanical light mount.
 
 ## 2. Model
 
@@ -114,5 +116,7 @@ the real `T_hs` bands in §9.5 and is **recommended** for the 100 W variant.
   [WI-ME-06 fan mount](../../plan/work-items/04-mechanical/WI-ME-06-fan-mount.md) and the
   firmware climate controller.
 - **Driver loss budget** 5–10 W into the bay → [power budget WI-EE-02](power-budget.md).
-- **Combined DR-01 sign-off** pends [WI-PL-06](../../plan/work-items/01-plant-science/WI-PL-06-photometric-model.md)
-  (photometric half).
+- **Combined DR-01 sign-off:** photometric half [WI-PL-06](../../plan/work-items/01-plant-science/WI-PL-06-photometric-model.md)
+  is **Done — PASS**; with this thermal half passing, **both halves of DR-01 now pass**. The
+  light/CAD-freeze gate is clear, subject to choosing a fixture form factor that satisfies both: a
+  **panel** at 150 mm, or a bar at ≥200–225 mm (PL-06).

@@ -47,6 +47,7 @@ Coordinate heatsink/fan with [WI-ME-05](../04-mechanical/WI-ME-05-light-mount.md
 [WI-EE-02](WI-EE-02-power-budget.md).
 
 > **DR-01 gate status:** this WI closes the **thermal** half. The **photometric** half
-> ([WI-PL-06](../01-plant-science/WI-PL-06-photometric-model.md)) is *Not started*; the combined
-> DR-01 light-purchase / CAD-freeze go/no-go cannot be signed until it also passes. The grow-light
-> BOM entry therefore stays unfinalized (see [WI-EE-01](WI-EE-01-component-poc.md)).
+> ([WI-PL-06](../01-plant-science/WI-PL-06-photometric-model.md)) is now **Done — PASS**, so **both
+> halves of DR-01 now pass**. The light-purchase / CAD-freeze gate is clear, subject to choosing a
+> fixture that satisfies PL-06's uniformity at the intended clearance (panel @150 mm, or bar
+> @≥200–225 mm) — see [WI-EE-01](WI-EE-01-component-poc.md).

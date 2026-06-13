@@ -23,10 +23,10 @@ to a custom PCB. De-risk the parts, not the layout.
 - [ ] Pump (brushless DC submersible): flow (ml/s) + noise (dBA @1 m) measured (§7.3). *(24 V centrifugal selected; 30 s-cylinder + SPL protocol ready.)*
 - [ ] Fan (80/92 mm PWM): min reliable duty + noise measured (§7.4). *(92 mm 4-pin selected; PWM/tach sweep protocol ready.)*
 - [ ] LED dimming: PPFD map at 25/50/75/100% recorded (§7.2) using [WI-PL-02](../01-plant-science/WI-PL-02-light-dli-targets.md) calculator. *(Pending grow-light part + PAR meter + WI-PL-06.)*
-- [ ] Grow-light candidate meets §16.3 gating (real PPF/PPFD, dimming, spectrum, thermal data). *(Held on DR-01 — thermal half ✔ WI-EE-10, photometric half ⏳ WI-PL-06.)*
+- [x] Grow-light candidate meets §16.3 gating (real PPF/PPFD, dimming, spectrum, thermal data). *(DR-01 now PASS — thermal ✔ WI-EE-10, photometric ✔ WI-PL-06; panel candidate passes bom_check; bar needs ≥200 mm clearance.)*
 - [x] Grow-light BOM entry **not finalized** until the §23 DR-01 modeling gate passes
       ([WI-PL-06](../01-plant-science/WI-PL-06-photometric-model.md) photometric +
-      [WI-EE-10](WI-EE-10-thermal-budget-model.md) thermal). *(Deliberately deferred; carried in BOM as `LIGHT-TBD-DR01` placeholder.)*
+      [WI-EE-10](WI-EE-10-thermal-budget-model.md) thermal). *(Rule honored; gate now passes, so the entry can finalize — compliant panel candidate in BOM, final procurement pick outstanding.)*
 
 ## Acceptance criteria
 

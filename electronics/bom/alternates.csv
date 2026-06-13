@@ -6,5 +6,6 @@ Q1,Pump MOSFET alt,CSD18540,Texas Instruments,§7.10,,,,,,,higher current headro
 M1,Pump (12V),PMP-12-1m,generic,§7.3,,,,,,,uses 12V rail; size 12V buck >=2A
 LED_STATUS,Discrete RGB + driver,TLC59116,Texas Instruments,§7.11,,,,,,,I2C constant-current alt to WS2812 (avoids 5V data-level issue)
 U6,24->12V buck alt,LMR33630,Texas Instruments,§7.8,,,,,,,higher efficiency
-LED_BAR,Grow light (full-yield 100W),LIGHT-CANDIDATE-100W,generic-hort,§7.2/§16.3,100,220 PPFD @300mm (PPF ~220 umol/s),PWM + 0-10V,full-spectrum white 3500K + 660nm horticultural,remote heatsink driver; requires <=0.60 C/W heatsink (WI-EE-10),CE/UL listed,full-yield variant only; DR-01 GO-with-mitigation
+LED_PANEL,Grow light (full-yield 100W bar),LIGHT-CANDIDATE-100W,generic-hort,§7.2/§16.3,100,avg ~838 / min ~507 umol/m2/s @200mm unif 0.61 (PPF ~220 umol/s; bar form),PWM + 0-10V,full-spectrum white 3500K + 660nm horticultural,remote heatsink driver; requires <=0.60 C/W heatsink (WI-EE-10),CE/UL listed,full-yield variant only; DR-01 GO-with-mitigation; bar needs >=200mm clearance for >=0.6 unif (PL-06 cfg D)
+LED_PANEL,Grow light (compact bar alt),LIGHT-CANDIDATE-60W-BAR,generic-hort,§7.2/§16.3,60,avg ~513 / min ~327 umol/m2/s @225mm unif 0.64 (PPF ~150 umol/s; bar form),PWM + 0-10V,full-spectrum white 3500K + 660nm horticultural,remote heatsink driver,CE/UL listed,bar alternative to the panel; needs >=225mm clearance for >=0.6 unif (PL-06 cfg B)
 SEN2,Reservoir analog level,eTape-PN-12110215TC-12,Milone,§7.7,,,,,,,optional analog level on RES_LEVEL_ADC

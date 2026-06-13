@@ -51,9 +51,11 @@ These slot into CI alongside the existing `bom_check.py` gate (spec §10.5).
 - All §16.1 core-electronics rows present: MCU, temp/RH, moisture, reservoir, leak, fan driver, pump
   driver (logic-level + flyback + current sense), LED-driver interface, status LEDs, **battery-backed
   RTC** (DR-05), certified 24 V PSU, locking/keyed connectors.
-- **Grow light** carried as `LIGHT-CANDIDATE-60W` with full §16.3 data (power, PPFD/PPF, dimming,
-  horticultural spectrum, thermal mounting, cert) so the gate runs — **status `CANDIDATE-DR01-HOLD`:
-  not ordered** until the [WI-PL-06](../../../plan/work-items/01-plant-science/WI-PL-06-photometric-model.md)
-  photometric half of DR-01 passes (thermal half done, [WI-EE-10](../../analysis/WI-EE-10-thermal-budget-model.md)).
-  The 100 W full-yield candidate is in `alternates.csv`.
+- **Grow light** carried as `LIGHT-CANDIDATE-60W` (panel) with full §16.3 data (power, PPFD/PPF,
+  dimming, horticultural spectrum, thermal mounting, cert) so the gate runs — **status
+  `CANDIDATE-DR01-PASS`**: both halves of DR-01 now pass
+  ([WI-PL-06](../../../plan/work-items/01-plant-science/WI-PL-06-photometric-model.md) photometric +
+  [WI-EE-10](../../analysis/WI-EE-10-thermal-budget-model.md) thermal). PL-06 shows a **panel** meets
+  ≥0.6 uniformity at 150 mm; a bar needs ≥200–225 mm. The final procurement pick is outstanding; the
+  100 W full-yield bar and a compact bar alternative are in `alternates.csv`.
 - `python3 scripts/bom_check.py --strict electronics/bom/bom.csv` → **PASS**.

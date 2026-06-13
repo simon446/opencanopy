@@ -27,7 +27,7 @@ BOM (§16) needs. Alternates live in [alternates.csv](../bom/alternates.csv).
 | 6 | **Pump** | 24 V brushless DC submersible centrifugal, ≥1.0 m head, 80–240 L/h | <5 W typ, removable filter, 6/8 mm tubing | §7.3 preferred; quiet, continuous-rated |
 | 7 | **Pump current sense** | INA219 (I²C) or shunt + amp on pump rail | mA resolution on 24 V/12 V rail | §7.5 **required** in V1 (DR-04 — clog/dry-run detection) |
 | 8 | **Fan** | 92×92×25 mm 12 V PWM, fluid-dynamic bearing, 4-pin (PWM+tach) | 5–20 CFM, ≤20 dBA nominal | §7.4; dual-duty canopy + bay (per WI-EE-10) |
-| 9 | **Grow light** | *Candidate held* — full-spectrum white hort LED bar, 50–80 W, PWM/0–10 V dim, remote driver | PPF 140–220 µmol/s, PPE ≥2.5 | §7.2/§16.3 — **NOT finalized** (see §4) |
+| 9 | **Grow light** | Full-spectrum white hort LED **panel** (preferred at 150 mm clearance per PL-06), 50–80 W, PWM/0–10 V dim, remote driver | PPF 140–220 µmol/s, PPE ≥2.5 | §7.2/§16.3 — DR-01 now PASS; finalize per §4 |
 | 10 | **RTC** | DS3231SN (battery-backed, I²C) + CR2032 | ±2 ppm TCXO | §16.1 / DR-05; placed away from driver heat (WI-EE-10 §6) |
 | 11 | **Status LEDs** | 5 × WS2812B-2020 **or** 5 × discrete RGB + drivers | Dimmable, PWM night mode | §7.11; detailed in [WI-EE-09](WI-EE-09-status-led-board.md) |
 
@@ -59,20 +59,24 @@ M2-02,SHT40,SEN-SHT40,,,,,degC/%RH,,,
 M2-06,pump,PMP-24-1m,,,30s_run_1,,ml,,,
 ```
 
-## 4. Grow-light gate (do not finalize the BOM entry yet)
-
-Per the work item and §23 DR-01, the grow-light BOM entry is **held** until the modeling gate passes:
+## 4. Grow-light gate (§23 DR-01) — both halves now PASS
 
 - **Thermal half — DONE:** [WI-EE-10](WI-EE-10-thermal-budget-model.md) confirms 50–80 W is a clean
   GO and bounds the heatsink/fan the fixture must use; 100 W is full-yield-variant only.
-- **Photometric half — NOT started:** [WI-PL-06](../../plan/work-items/01-plant-science/WI-PL-06-photometric-model.md)
-  must show ≥0.6 uniformity and the §7.2 PPFD across the canopy at 150 mm clearance.
+- **Photometric half — DONE (PASS):** [WI-PL-06](../../plan/work-items/01-plant-science/WI-PL-06-photometric-model.md)
+  shows ≥0.6 uniformity and the §7.2 PPFD across the canopy. **Form-factor constraint:** a **panel**
+  meets uniformity at the 150 mm clearance target, while a single **bar** only reaches ≥0.6 at
+  ≥200–225 mm. The compact frame is height-constrained (DR-07), so the **panel form factor is
+  preferred**; a bar is acceptable only if the mechanical mount allows ≥200 mm clearance.
 - **§16.3 gate:** any candidate must publish real power draw, PPF/PPFD map, dimming method,
   horticultural spectrum, and thermal-mounting data — `scripts/bom_check.py` enforces this. No
   lumen-/"equivalent-watt"-only fixture passes.
 
-Until both halves pass, the BOM carries the light as a **placeholder with a `TBD-DR01` flag** so the
-automated check still runs but the part is not ordered (see [bom.csv](../bom/bom.csv) note).
+DR-01 is clear, so the light may now be **finalized** by selecting a real fixture that meets the §16.3
+data requirements **and** the PL-06 form-factor/clearance result. Pending that procurement pick, the
+BOM carries a compliant **panel candidate** (`LIGHT-CANDIDATE-60W`) referencing the
+[PL-06 PPFD maps](../../validation/ppfd-measurements/model/); the 100 W bar is the full-yield
+[alternate](../bom/alternates.csv) (needs ≥200 mm clearance).
 
 ## 5. Deliverable status
 
@@ -86,7 +90,7 @@ automated check still runs but the part is not ordered (see [bom.csv](../bom/bom
 | Pump selection + protocol | ✔ selection / ⏳ flow+noise log |
 | Fan selection + protocol | ✔ selection / ⏳ duty+noise log |
 | LED dim selection + protocol | ✔ selection / ⏳ PPFD map |
-| Grow-light §16.3 gating | held on DR-01 (thermal ✔ / photometric ⏳ PL-06) |
-| Grow-light BOM finalization | deliberately deferred (DR-01) |
+| Grow-light §16.3 gating | ✔ DR-01 PASS (thermal ✔ EE-10 / photometric ✔ PL-06); panel form preferred |
+| Grow-light BOM finalization | gate clear — panel candidate in BOM; final procurement pick outstanding |
 
 ⏳ = requires breadboard hardware (and, for PPFD, a PAR meter + the WI-PL-06 photometric model).
