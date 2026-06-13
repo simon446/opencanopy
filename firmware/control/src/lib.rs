@@ -27,6 +27,7 @@ pub mod math;
 pub mod hal;
 
 pub mod app_state;
+pub mod board;
 pub mod calibration;
 pub mod climate_controller;
 pub mod i2c_devices;

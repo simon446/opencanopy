@@ -21,7 +21,7 @@ use esp_hal::peripherals::Peripherals;
 use esp_hal::time::RateExtU32;
 use esp_println::println;
 
-use control::app_state::{App, AppConfig, SensorFrame};
+use control::app_state::{App, AppConfig};
 use control::calibration::Calibration;
 use control::hal::SensorError;
 use control::i2c_devices::{self as dev, DeviceError};
@@ -156,19 +156,19 @@ pub fn run(peripherals: Peripherals) -> ! {
         let moisture_raw: Result<u16, SensorError> =
             nb::block!(adc1.read_oneshot(&mut moisture_pin)).map_err(|_| SensorError::Bus);
         let pump_ma = dev::read_ina219_ma(&mut i2c, INA219_CURRENT_LSB_UA);
-        let reservoir_low = res_float_in.is_low(); // RES_LOW_SW closes (low) when reservoir is low
-        let leak = leak_in.is_high(); // active-high = leak
 
-        let frame = SensorFrame {
+        // Frame assembly + GPIO polarity live in the host-tested control::board helper; the newtype
+        // wrappers make the reservoir/leak booleans impossible to transpose here.
+        let frame = control::board::build_sensor_frame(
             now_ms,
             rtc,
             temp_rh,
             moisture_raw,
-            reservoir_low,
-            leak,
-            led_heat_c: None,
-            fan_tach_rpm: None,
-        };
+            control::board::ReservoirFloatLow(res_float_in.is_low()),
+            control::board::LeakPinHigh(leak_in.is_high()),
+            None,
+            None,
+        );
         let cmd = app.step(&frame);
 
         // --- Drive actuators through the REAL PWM channels ---
