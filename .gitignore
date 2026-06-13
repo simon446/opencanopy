@@ -63,3 +63,6 @@ htmlcov/
 *.bak1
 ~$*
 ApplicationCache/
+
+# Mechanical CAD virtualenv (build123d/OCP) — regenerate via cad/source/README.md
+.venv-cad/

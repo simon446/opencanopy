@@ -1,0 +1,21 @@
+ref,item,subsystem,qty,material,spec,removal,source,notes
+ME-POT,Pot 10 L tapered,pot,1,Food-safe PP/PE,250 mm top OD x 255 H; drain holes; ~9.7 L usable,Tool-free lift-out,Bought,8-10 L compact band (§3.3); fits 268 mm interior depth with 18 mm clearance
+ME-RES,Reservoir 4 L pull-out,reservoir,1,Food-safe PP/PETG,240x150x125 mm; ~4.1 L usable; hand-cleanable opening,Tool-free drawer,Bought or printed PETG,Low-level line at 25 mm; sits below pot deck (146<180 mm)
+ME-PUMP-CLIP,Pump retention clip,wet,1,PETG,Open-front C-cradle for 45 mm pump body; silicone iso pad,Tool-free,Printed,Rubber-isolated mount (§7.4/§8.7)
+ME-LEAK-TRAY,Leak tray,wet,1,PETG,440x300 mm; 24 mm rim; front overflow weir; sensor sump,n/a (fixed),Printed,Catches all water; feeds leak sensor (§17.1)
+ME-POT-TRAY,Pot tray,wet,1,PETG,400x262 mm; locating ring + gutter drains + downspout,n/a (fixed),Printed,Overflow falls to leak tray; pot kept out of standing water
+ME-DRY-BAY,Electronics dry bay,dry,1,PETG/ASA,420x170x92 mm tray; PCB + driver bosses; grommet entries,Lid lifts off (top),Printed,Serviced without opening wet bay (§8.4)
+ME-DRY-LID,Dry-bay lid,dry,1,PETG/ASA,420x170 mm with drop lip + vents,Tool-free,Printed,Splash protection (§8.5)
+ME-LIGHT-MOUNT,LED head carrier,light,1,ASA/ABS,Adjustable carrier; 6-step height row; tether eyelets,Tool (M3),Printed,Secondary retention; 150-300 mm clearance (§7.2/§8.6); LED head bought (Light track)
+ME-FAN-MOUNT,Fan mount + guard,grow,1,PETG/ASA,92 mm fan plate; integral finger guard; grommet bores,Tool (M3),Printed,Required guard; rubber grommets (§7.4)
+ME-CABLE-CH,Cable/tube channel,routing,1,PETG,Divided wire|tube channel; strain-relief slots,Tool (M3),Printed,Separates wiring from tube (§8.5)
+ME-TUBE-CLIP,Tube clip (8 mm),routing,4,PETG,Snap C-clip; 0.4 mm grip,Tool-free snap,Printed,Tubing inspectable/retained
+ME-CABLE-CLIP,Cable saddle clip,routing,6,PETG,Open-top saddle for wire bundle,Tool-free,Printed,Cable management (§16.2 cable clips)
+ME-SENSOR-CLIP,Moisture-probe clip,sensors,1,PETG,Replaceable clip at pot edge,Tool-free,Printed,Replaceable probe (§7.6/§8.4)
+ME-DIFFUSER,Status LED diffuser,ui,1,Frosted PETG/acrylic,140x14 mm; 5 light-pipe windows,Tool-free,Printed/cut,Front status UI (§3.4/§3.5)
+ME-FRAME-EXT,Frame uprights+rails,frame,1,Aluminium 20x20 extrusion,4 uprights @700 + top/mid/low rails,n/a,Bought + cut,Stable with full reservoir + plant (§16.2)
+ME-FASTEN,Fasteners (wet zone),fasteners,1,Stainless steel,M3 SHCS + heat-set inserts,n/a,Bought,Stainless near water (§8.3/§16.2)
+ME-TUBE,Tubing,wet,1,Silicone/PVC,6/8 mm food-safe; kink-resistant,Tool-free,Bought,Per §7.3/§16.2
+ME-GROMMET,Cable grommets,routing,3,Rubber,12 mm bore,Tool-free,Bought,Drip-loop entries (§8.5)
+ME-FAN-GROMMET,Fan iso grommets,grow,4,Rubber,Anti-vibration,Tool-free,Bought,Acoustic isolation (§8.7)
+ME-FEET,Levelling feet,frame,4,Rubber,15 mm,Tool-free,Bought,Decouple frame from surface
