@@ -21,11 +21,16 @@ path = "src/main.rs"
 [dependencies]
 control = { path = "../control" }
 
-esp-hal = { version = "0.23", features = ["esp32s3"] }
+# `unstable` is required in esp-hal 0.23 for the entry macro, timers, Delay, etc.
+esp-hal = { version = "0.23", features = ["esp32s3", "unstable"] }
 esp-backtrace = { version = "0.15", features = ["esp32s3", "panic-handler", "exception-handler", "println"] }
-esp-println = { version = "0.13", features = ["esp32s3", "uart"] }
+# esp-println's output is a one-of feature group (jtag-serial | uart | auto); disable the default
+# `auto` and pick `uart` explicitly so exactly one is enabled.
+esp-println = { version = "0.13", default-features = false, features = ["esp32s3", "uart"] }
 esp-storage = { version = "0.4", features = ["esp32s3"] }
 embedded-storage = "0.3"
+# Fixed-capacity Vec used by the calibration store binding (no alloc).
+heapless = "0.8"
 
 # Telemetry is optional and DEFAULT-OFF (§9.11): no control path may depend on it.
 esp-wifi = { version = "0.12", features = ["esp32s3", "wifi"], optional = true }

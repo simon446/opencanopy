@@ -45,7 +45,14 @@ host-testable logic in `control/` so contributors can run the unit/sim suite wit
   deliberately does **not** force the Xtensa target globally (that would break host `cargo test`);
   the target + `espflash` runner are set per-package in `controller/.cargo/config.toml`, plus an
   `esp` alias at the root.
-- Verified locally: `cargo test -p control -p sim` (97 tests) + `cargo clippy … -D warnings` + `cargo fmt --check`.
+- Verified locally: `cargo test -p control -p sim` (100 tests: 86 unit + 3 HAL-integration + 11
+  scenarios) + `cargo clippy … -D warnings` + `cargo fmt --check`.
 - CI: existing `firmware` job runs fmt/clippy/host tests; `firmware-target` job cross-compiles the
-  controller with the esp toolchain (non-blocking until bring-up). The Xtensa cross-compile itself
-  is verified in CI / at WI-EE-08 bring-up, not on this host.
+  controller with the esp toolchain.
+- **Controller cross-compile VERIFIED**: built clean for `xtensa-esp32s3-none-elf` with the
+  Espressif Rust channel (in the `espressif/idf-rust` container) — default, `emulator`, and
+  `telemetry` feature builds all link, producing a ~125 KB ELF. Required pinning the esp config:
+  `esp-println` to a single output feature (`uart`), `esp-hal`'s `unstable` feature, `build-std`
+  for the Xtensa target (no prebuilt `core` shipped), and `-Tlinkall.x` for esp-hal's linker
+  script. `control` itself compiles for the bare-metal target (confirming the no_std / no-esp-hal
+  boundary holds). On-hardware peripheral *behavior* is still verified at WI-EE-08 bring-up.

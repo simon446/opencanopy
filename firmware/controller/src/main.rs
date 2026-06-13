@@ -19,10 +19,15 @@
 #![no_std]
 #![no_main]
 
+// The real peripheral bindings exist only in the on-hardware build; the emulator build doesn't use
+// them (it synthesizes sensors), so gating them off keeps that build warning-clean.
+#[cfg(not(feature = "emulator"))]
 mod actuators;
+#[cfg(not(feature = "emulator"))]
 mod drivers;
 #[cfg(feature = "emulator")]
 mod emulator;
+#[cfg(not(feature = "emulator"))]
 mod sensors;
 
 use control::app_state::FIRMWARE_VERSION;
