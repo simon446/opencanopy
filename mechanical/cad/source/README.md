@@ -30,7 +30,9 @@ drawings.py          orthographic SVGs -> ../../drawings
 `build.py` also writes placed assembly meshes to `../../stl/assembly/` (every part in
 its assembly position, coarse tessellation). Those are the input for `render.py` and
 `collision_check.py`, and they let the Pages CI render the full build with only
-numpy/matplotlib/trimesh — no OpenCascade kernel needed.
+`trimesh` + `vtk` — no OpenCascade kernel needed. `render.py` uses VTK (a real
+z-buffered renderer) for correct occlusion + uniform faces + clean feature edges;
+in headless CI it runs on the `vtk-osmesa` wheel (software offscreen, no display).
 
 ## Toolchain setup (headless, no GUI)
 
@@ -40,10 +42,11 @@ Use [`uv`](https://github.com/astral-sh/uv) to get a self-contained interpreter:
 ```bash
 brew install uv                       # or: pipx install uv
 uv venv --python 3.12 .venv-cad
-uv pip install --python .venv-cad/bin/python build123d trimesh python-fcl rtree
+uv pip install --python .venv-cad/bin/python build123d trimesh python-fcl rtree vtk
 ```
 
-(`trimesh` + `python-fcl` are only needed for `collision_check.py`.)
+(`trimesh` + `python-fcl` are needed for `collision_check.py`; `trimesh` + `vtk` for
+`render.py`. In CI, swap `vtk` for the headless `vtk-osmesa` wheel.)
 
 `.venv-cad/` is git-ignored.
 

@@ -47,11 +47,17 @@ jobs:
         run: pip install --quiet mkdocs mkdocs-material
 
       - name: Render full-assembly views
-        # Lightweight (numpy + matplotlib + trimesh, headless) — reads the committed
-        # placed meshes in mechanical/stl/assembly/, no OpenCascade/build123d needed.
-        # Refreshes docs/assets/renders/*.png so the site always matches the geometry.
+        # Best-effort refresh: the VTK-rendered PNGs are committed and validated, so a
+        # headless-rendering hiccup never blocks the Pages deploy — the committed images
+        # are published as-is in that case.
+        continue-on-error: true
+        # Reads the committed placed meshes in mechanical/stl/assembly/ and renders
+        # them with VTK — a real z-buffered renderer (correct occlusion, uniform faces,
+        # clean feature edges). No OpenCascade/build123d needed. vtk-osmesa is the
+        # headless software-rendering wheel (no X server / GPU), so `import vtk` works
+        # offscreen in CI. Refreshes docs/assets/renders/*.png to match the geometry.
         run: |
-          pip install --quiet numpy matplotlib trimesh
+          pip install --quiet trimesh vtk-osmesa
           python mechanical/cad/source/render.py
 
       - name: Generate fallback mkdocs.yml if none committed

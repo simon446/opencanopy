@@ -1,113 +1,204 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: CERN-OHL-S-2.0
 """
-render.py — Sketch/wireframe renders of the FULL assembly from many angles.
+render.py — Sketch renders of the FULL assembly from many angles (VTK).
 
 Reads the committed placed assembly meshes (mechanical/stl/assembly/*.stl — every
-part in its assembly position) and renders shaded sketch views with edge lines, one
-per camera angle, into docs/assets/renders/. Each part gets a distinct colour + a
-legend so validators can identify and comment on it.
+part in its assembly position) and renders shaded views with clean silhouette/feature
+edges into docs/assets/renders/. A real z-buffered renderer (VTK) is used so there is
+correct occlusion (no painter's-algorithm "clipping") and flat, uniform face colour;
+feature-edge extraction draws only real edges/creases, not triangulation diagonals.
 
-Deliberately dependency-light (numpy + matplotlib + trimesh, headless Agg) so it runs
-in the Pages CI in seconds WITHOUT an OpenCascade kernel — the heavy build123d step
-already ran locally to produce the meshes.
+Each part gets a distinct colour + an on-image legend so reviewers can identify and
+comment on specific modules.
+
+Headless: VTK renders fully offscreen (no display). On Linux CI install the
+`vtk-osmesa` wheel instead of `vtk` (same `import vtk`, software OSMesa, no X server).
 
     .venv-cad/bin/python mechanical/cad/source/render.py
 """
 from pathlib import Path
 
-import numpy as np
 import trimesh
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import vtk
 
 HERE = Path(__file__).resolve()
 MESH_DIR = HERE.parents[2] / "stl" / "assembly"
 OUT = HERE.parents[2].parent / "docs" / "assets" / "renders"
 OUT.mkdir(parents=True, exist_ok=True)
 
-# Camera angles (name, elevation, azimuth). A spread of orthographic-ish + isometric.
+WIDTH, HEIGHT = 1180, 1000
+SMOOTH_ANGLE = 30.0      # below this, normals are smoothed (rounds the pot/cone)
+EDGE_ANGLE = 42.0        # only creases sharper than this draw an edge (hides facets)
+
+# Distinct per-part colours (RGB 0-1). Keys are the STL stems.
+PALETTE = {
+    "frame":                   (0.50, 0.52, 0.55),
+    "leak-tray":               (0.20, 0.55, 0.85),
+    "reservoir":               (0.15, 0.70, 0.75),
+    "pump-clip":               (0.10, 0.35, 0.65),
+    "pot-tray":                (0.55, 0.40, 0.80),
+    "pot":                     (0.55, 0.75, 0.35),
+    "fan-mount":               (0.95, 0.55, 0.15),
+    "cable-channel":           (0.85, 0.75, 0.20),
+    "status-diffuser":         (0.90, 0.40, 0.75),
+    "led-fixture":             (0.85, 0.25, 0.25),
+    "light-mount":             (0.95, 0.45, 0.45),
+    "electronics-dry-bay":     (0.30, 0.65, 0.45),
+    "electronics-dry-bay-lid": (0.65, 0.80, 0.70),
+}
+FALLBACK = (0.7, 0.7, 0.7)
+
+# Camera directions (unit-ish vector from focal point toward camera) + view-up.
+# Assembly frame: +X right, +Y back, +Z up; the open face is -Y (front).
 VIEWS = [
-    ("front",       12, -90),
-    ("right",       12,   0),
-    ("back",        12,  90),
-    ("iso-front-right", 24, -55),
-    ("iso-front-left",  24, -125),
-    ("top",         78, -90),
+    ("front",           (0, -1, 0),       (0, 0, 1)),
+    ("right",           (1, 0, 0),        (0, 0, 1)),
+    ("back",            (0, 1, 0),        (0, 0, 1)),
+    ("top",             (0, 0, 1),        (0, 1, 0)),
+    ("iso-front-right", (1, -1, 0.65),    (0, 0, 1)),
+    ("iso-front-left",  (-1, -1, 0.65),   (0, 0, 1)),
 ]
 
-LIGHT = np.array([0.4, -0.7, 0.8])
-LIGHT = LIGHT / np.linalg.norm(LIGHT)
-AMBIENT, DIFFUSE = 0.45, 0.55
+
+def _polydata(mesh):
+    pts = vtk.vtkPoints()
+    pts.SetNumberOfPoints(len(mesh.vertices))
+    for i, v in enumerate(mesh.vertices):
+        pts.SetPoint(i, float(v[0]), float(v[1]), float(v[2]))
+    cells = vtk.vtkCellArray()
+    for f in mesh.faces:
+        cells.InsertNextCell(3)
+        cells.InsertCellPoint(int(f[0]))
+        cells.InsertCellPoint(int(f[1]))
+        cells.InsertCellPoint(int(f[2]))
+    pd = vtk.vtkPolyData()
+    pd.SetPoints(pts)
+    pd.SetPolys(cells)
+    return pd
 
 
-def _load():
-    parts = {}
+def _square_symbol():
+    src = vtk.vtkPlaneSource()
+    src.Update()
+    return src.GetOutput()
+
+
+def _build_actors():
+    surf_actors, edge_actors, legend_items = [], [], []
     for f in sorted(MESH_DIR.glob("*.stl")):
-        parts[f.stem] = trimesh.load_mesh(str(f))
-    if not parts:
-        raise SystemExit(f"no meshes in {MESH_DIR} — run build.py first")
-    return parts
+        name = f.stem
+        color = PALETTE.get(name, FALLBACK)
+        pd = _polydata(trimesh.load_mesh(str(f)))
+
+        normals = vtk.vtkPolyDataNormals()
+        normals.SetInputData(pd)
+        normals.SetFeatureAngle(SMOOTH_ANGLE)
+        normals.SplittingOn()
+        normals.ConsistencyOn()
+        normals.Update()
+        smoothed = normals.GetOutput()
+
+        mp = vtk.vtkPolyDataMapper()
+        mp.SetInputData(smoothed)
+        mp.SetResolveCoincidentTopologyToPolygonOffset()
+        ac = vtk.vtkActor()
+        ac.SetMapper(mp)
+        p = ac.GetProperty()
+        p.SetColor(*color)
+        p.SetAmbient(0.32)
+        p.SetDiffuse(0.75)
+        p.SetSpecular(0.08)
+        surf_actors.append(ac)
+
+        fe = vtk.vtkFeatureEdges()
+        fe.SetInputData(pd)
+        fe.BoundaryEdgesOn()
+        fe.FeatureEdgesOn()
+        fe.SetFeatureAngle(EDGE_ANGLE)
+        fe.ManifoldEdgesOff()
+        fe.NonManifoldEdgesOff()
+        fe.Update()
+        emp = vtk.vtkPolyDataMapper()
+        emp.SetInputConnection(fe.GetOutputPort())
+        emp.SetResolveCoincidentTopologyToPolygonOffset()
+        ea = vtk.vtkActor()
+        ea.SetMapper(emp)
+        ea.GetProperty().SetColor(0.12, 0.12, 0.12)
+        ea.GetProperty().SetLineWidth(1.1)
+        edge_actors.append(ea)
+
+        legend_items.append((name, color))
+    return surf_actors, edge_actors, legend_items
 
 
-def _shaded_faces(tris, base_rgb):
-    """Per-triangle Lambert shading -> (N,4) RGBA."""
-    e1 = tris[:, 1] - tris[:, 0]
-    e2 = tris[:, 2] - tris[:, 0]
-    n = np.cross(e1, e2)
-    ln = np.linalg.norm(n, axis=1, keepdims=True)
-    ln[ln == 0] = 1.0
-    n = n / ln
-    inten = AMBIENT + DIFFUSE * np.clip(n @ LIGHT, 0, 1)
-    fc = np.clip(np.array(base_rgb)[None, :] * inten[:, None], 0, 1)
-    return np.concatenate([fc, np.ones((len(fc), 1))], axis=1)
+def _legend(items):
+    legend = vtk.vtkLegendBoxActor()
+    legend.SetNumberOfEntries(len(items))
+    sym = _square_symbol()
+    for i, (name, color) in enumerate(items):
+        legend.SetEntry(i, sym, name, list(color))
+    # fills its own (right-hand) viewport
+    legend.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
+    legend.GetPositionCoordinate().SetValue(0.04, 0.18)
+    legend.GetPosition2Coordinate().SetCoordinateSystemToNormalizedViewport()
+    legend.GetPosition2Coordinate().SetValue(0.92, 0.64)
+    legend.SetPadding(2)
+    legend.GetEntryTextProperty().SetFontSize(12)
+    return legend
 
 
 def main():
-    parts = _load()
-    names = list(parts)
-    cmap = plt.get_cmap("tab20")
-    colors = {nm: cmap(i % 20)[:3] for i, nm in enumerate(names)}
+    surf_actors, edge_actors, items = _build_actors()
+    if not items:
+        raise SystemExit(f"no meshes in {MESH_DIR} — run build.py first")
 
-    # global bounds for a consistent equal-aspect box across all views
-    allv = np.vstack([p.vertices for p in parts.values()])
-    lo, hi = allv.min(0), allv.max(0)
-    ctr = (lo + hi) / 2
-    span = (hi - lo).max() / 2 * 1.05
+    # 3D scene on the left ~82 % of the frame; legend in its own right-hand strip
+    # so it never overlaps the model.
+    ren = vtk.vtkRenderer()
+    ren.SetViewport(0.0, 0.0, 0.82, 1.0)
+    ren.SetBackground(1.0, 1.0, 1.0)
+    for a in surf_actors + edge_actors:
+        ren.AddActor(a)
 
-    # one combined triangle soup with per-face shaded colours (correct depth sort)
-    tri_list, col_list = [], []
-    for nm, mesh in parts.items():
-        t = mesh.triangles  # (F,3,3)
-        tri_list.append(t)
-        col_list.append(_shaded_faces(t, colors[nm]))
-    tris = np.concatenate(tri_list)
-    cols = np.concatenate(col_list)
+    lk = vtk.vtkLightKit()
+    lk.SetKeyLightIntensity(1.0)
+    lk.AddLightsToRenderer(ren)
 
-    legend = [Patch(facecolor=colors[nm], edgecolor="0.3", label=nm) for nm in names]
+    ren_leg = vtk.vtkRenderer()
+    ren_leg.SetViewport(0.82, 0.0, 1.0, 1.0)
+    ren_leg.SetBackground(1.0, 1.0, 1.0)
+    ren_leg.AddActor(_legend(items))
 
-    for name, elev, azim in VIEWS:
-        fig = plt.figure(figsize=(7.5, 8.0))
-        ax = fig.add_subplot(111, projection="3d")
-        pc = Poly3DCollection(tris, facecolors=cols,
-                              edgecolors=(0, 0, 0, 0.18), linewidths=0.15)
-        ax.add_collection3d(pc)
-        ax.set_xlim(ctr[0] - span, ctr[0] + span)
-        ax.set_ylim(ctr[1] - span, ctr[1] + span)
-        ax.set_zlim(ctr[2] - span, ctr[2] + span)
-        ax.set_box_aspect((1, 1, 1))
-        ax.view_init(elev=elev, azim=azim)
-        ax.set_axis_off()
-        ax.set_title(f"OpenCanopy V1 — {name}  (480 x 320 x 700 mm)", fontsize=10)
-        ax.legend(handles=legend, loc="center left", bbox_to_anchor=(0.98, 0.5),
-                  fontsize=6, frameon=False)
-        fig.savefig(OUT / f"assembly-{name}.png", dpi=110,
-                    bbox_inches="tight", pad_inches=0.1)
-        plt.close(fig)
+    rw = vtk.vtkRenderWindow()
+    rw.SetOffScreenRendering(1)
+    rw.AddRenderer(ren)
+    rw.AddRenderer(ren_leg)
+    rw.SetSize(WIDTH, HEIGHT)
+    rw.SetMultiSamples(8)          # anti-aliasing
+
+    cam = ren.GetActiveCamera()
+    cam.ParallelProjectionOn()     # clean technical / orthographic look
+
+    for name, direction, up in VIEWS:
+        cam.SetFocalPoint(0, 0, 0)
+        cam.SetPosition(*direction)
+        cam.SetViewUp(*up)
+        ren.ResetCamera()
+        cam.Zoom(1.05)
+        rw.Render()
+
+        w2i = vtk.vtkWindowToImageFilter()
+        w2i.SetInput(rw)
+        w2i.SetScale(1)
+        w2i.ReadFrontBufferOff()
+        w2i.Update()
+        wr = vtk.vtkPNGWriter()
+        wr.SetFileName(str(OUT / f"assembly-{name}.png"))
+        wr.SetInputConnection(w2i.GetOutputPort())
+        wr.Write()
         print(f"wrote assembly-{name}.png")
+
     print(f"rendered {len(VIEWS)} views -> {OUT.relative_to(HERE.parents[3])}")
 
 
