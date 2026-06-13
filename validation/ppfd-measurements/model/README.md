@@ -17,10 +17,10 @@ from a fixture's headline PPF spec sheet. Pairs with the thermal half,
 
 Reproduce with:
 
-```console
-$ python3 validation/ppfd-measurements/model/photometric_model.py            # report
-$ python3 validation/ppfd-measurements/model/photometric_model.py --csv validation/ppfd-measurements/model
-$ python3 validation/ppfd-measurements/model/photometric_model.py --selftest # CI physics checks
+```sh
+python3 validation/ppfd-measurements/model/photometric_model.py            # report
+python3 validation/ppfd-measurements/model/photometric_model.py --csv validation/ppfd-measurements/model
+python3 validation/ppfd-measurements/model/photometric_model.py --selftest # CI physics checks
 ```
 
 ---
