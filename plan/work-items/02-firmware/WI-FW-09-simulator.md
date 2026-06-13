@@ -43,3 +43,12 @@ reality matches the model.
   in `sim/tests/scenarios.rs` (all passing via `cargo test -p sim`). Models documented in
   `sim/models/README.md`, scenarios in `sim/scenarios/README.md`, both flagged for
   re-parameterization from bench data (WI-QA-09 / §23 DR-02) before gating a live grow.
+
+### Addendum — on-silicon emulator smoke test
+
+Beyond the host sim, an optional **Wokwi emulator smoke test** runs the *real firmware binary* on an
+emulated ESP32-S3 in CI (`controller/` `emulator` feature → `src/emulator.rs`; project under
+`controller/wokwi/`; non-blocking `emulator-smoke` CI job). It proves the binary boots, links
+esp-hal, and runs the genuine control loop without panicking — the integration layer neither the
+unit tests nor the host sim touch. It is a complement to, not a replacement for, HIL (WI-EE-08):
+analog signal fidelity stays with hardware. Authored by firmware; verified in CI/at bring-up.

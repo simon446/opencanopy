@@ -8,6 +8,10 @@
 //! on reset/brownout via a hardware gate pull-down (WI-EE-03) and the RWDT/brownout detector
 //! enabled below.
 //!
+//! Build with `--features emulator` to run the [`emulator`] smoke test instead of touching real
+//! peripherals — that path boots the genuine `App` + control loop on emulated silicon (Wokwi/QEMU)
+//! and prints serial telemetry for CI to assert on (`controller/wokwi/`).
+//!
 //! STATUS: the esp-hal peripheral calls here require the Espressif toolchain (espup) and on-board
 //! bring-up to verify against the real pin map (WI-EE-08). Pin assignments are owned by the
 //! electronics track; the structure and the control-loop sequencing are what this file pins down.
@@ -17,20 +21,13 @@
 
 mod actuators;
 mod drivers;
+#[cfg(feature = "emulator")]
+mod emulator;
 mod sensors;
 
-use control::app_state::{App, AppConfig, SensorFrame};
-use control::hal::{
-    Clock as _, Fan as _, GrowLed as _, LeakSensor as _, MoistureSensor as _, Pump as _,
-    ReservoirSensor as _, Rtc as _, TempRhSensor as _,
-};
-use control::led_status;
+use control::app_state::FIRMWARE_VERSION;
 use esp_backtrace as _;
-
-/// Control-loop period (§9.6: checks every 5 minutes).
-const TICK_MS: u64 = 5 * 60_000;
-/// Fixed local UTC offset (configured at manufacture; V1 has no DST).
-const UTC_OFFSET_S: i32 = 0;
+use esp_println::println;
 
 #[esp_hal::main]
 fn main() -> ! {
@@ -40,6 +37,35 @@ fn main() -> ! {
         cfg.cpu_clock = esp_hal::clock::CpuClock::max();
         cfg
     });
+
+    // Boot banner over UART — the first observable sign of life (and the Wokwi smoke-test anchor).
+    println!("=== OpenCanopy firmware v{FIRMWARE_VERSION} (ESP32-S3) ===");
+
+    #[cfg(feature = "emulator")]
+    {
+        // Emulator smoke test: run the real control loop with synthesized sensors. Diverges.
+        let _ = peripherals;
+        emulator::run();
+    }
+
+    #[cfg(not(feature = "emulator"))]
+    run_on_hardware(peripherals)
+}
+
+/// The real on-hardware control loop (§9.4 boot + 5-min control cycle).
+#[cfg(not(feature = "emulator"))]
+fn run_on_hardware(peripherals: esp_hal::peripherals::Peripherals) -> ! {
+    use control::app_state::{App, AppConfig, SensorFrame};
+    use control::hal::{
+        Clock as _, Fan as _, GrowLed as _, LeakSensor as _, MoistureSensor as _, Pump as _,
+        ReservoirSensor as _, Rtc as _, TempRhSensor as _,
+    };
+    use control::led_status;
+
+    /// Control-loop period (§9.6: checks every 5 minutes).
+    const TICK_MS: u64 = 5 * 60_000;
+    /// Fixed local UTC offset (configured at manufacture; V1 has no DST).
+    const UTC_OFFSET_S: i32 = 0;
 
     // Brownout + watchdog: pump must die safe on power sag / hang (§9.4, §11.4). esp-hal enables
     // the brownout detector by default; arm the RWDT and feed it each loop.
@@ -79,7 +105,11 @@ fn main() -> ! {
             rtc: platform.rtc.wall_time(),
             temp_rh: platform.temp_rh.read(),
             moisture_raw: platform.moisture.read_raw(),
-            reservoir_low: platform.reservoir.read_adc().map(|adc| adc < platform.reservoir_low_adc).unwrap_or(true),
+            reservoir_low: platform
+                .reservoir
+                .read_adc()
+                .map(|adc| adc < platform.reservoir_low_adc)
+                .unwrap_or(true),
             leak: platform.leak.is_wet(),
             led_heat_c: platform.led_heat(),
             fan_tach_rpm: platform.fan.tach_rpm(),

@@ -1,0 +1,14 @@
+# Wokwi CLI scenario for the emulator smoke test.
+# The firmware must boot, print its banner, run the full simulated-day control loop, and print the
+# completion sentinel — all without panicking (the CI command adds `--fail-text "panicked"`).
+name: OpenCanopy ESP32-S3 emulator smoke test
+version: 1
+author: OpenCanopy Firmware track
+
+steps:
+  # Sign of life: the boot banner from main.rs.
+  - wait-serial: "OpenCanopy firmware"
+  # The real App booted with valid calibration.
+  - wait-serial: "calibration=valid"
+  # The control loop ran a full simulated day and finished cleanly.
+  - wait-serial: "EMULATOR SMOKE TEST COMPLETE"

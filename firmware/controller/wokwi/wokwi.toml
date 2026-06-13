@@ -1,0 +1,11 @@
+# Wokwi project for the ESP32-S3 emulator smoke test (run by the `emulator-smoke` CI job).
+# Build the firmware first with the emulator feature:
+#   cd firmware/controller && cargo build --release --features emulator
+# then run from this directory:
+#   wokwi-cli --timeout 30000 --fail-text "panicked" --scenario scenario.yaml .
+#
+# Paths are relative to this file (firmware/controller/wokwi/).
+[wokwi]
+version = 1
+firmware = "../target/xtensa-esp32s3-none-elf/release/controller"
+elf = "../target/xtensa-esp32s3-none-elf/release/controller"

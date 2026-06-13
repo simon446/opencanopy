@@ -36,6 +36,10 @@ default = []
 telemetry = ["dep:esp-wifi"]
 # Mirror of control's transplant build flag (§5.1).
 transplant_profile = ["control/transplant_profile"]
+# Emulator smoke-test build: runs the real App + control loop on emulated silicon (Wokwi/QEMU)
+# with synthesized sensors and serial telemetry, instead of touching real peripherals. See
+# src/emulator.rs and controller/wokwi/.
+emulator = []
 
 [profile.release]
 opt-level = "s"
