@@ -77,7 +77,7 @@ dependencies = [
  "esp-println",
  "esp-storage",
  "esp-wifi",
- "heapless",
+ "nb 1.1.0",
 ]
 
 [[package]]

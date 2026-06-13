@@ -28,8 +28,8 @@ esp-backtrace = { version = "0.15", features = ["esp32s3", "panic-handler", "exc
 esp-println = { version = "0.13", default-features = false, features = ["esp32s3", "uart"] }
 esp-storage = { version = "0.4", features = ["esp32s3"] }
 embedded-storage = "0.3"
-# Fixed-capacity Vec used by the calibration store binding (no alloc).
-heapless = "0.8"
+# `nb::block!` for the one-shot ADC read.
+nb = "1.1"
 
 # Telemetry is optional and DEFAULT-OFF (§9.11): no control path may depend on it.
 esp-wifi = { version = "0.12", features = ["esp32s3", "wifi"], optional = true }
