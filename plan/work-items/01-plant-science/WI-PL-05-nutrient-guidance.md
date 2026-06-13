@@ -6,7 +6,7 @@
 | Milestone | (supports M1, docs) |
 | Depends on | WI-PL-01 |
 | Spec refs | §5.7, §5.8 |
-| Status | Not started |
+| Status | Done |
 
 ## Objective
 
@@ -15,11 +15,11 @@ written grow-guide deliverable, not a control loop.
 
 ## Deliverables
 
-- [ ] Manual feeding schedule: complete pepper/tomato fertilizer, low-strength start, K-supported
+- [x] Manual feeding schedule: complete pepper/tomato fertilizer, low-strength start, K-supported
       fruiting feed after fruit set, monthly flush if soluble + drainage (§5.7).
-- [ ] Slow-release-plus-plain-water option documented as the simplest operation path.
-- [ ] Potting-mix pH target 6.0–6.8; optional manual test guidance (§5.8).
-- [ ] Optional hydroponic-variant appendix: solution pH 5.5–6.0, root-zone 6.0–6.5, EC 0.8–1.8 mS/cm,
+- [x] Slow-release-plus-plain-water option documented as the simplest operation path.
+- [x] Potting-mix pH target 6.0–6.8; optional manual test guidance (§5.8).
+- [x] Optional hydroponic-variant appendix: solution pH 5.5–6.0, root-zone 6.0–6.5, EC 0.8–1.8 mS/cm,
       with the caveat that pH/EC automation is out of V1 scope.
 
 ## Acceptance criteria

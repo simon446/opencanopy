@@ -6,7 +6,7 @@
 | Milestone | M1.5-01 (new pre-order gate — §23 DR-01) |
 | Depends on | WI-PL-02 |
 | Spec refs | §7.2, §5.2, §23 (DR-01) |
-| Status | Not started |
+| Status | Done |
 
 ## Objective
 
@@ -18,14 +18,14 @@ pre-order modeling gate.
 
 ## Deliverables
 
-- [ ] Photometric model (multi-emitter inverse-square + frame/wall reflectance) producing a predicted
+- [x] Photometric model (multi-emitter inverse-square + frame/wall reflectance) producing a predicted
       PPFD map across the 300–400 × 220–300 mm canopy at the planned light-to-canopy clearance
-      (≥150 mm, §7.2), per candidate fixture and dim level.
-- [ ] Predicted **average PPFD**, **min/avg uniformity**, and **DLI** at the planned photoperiod
+      (≥150 mm, §7.2), per candidate fixture and dim level. (`validation/ppfd-measurements/model/photometric_model.py`)
+- [x] Predicted **average PPFD**, **min/avg uniformity**, and **DLI** at the planned photoperiod
       (using the [WI-PL-02](WI-PL-02-light-dli-targets.md) calculator) for each candidate.
-- [ ] Sensitivity sweep vs clearance (150–250 mm) and canopy growth (plant rises toward the light over
+- [x] Sensitivity sweep vs clearance (150–250 mm) and canopy growth (plant rises toward the light over
       the cycle).
-- [ ] Go/no-go recommendation per candidate fixture, recorded in `validation/ppfd-measurements/model/`.
+- [x] Go/no-go recommendation per candidate fixture, recorded in `validation/ppfd-measurements/model/`. (`README.md` + PPFD-map CSVs)
 
 ## Acceptance criteria
 

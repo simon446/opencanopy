@@ -6,7 +6,7 @@
 | Milestone | M1-01 |
 | Depends on | WI-PS-04 |
 | Spec refs | §5.1, §5.2, §2 (research basis) |
-| Status | Not started |
+| Status | Done |
 
 ## Objective
 
@@ -15,12 +15,12 @@ that the firmware encodes as a fixed, no-config recipe.
 
 ## Deliverables
 
-- [ ] `docs/plant-profile-hot-pepper.md` containing:
-  - [ ] Stage table S0–S5 with durations and triggers (spec §5.1).
-  - [ ] Per-stage environmental targets: temp, RH, VPD, DLI, photoperiod, PPFD (spec §5.2).
-  - [ ] Explicit note that stage detection is **time-based** (no camera) and reset via service button.
-  - [ ] `TRANSPLANT_PROFILE` build-flag behavior (skip S0/S1) documented.
-- [ ] Each target value cited back to a source ID (R1–R17) from spec §2.2.
+- [x] `docs/plant-profile-hot-pepper.md` containing:
+  - [x] Stage table S0–S5 with durations and triggers (spec §5.1).
+  - [x] Per-stage environmental targets: temp, RH, VPD, DLI, photoperiod, PPFD (spec §5.2).
+  - [x] Explicit note that stage detection is **time-based** (no camera) and reset via service button.
+  - [x] `TRANSPLANT_PROFILE` build-flag behavior (skip S0/S1) documented.
+- [x] Each target value cited back to a source ID (R1–R17) from spec §2.2.
 
 ## Acceptance criteria
 

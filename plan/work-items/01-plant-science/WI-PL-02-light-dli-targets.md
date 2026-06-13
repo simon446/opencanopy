@@ -6,7 +6,7 @@
 | Milestone | M1-02 |
 | Depends on | WI-PL-01 |
 | Spec refs | §2.1, §5.2 (DLI formula), §7.2 |
-| Status | Not started |
+| Status | Done |
 
 ## Objective
 
@@ -15,11 +15,11 @@ and photoperiod so the light fixture and firmware can be sized correctly.
 
 ## Deliverables
 
-- [ ] `scripts/dli_calculator.py` implementing `DLI = PPFD × hours × 0.0036` and its inverse.
-  - [ ] Given a target DLI + photoperiod, output required average PPFD.
-  - [ ] Given fixture PPF + canopy area, estimate delivered PPFD.
-- [ ] Per-stage DLI/PPFD target table (seedling → fruiting) documented and cross-checked vs §5.2.
-- [ ] Worked example reproducing spec §5.2 (23 mol·m⁻²·day⁻¹, 16 h → ≈399 µmol·m⁻²·s⁻¹).
+- [x] `scripts/dli_calculator.py` implementing `DLI = PPFD × hours × 0.0036` and its inverse.
+  - [x] Given a target DLI + photoperiod, output required average PPFD.
+  - [x] Given fixture PPF + canopy area, estimate delivered PPFD.
+- [x] Per-stage DLI/PPFD target table (seedling → fruiting) documented and cross-checked vs §5.2. (`docs/dli-targets.md`)
+- [x] Worked example reproducing spec §5.2 (23 mol·m⁻²·day⁻¹, 16 h → ≈399 µmol·m⁻²·s⁻¹). (asserted in `--selftest`)
 
 ## Acceptance criteria
 
