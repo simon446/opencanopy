@@ -90,13 +90,23 @@ jobs:
   firmware-target:
     name: Firmware — ESP32-S3 cross-compile (esp-hal)
     runs-on: ubuntu-latest
-    # Installing the Espressif Xtensa Rust channel is heavy; keep on-target builds non-blocking until
-    # the controller crate lands and the Firmware track opts this into required checks.
+    # Installing the Espressif Xtensa Rust channel is heavy (~5 min), so only run the cross-compile
+    # when the controller crate actually changes (or on a manual dispatch). Non-blocking.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+      - name: Filter — did controller/ change?
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            controller:
+              - 'firmware/controller/**'
+              - '.github/workflows/ci.yml'
       - name: Detect controller crate
         id: detect
+        # Build only when controller/ changed, or when manually dispatched.
+        if: steps.changes.outputs.controller == 'true' || github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           if [ -f firmware/controller/Cargo.toml ]; then
