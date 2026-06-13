@@ -11,8 +11,8 @@ firmware (`no_std`, `esp-hal`) on an ESP32-S3.
 📖 **Docs site:** <https://simon446.github.io/opencanopy/> · 🧩 **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · ⚖️ **Licensing:** [`LICENSES/`](LICENSES/)
 
 The project is built **work item by work item**, organized by engineering discipline. The full
-engineering plan and the per-discipline work-item breakdown live in `plan/`, which is independently
-version-controlled and **gitignored** by this repo — it is the design source, not a build artifact.
+engineering plan and the per-discipline work-item breakdown live in [`plan/`](plan/) — the design
+source for the build (engineering spec + work items), tracked alongside the implementation in this repo.
 
 ## Project status
 
@@ -33,7 +33,7 @@ version-controlled and **gitignored** by this repo — it is the design source, 
 | Contributing & workflow | [`CONTRIBUTING.md`](CONTRIBUTING.md); issue/PR templates in [`.github/`](.github/) |
 | Licensing (per asset type) | [`LICENSES/`](LICENSES/) |
 | Implementation subtrees | [`firmware/`](firmware/), [`electronics/`](electronics/), [`mechanical/`](mechanical/), [`validation/`](validation/), [`scripts/`](scripts/) |
-| Work items & engineering spec (design source) | `plan/` — separate, gitignored repo |
+| Work items & engineering spec (design source) | [`plan/`](plan/) — engineering spec + per-discipline work items |
 
 ## Scope
 
