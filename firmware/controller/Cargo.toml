@@ -24,11 +24,10 @@ control = { path = "../control" }
 # `unstable` is required in esp-hal 0.23 for the entry macro, timers, Delay, etc.
 esp-hal = { version = "0.23", features = ["esp32s3", "unstable"] }
 esp-backtrace = { version = "0.15", features = ["esp32s3", "panic-handler", "exception-handler", "println"] }
-# esp-println's output is a one-of feature group (jtag-serial | uart | auto). Keep the default
-# `auto`, which selects the USB-Serial-JTAG console on the ESP32-S3 — that's the console Wokwi's S3
-# board monitors (and what real esp-rs Wokwi examples rely on). Picking `uart` (UART0) instead made
-# the emulator's serial invisible to Wokwi.
-esp-println = { version = "0.13", features = ["esp32s3"] }
+# esp-println's output is a one-of feature group (jtag-serial | uart | auto). Wokwi's ESP32-S3
+# board monitors UART0, so force `uart` (default-features off to avoid the `auto` default, which
+# selects USB-Serial-JTAG on the S3 and is invisible to Wokwi's monitor).
+esp-println = { version = "0.13", default-features = false, features = ["esp32s3", "uart"] }
 esp-storage = { version = "0.4", features = ["esp32s3"] }
 embedded-storage = "0.3"
 # Fixed-capacity Vec used by the calibration store binding (no alloc).

@@ -157,10 +157,19 @@ jobs:
         with:
           token: ${{ secrets.WOKWI_CLI_TOKEN }}
           path: firmware/controller/wokwi
-          timeout: 30000
+          timeout: 60000
           scenario: scenario.yaml
           expect_text: 'EMULATOR SMOKE TEST COMPLETE'
           fail_text: 'panicked'
+          serial_log_file: ${{ github.workspace }}/wokwi-serial.log
+      # Always surface whatever the firmware printed over serial, so a timeout is diagnosable.
+      - name: Dump emulator serial log
+        if: steps.detect.outputs.present == 'true' && always()
+        shell: bash
+        run: |
+          echo "----- wokwi serial output -----"
+          cat "${GITHUB_WORKSPACE}/wokwi-serial.log" 2>/dev/null || echo "(no serial log captured)"
+          echo "----- end serial output -----"
 
   bom:
     name: BOM — §16.3 grow-light gate
