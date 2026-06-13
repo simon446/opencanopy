@@ -1,42 +1,48 @@
 # controller/wokwi/ — ESP32-S3 emulator smoke test
 
-A **smoke test** that runs the real firmware binary on an emulated ESP32-S3 (Wokwi), as a CI-level
-complement to the host unit tests and the `sim/` logic simulator. It proves the binary **boots,
-links esp-hal, and runs the genuine control loop without panicking on emulated silicon**, with
-serial output asserted by the Wokwi CLI.
+A **manual, on-silicon smoke test**: runs the real firmware binary (real esp-hal drivers) on an
+emulated ESP32-S3 (Wokwi) and asserts on its serial output. It complements — does not replace — the
+cheap host validation (`cargo test -p control`, incl. the I2C mock-bus tests) and the xtensa
+cross-compile. Full analog/water fidelity stays with HIL (WI-EE-08).
 
-This is *not* a replacement for hardware-in-the-loop. The emulator does not reproduce analog signal
-fidelity (capacitive-moisture ADC curves, pump current, fan-tach timing) — that stays with WI-EE-08
-bring-up / WI-QA-05 fault injection.
+> **Wokwi runs cost cloud-simulation minutes**, so this is a **manual** CI job (`workflow_dispatch`)
+> and should be run sparingly. Validate driver logic with `cargo test` first.
 
-## What it does
+## What the diagram exercises
 
-The `emulator` Cargo feature (`src/emulator.rs`) boots the real `control::app_state::App` with a
-valid calibration and runs ~1 simulated day of the 5-min control loop, driven by synthesized
-sensors (moisture dries out → triggers watering → recovers), printing telemetry over UART. The
-Wokwi scenario waits for the boot banner, confirms calibration loaded, and waits for the completion
-sentinel; the CI command fails the run on any `panicked` text.
+`diagram.json` wires (to the committed pin map):
 
-## Run locally (needs the esp toolchain + a Wokwi token)
+- **Native DS1307 RTC** on I2C0 (SDA=GPIO8, SCL=GPIO9) — a stand-in for the DS3231 (same 0x68
+  address + BCD time registers). Proves the **real I2C bus + `read_ds3231` driver** end-to-end.
+- **4.7 kΩ I2C pull-ups** to 3V3 (per pin-map note) on SDA/SCL.
+- **Moisture voltage-divider** on the ADC pin (GPIO4).
+- **UART0 → serial monitor** wiring (required for Wokwi to capture output).
 
-```sh
-cd firmware/controller
-cargo build --release --features emulator       # -> target/xtensa-esp32s3-none-elf/release/controller
-export WOKWI_CLI_TOKEN=...                       # from https://wokwi.com (free for open source)
-curl -L https://wokwi.com/ci/install.sh | sh     # installs wokwi-cli
-cd wokwi
-wokwi-cli --timeout 30000 --fail-text "panicked" --scenario scenario.yaml .
+## Expected result (validated)
+
+```
+boot: state=NORMAL rtc_valid=true            <- I2C bus + RTC driver work on silicon
+[t=0m] … [t=35m]  stage=S2 light=1 led=61%   <- light schedule running off the valid RTC
+REAL-DRIVER SMOKE TEST COMPLETE: ran 8 ticks
 ```
 
-## CI
+`temp`/`pump_mA` read `-99`/`-1` because the SHT40 and INA219 are absent (no native Wokwi parts),
+and the firmware correctly **fail-safes to SENSOR_FAULT** — the §7.6 behavior, shown on silicon.
 
-The `emulator-smoke` job in [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) builds
-the ELF with the esp toolchain and runs the scenario. It is **non-blocking** (`continue-on-error`)
-and self-skips with a NOTICE if `WOKWI_CLI_TOKEN` is not configured as a repo secret.
+Known limitation: Wokwi's ESP32-S3 **ADC** simulation does not return the divider voltage, so
+`moist` reads invalid (`-1`). The ADC read + moisture-calibration logic is already host-tested
+(`control::calibration`, `irrigation_controller::MoistureValidator`); validating the analog probe
+itself is an HIL task. SHT40/INA219 could be added as Wokwi **custom chips** (Rust→WASM, I2C device
+API) for fuller bus coverage — deferred since the driver logic is host-tested with mocks.
 
-## Status / honesty
+## Run
 
-Authored by the firmware track but **not verified on the host** (no Xtensa toolchain offline). It is
-proven the first time it runs in CI with a token, or at bring-up. The board model is minimal (just
-the dev board + serial monitor); modeling the analog sensors as Wokwi custom chips for closed-loop
-emulation is a possible later step — though closed-loop behavior is already covered better by `sim/`.
+```sh
+cd firmware/controller && cargo build --release --features emulator
+export WOKWI_CLI_TOKEN=...            # from https://wokwi.com/dashboard/ci
+cd wokwi
+wokwi-cli --timeout 45000 --expect-text "REAL-DRIVER SMOKE TEST COMPLETE" --fail-text "panicked" .
+```
+
+CI: the manual `emulator-smoke` job in [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml)
+(`workflow_dispatch` only).

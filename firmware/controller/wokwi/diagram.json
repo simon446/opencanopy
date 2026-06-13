@@ -3,17 +3,31 @@
   "author": "OpenCanopy Firmware track",
   "editor": "wokwi",
   "parts": [
-    {
-      "type": "board-esp32-s3-devkitc-1",
-      "id": "esp",
-      "top": 0,
-      "left": 0,
-      "attrs": { "flashSize": "8" }
-    }
+    { "type": "board-esp32-s3-devkitc-1", "id": "esp", "top": 0, "left": 0, "attrs": { "flashSize": "8" } },
+    { "type": "wokwi-ds1307", "id": "rtc", "top": -120, "left": 180, "attrs": { "initTime": "2026-06-14T08:30:00" } },
+    { "type": "wokwi-resistor", "id": "rpu_sda", "top": -60, "left": 120, "attrs": { "value": "4700" } },
+    { "type": "wokwi-resistor", "id": "rpu_scl", "top": -30, "left": 120, "attrs": { "value": "4700" } },
+    { "type": "wokwi-resistor", "id": "rdiv_top", "top": 120, "left": 120, "attrs": { "value": "10000" } },
+    { "type": "wokwi-resistor", "id": "rdiv_bot", "top": 150, "left": 120, "attrs": { "value": "10000" } }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
-    [ "esp:RX", "$serialMonitor:TX", "", [] ]
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+
+    [ "esp:8", "rtc:SDA", "green", [] ],
+    [ "esp:9", "rtc:SCL", "green", [] ],
+    [ "rtc:5V", "esp:5V", "red", [] ],
+    [ "rtc:GND", "esp:GND.1", "black", [] ],
+
+    [ "rpu_sda:1", "esp:8", "green", [] ],
+    [ "rpu_sda:2", "esp:3V3.1", "red", [] ],
+    [ "rpu_scl:1", "esp:9", "green", [] ],
+    [ "rpu_scl:2", "esp:3V3.1", "red", [] ],
+
+    [ "rdiv_top:1", "esp:3V3.2", "red", [] ],
+    [ "rdiv_top:2", "esp:4", "blue", [] ],
+    [ "rdiv_bot:1", "esp:4", "blue", [] ],
+    [ "rdiv_bot:2", "esp:GND.2", "black", [] ]
   ],
   "serialMonitor": { "display": "terminal", "convertEol": true },
   "dependencies": {}

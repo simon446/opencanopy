@@ -139,9 +139,11 @@ pub fn run(peripherals: Peripherals) -> ! {
     println!("=== OpenCanopy real-driver loop (ESP32-S3) ===");
     println!("boot: state={} rtc_valid={}", app.state().name(), boot_rtc.valid);
 
-    // Timing: fast virtual ticks under `emulator` (for Wokwi), real 5-min cadence otherwise.
+    // Timing: a short fast run under `emulator` (for the Wokwi/CI smoke test — absent-device I2C
+    // NAKs are slow under emulation, so a full simulated day won't finish in the CI timeout; a
+    // handful of ticks proves boot + drivers + loop). Real 5-min cadence otherwise.
     #[cfg(feature = "emulator")]
-    let (tick_ms, total_ticks, real_delay_ms) = (5u64 * 60_000, 288u64, 15u64);
+    let (tick_ms, total_ticks, real_delay_ms) = (5u64 * 60_000, 8u64, 5u64);
     #[cfg(not(feature = "emulator"))]
     let (tick_ms, total_ticks, real_delay_ms) = (5u64 * 60_000, u64::MAX, 5u64 * 60_000);
 
@@ -174,7 +176,7 @@ pub fn run(peripherals: Peripherals) -> ! {
         let _ = fan_pwm.set_duty(cmd.fan_pct);
         let _ = grow_pwm.set_duty(cmd.led_pct);
 
-        if tick % 12 == 0 {
+        {
             println!(
                 "[t={}m] stage={} state={} light={} led={}% fan={}% pump={} moist={} temp={} pump_mA={}",
                 now_ms / 60_000,
