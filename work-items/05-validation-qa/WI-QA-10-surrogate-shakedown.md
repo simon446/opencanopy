@@ -22,14 +22,13 @@ days, not after a lost four-month cycle (§23 DR-03).
       fan, logging, and fault handling end to end.
 - [ ] Shakedown report in `validation/grow-trials/shakedown-001/`: control/hardware issues found and
       fixed before the pepper trial starts.
-- [ ] ≥2 pepper units run in parallel for WI-QA-07 where hardware allows (n>1), **or** a documented
-      justification (and risk-register entry) if only one unit is available.
+- [ ] Build and run **2 pepper units in parallel** for WI-QA-07 (n=2 — project decision 2026-06-13).
 
 ## Acceptance criteria
 
 - A surrogate shakedown completes with **no unresolved control/hardware/safety issue** before WI-QA-07
   begins — this is the gate on the long trial.
-- WI-QA-07 runs with n>1, or the single-unit risk is explicitly accepted in `docs/risk-register.md`.
+- WI-QA-07 runs with **2 parallel units (n=2)**.
 
 ## Notes
 
