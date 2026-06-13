@@ -7,5 +7,7 @@
 # Paths are relative to this file (firmware/controller/wokwi/).
 [wokwi]
 version = 1
+# Wokwi boots the bare app ELF directly (it synthesizes the flash layout), per the esp-generate
+# template. Serial reaches the monitor via the diagram's esp:TX -> $serialMonitor wiring (UART0).
 firmware = "../target/xtensa-esp32s3-none-elf/release/controller"
 elf = "../target/xtensa-esp32s3-none-elf/release/controller"

@@ -66,3 +66,6 @@ ApplicationCache/
 
 # Mechanical CAD virtualenv (build123d/OCP) — regenerate via cad/source/README.md
 .venv-cad/
+
+# Locally-generated Wokwi flash image (CI builds + boots the ELF directly)
+firmware/controller/wokwi/firmware.bin

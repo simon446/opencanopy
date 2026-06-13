@@ -122,10 +122,12 @@ jobs:
   emulator-smoke:
     name: Firmware — ESP32-S3 emulator smoke test (Wokwi)
     runs-on: ubuntu-latest
-    # Runs the real firmware binary on emulated silicon as a boot/loop smoke test (complements the
-    # host unit tests + sim). Non-blocking; full signal fidelity stays with HIL (WI-EE-08).
-    # Self-skips if WOKWI_CLI_TOKEN is not configured (e.g. on forks).
-    continue-on-error: true
+    # MANUAL ONLY: this job installs the Xtensa toolchain, builds the firmware, and runs a Wokwi
+    # cloud simulation — too expensive to run on every push. Trigger on demand from the Actions tab
+    # ("Run workflow") or `gh workflow run ci.yml`. It runs the real firmware binary on emulated
+    # silicon as a boot/loop smoke test (complements the host unit tests + sim); full signal
+    # fidelity stays with HIL (WI-EE-08). Self-skips if WOKWI_CLI_TOKEN is not configured.
+    if: github.event_name == 'workflow_dispatch'
     env:
       WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
     steps:
