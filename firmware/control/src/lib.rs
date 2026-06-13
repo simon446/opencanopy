@@ -28,6 +28,7 @@ pub mod hal;
 
 pub mod app_state;
 pub mod calibration;
+pub mod i2c_devices;
 pub mod climate_controller;
 pub mod irrigation_controller;
 pub mod led_status;
