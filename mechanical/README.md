@@ -23,11 +23,15 @@ Frame, bays, mounts, and printable parts for OpenCanopy. Owned by the **Mechanic
 ## Regenerate artifacts
 
 ```bash
-.venv-cad/bin/python mechanical/cad/source/build.py        # STEP + STL
-.venv-cad/bin/python mechanical/cad/source/verify.py       # §12.1 numbers
-.venv-cad/bin/python mechanical/cad/source/drawings.py     # SVG views
-.venv-cad/bin/python scripts/stl_check.py --dir mechanical/stl   # CI manifold gate
+.venv-cad/bin/python mechanical/cad/source/build.py            # STEP + STL
+.venv-cad/bin/python mechanical/cad/source/verify.py           # §12.1 numbers
+.venv-cad/bin/python mechanical/cad/source/collision_check.py  # FCL worst-case interference sim
+.venv-cad/bin/python mechanical/cad/source/drawings.py         # SVG views
+.venv-cad/bin/python scripts/stl_check.py --dir mechanical/stl # CI manifold gate
 ```
+
+The interference sim (`collision_check.py`) runs FCL on the real models with a
+configurable printer error margin — see `tolerance-analysis.md`.
 
 ## Key constraints
 

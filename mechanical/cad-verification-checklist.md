@@ -35,6 +35,7 @@ CAD verification: PASS
 | 10 | Tool access checked | ✅ | Reservoir, pump and pot are tool-free; only heat-set/screw bosses need a driver, all reachable from the open front/top. |
 | 11 | Center of gravity (full reservoir + plant) | ✅ | CG at 305 mm = 44 % of height; water + media + pot dominate and sit low → bottom-heavy/stable. |
 | 12 | Drip/leak path checked | ✅ | Pot overflow → pot-tray gutter → downspout → leak tray → sensor sump. Reservoir overflow → front weir (away from rear/upper electronics). |
+| 13 | Interference / clearance (worst case) | ✅ | `collision_check.py` (FCL on the real models): zero collisions; every clearance ≥2 mm, survives a 1.0 mm worst-case FDM closure budget. Details in `tolerance-analysis.md`. |
 
 ## "Water fails downward; electronics live upward" (§6.2)
 

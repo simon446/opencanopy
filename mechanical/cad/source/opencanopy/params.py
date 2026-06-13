@@ -138,6 +138,9 @@ FAN_HOLE_PITCH = 82.5            # 92 mm fan mounting-hole pitch (80 mm -> 71.5)
 FAN_GROMMET_DIA = 6.0            # rubber isolation grommet bore
 FAN_BORE = 88.0                  # airflow bore through mount plate
 FAN_GUARD_RING = 5.0             # guard wire/ring thickness (required, §7.4)
+# Fan height + its rear support cross-rail. Kept above the pot rim (441 mm) so the
+# guard clears the pot and circulates the canopy rather than sitting beside the pot.
+FAN_MOUNT_Z = POT_DECK_Z + 340   # 520 mm
 
 # --------------------------------------------------------------------------- #
 # 9. Cable & tube routing (spec §8.5; WI-ME-07)

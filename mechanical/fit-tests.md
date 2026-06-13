@@ -5,6 +5,13 @@ then record results here and fold the winning clearances back into
 `cad/source/opencanopy/params.py`. Coupons are graded (a few values bracketing the
 nominal) so you can pick what fits your printer/material.
 
+> **Note:** the *assembly* fit risk is already retired by simulation — see
+> [`tolerance-analysis.md`](tolerance-analysis.md). Every clearance fit has ≥2 mm gap
+> and survives a worst-case FDM error band (validated with FCL on the real models).
+> These coupons therefore **confirm the process band** (does *this* printer fall
+> within the assumed 0.3 mm growth / 0.2 mm position?) rather than discover fits — one
+> coupon print validates the whole assembly.
+
 ## Coupon set (the seven §12.2 coupons)
 
 | Coupon (STL) | Tests | Graded values |

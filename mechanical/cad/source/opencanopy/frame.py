@@ -34,8 +34,9 @@ def build_frame():
         cx = (xl + xr) / 2
         cy = (yf + yb) / 2
 
-        def rail_x(z):  # rail running along X (front and back)
-            for y in (yf, yb):
+        def rail_x(z, front=True):  # rail running along X (front and/or back)
+            ys = (yf, yb) if front else (yb,)
+            for y in ys:
                 with Locations((cx, y, z)):
                     Box(span_x, e, e)  # default align = CENTER on all axes
 
@@ -49,15 +50,21 @@ def build_frame():
         rail_x(top_z)
         rail_y(top_z)
 
-        # --- mid deck-support ring at the pot deck --------------------------
+        # --- mid deck-support ring at the pot deck (OPEN FRONT for pot access) --
         deck_z = P.POT_DECK_Z - e / 2
-        rail_x(deck_z)
+        rail_x(deck_z, front=False)
         rail_y(deck_z)
 
-        # --- lower ring just above the feet to stiffen the wet bay ----------
+        # --- lower ring above the feet (OPEN FRONT so the reservoir drawer
+        #     can be pulled straight out the service face) --------------------
         low_z = P.WET_BAY_FLOOR_Z + e / 2
-        rail_x(low_z)
+        rail_x(low_z, front=False)
         rail_y(low_z)
+
+        # --- rear cross-rail at the fan height (gives the fan mount a member to
+        #     bolt to and stiffens the open rear) ----------------------------
+        with Locations((cx, yb, P.FAN_MOUNT_Z)):
+            Box(span_x, e, e)
     frame.part.label = "frame"
     return frame.part
 

@@ -18,8 +18,14 @@ from .util import CX, CENTER_MIN
 BAY_W = 420.0
 BAY_D = 170.0
 BAY_WALL = 3.0
-# rear-back placement: back face near the rear uprights
-BAY_BACK_Y = P.ENV_D - P.UPRIGHT_INSET          # 314
+LID_T = 3.0
+# Walls stop one lid-thickness short of the bay top so the lid sits flush in a
+# rebate (no interpenetration with the rim, and the unit stays within 700 mm).
+BAY_BODY_H = 92.0 - LID_T
+# Rear-biased placement, but kept INSIDE the top rail ring so the bay drops into
+# the frame opening instead of poking through the back/side rails. The back top
+# rail inner face is at (ENV_D - inset - extrusion/2); leave a 2 mm gap to it.
+BAY_BACK_Y = P.ENV_D - P.UPRIGHT_INSET - P.EXTRUSION - 2       # 292 (clears back-rail inner face 294)
 BAY_CY = BAY_BACK_Y - BAY_D / 2                  # centre Y in assembly frame
 
 
@@ -36,10 +42,10 @@ def _pcb_holes(z, dia, depth, mode):
 
 def build_dry_bay():
     with BuildPart() as bay:
-        # --- tray: floor + 4 walls, open top -------------------------------
-        Box(BAY_W, BAY_D, P.DRY_BAY_H, align=CENTER_MIN)
+        # --- tray: floor + 4 walls, open top (walls stop short for lid rebate) ---
+        Box(BAY_W, BAY_D, BAY_BODY_H, align=CENTER_MIN)
         with Locations((0, 0, BAY_WALL)):
-            Box(BAY_W - 2 * BAY_WALL, BAY_D - 2 * BAY_WALL, P.DRY_BAY_H,
+            Box(BAY_W - 2 * BAY_WALL, BAY_D - 2 * BAY_WALL, BAY_BODY_H,
                 align=CENTER_MIN, mode=Mode.SUBTRACT)
 
         # --- PCB standoffs (heat-set M3) -----------------------------------

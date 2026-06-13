@@ -22,8 +22,10 @@ BAR_T = 12.0
 ARM_LEN = 70.0
 N_ADJ_HOLES = 6                   # height-adjustment steps on each arm
 ADJ_PITCH = 15.0                  # 6 steps x 15 mm ~= 75 mm of travel
-# nominal carrier height: fixture underside ~170 mm above the canopy
-FIXTURE_UNDERSIDE_Z = 600.0
+# Nominal (highest) carrier height. Set so the carrier top clears the dry-bay
+# floor (608 mm): underside 594 + 12 mm bar = 606 mm. Still gives 153 mm clearance
+# above the pot rim (>=150 mm, §8.6); lower positions add more.
+FIXTURE_UNDERSIDE_Z = 594.0
 
 
 def build_light_mount():
@@ -37,18 +39,20 @@ def build_light_mount():
                     Cylinder(radius=P.SCREW_BOSS_OD / 2, height=8, align=CENTER_MIN)
                     Cylinder(radius=P.HEATSET_M3_DIA / 2, height=9,
                              align=CENTER_MIN, mode=Mode.SUBTRACT)
-        # two rear arms reaching toward the uprights, with an adjustment hole row
+        # two rear arms reaching toward the uprights, with an adjustment hole row.
+        # Everything is anchored to local z 0..BAR_T so the carrier never rises
+        # above the bar (keeps it clear of the dry-bay floor above).
         for sx in (-1, 1):
             ax = sx * (BAR_W / 2 - 17)
-            with Locations((ax, 34 / 2 + ARM_LEN / 2, BAR_T / 2)):
-                Box(34, ARM_LEN, BAR_T, align=(CENTER_MIN[0], CENTER_MIN[1], 1))
+            with Locations((ax, 34 / 2 + ARM_LEN / 2, 0)):
+                Box(34, ARM_LEN, BAR_T, align=CENTER_MIN)
             for i in range(N_ADJ_HOLES):
                 hy = 34 / 2 + 16 + i * ADJ_PITCH
-                with Locations((ax, hy, BAR_T / 2)):
-                    Cylinder(radius=P.PCB_HOLE_DIA / 2, height=BAR_T * 2,
+                with Locations((ax, hy, -1)):
+                    Cylinder(radius=P.PCB_HOLE_DIA / 2, height=BAR_T + 2,
                              align=CENTER_MIN, mode=Mode.SUBTRACT)
             # secondary-retention tether eyelet at each arm end
-            with Locations((ax, 34 / 2 + ARM_LEN, BAR_T / 2)):
+            with Locations((ax, 34 / 2 + ARM_LEN, 0)):
                 Cylinder(radius=6, height=BAR_T, align=CENTER_MIN)
                 Cylinder(radius=P.LED_RETENTION_DIA / 2, height=BAR_T + 1,
                          align=CENTER_MIN, mode=Mode.SUBTRACT)

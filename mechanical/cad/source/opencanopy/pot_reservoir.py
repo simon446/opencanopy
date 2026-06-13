@@ -66,9 +66,10 @@ def place_pot(part):
 
 
 def place_reservoir(part):
-    # front-loaded drawer: front wall near the open face, sitting on wet-bay floor
+    # front-loaded drawer: front wall near the open face; RESTS ON the cradle rails
+    # (tray floor 3 mm + rail 6 mm) so its base is lifted off any tray water film.
     y = (P.RES_D / 2) + 24                       # leave 24 mm front gutter
-    return Pos(CX, y, P.WET_BAY_FLOOR_Z + 6) * part
+    return Pos(CX, y, P.WET_BAY_FLOOR_Z + 3 + 6) * part
 
 
 if __name__ == "__main__":

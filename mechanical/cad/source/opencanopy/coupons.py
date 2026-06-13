@@ -24,15 +24,20 @@ def _base(w, d, h=6.0):
 
 
 def snap_fit():
-    """Cantilever snap finger with a hook lip — tests flex without cracking."""
+    """Cantilever snap finger with a hook lip — tests flex without cracking.
+
+    Sized so the deflection-to-assemble stays within PETG's allowable bending strain:
+    beam t=2.5 mm, free length L=18 mm, hook undercut y=1.2 mm gives
+    eps = 3*y*t/(2*L^2) = 1.4 % (< ~2-3 % allowable). See tolerance-analysis.md."""
+    t, L, undercut = 2.5, 18.0, 1.2
     with BuildPart() as c:
         _base(40, 20)
-        # cantilever finger standing up from the base
+        # cantilever finger standing up from the base (t in the bending direction = X)
         with Locations((0, 0, 6)):
-            Box(3.0, 16, 18, align=(CENTER_MIN[0], CENTER_MIN[1], 1))
-        # hook lip at the tip (overhangs +Y)
-        with Locations((0, 8, 6 + 16)):
-            Box(3.0, 4, 4, align=(CENTER_MIN[0], CENTER_MIN[1], 1))
+            Box(t, 12, L, align=CENTER_MIN)
+        # hook lip at the tip (overhangs +X by the undercut)
+        with Locations((t / 2, 0, 6 + L - 3)):
+            Box(2 * undercut, 12, 3, align=CENTER_MIN)
     c.part.label = "coupon-snap-fit"
     return c.part
 

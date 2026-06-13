@@ -25,9 +25,15 @@ Validate print tolerances with coupons, then build and document the first full a
 
 ## Acceptance criteria
 
-- Coupons pass §12.2 acceptance (no cracking, no excessive force, survive 40 °C). ⏳ **PENDING physical
-  print** — coupons are modelled, exported, and manifold-clean (CI `stl_check`); the §12.2 gate is run
-  during the alpha build (jointly with the Validation track).
+- **Fit risk retired by simulation.** `cad/source/collision_check.py` runs the real models through
+  **FCL** (python-fcl) with a configurable worst-case error margin: zero interferences, every clearance
+  ≥2 mm, surviving a 1.0 mm typical-FDM closure budget (and a 1.6 mm harsh band). It also caught + fixed
+  8 real interferences in the first model. See `mechanical/tolerance-analysis.md`. The coupons are now a
+  one-print **process-band confirmation**, not a fit discovery.
+- Coupons pass §12.2 acceptance (no cracking, no excessive force, survive 40 °C). ⏳ Dimensional fits
+  validated by sim; snap-fit strain within PETG allowable (1.4 %); 40 °C warp covered by material
+  selection (PETG/ASA Tg ≫ 40 °C). Remaining physical confirmation runs during the alpha build (with
+  the Validation track).
 - Assembly feasible (spec §15.6 M5-09). ⏳ Design demonstrates feasibility (envelope + clearances +
   tool-free service all verified in `cad-verification-checklist.md`; assembly order in `alpha-build.md`);
   physical confirmation pending the build.

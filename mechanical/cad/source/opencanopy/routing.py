@@ -17,7 +17,10 @@ from build123d import Box, BuildPart, Cylinder, Locations, Mode, Pos, Rotation
 from . import params as P
 from .util import CX, CENTER_MIN
 
-CH_LEN = P.DRY_BAY_FLOOR_Z - P.POT_DECK_Z      # spans the grow zone
+# Channel runs from just above the pot tray (so its base clears the tray rim) up to
+# the dry-bay floor where it delivers the harness into the grommet entries.
+CH_BASE_Z = P.POT_DECK_Z + 30                  # 30 mm above the deck (clears tray rim)
+CH_LEN = P.DRY_BAY_FLOOR_Z - CH_BASE_Z         # spans the grow zone
 W = P.CABLE_CH_W
 D = P.CABLE_CH_D
 T = P.CABLE_CH_WALL
@@ -111,9 +114,9 @@ def build_status_diffuser():
 
 # --- assembly placement ----------------------------------------------------- #
 def place_cable_channel(part):
-    # against the back-right upright, inside face
+    # against the back-right upright, inside face; base raised above the pot tray
     x = P.ENV_W - P.UPRIGHT_INSET - P.EXTRUSION - (2 * W + 3 * T) / 2
-    return Pos(x, P.ENV_D - P.UPRIGHT_INSET - P.EXTRUSION, P.POT_DECK_Z) * part
+    return Pos(x, P.ENV_D - P.UPRIGHT_INSET - P.EXTRUSION, CH_BASE_Z) * part
 
 
 def place_status_diffuser(part):

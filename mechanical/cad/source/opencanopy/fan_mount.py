@@ -64,9 +64,10 @@ def build_fan_mount():
 
 
 def place_fan_mount(part):
-    # high at the rear, offset to the right so airflow crosses (not blasts) canopy
-    return Pos(P.ENV_W / 2 + 80, P.ENV_D - P.UPRIGHT_INSET - PLATE_T,
-               P.POT_DECK_Z + 300) * Rotation(90, 0, 0) * part
+    # high at the rear, offset to the right so airflow crosses (not blasts) canopy;
+    # bolts to the rear cross-rail at FAN_MOUNT_Z (frame.py)
+    return Pos(P.ENV_W / 2 + 80, P.ENV_D - P.UPRIGHT_INSET - P.EXTRUSION - PLATE_T,
+               P.FAN_MOUNT_Z) * Rotation(90, 0, 0) * part
 
 
 if __name__ == "__main__":

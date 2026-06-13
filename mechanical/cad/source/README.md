@@ -22,6 +22,7 @@ opencanopy/
   assembly.py        full assembly + §12.1 checks         (WI-ME-01)
 build.py             export STEP (../step) + STL (../../stl)
 verify.py            compute §12.1 verification numbers
+collision_check.py   FCL worst-case interference sim on the real models
 drawings.py          orthographic SVGs -> ../../drawings
 ```
 
@@ -33,8 +34,10 @@ Use [`uv`](https://github.com/astral-sh/uv) to get a self-contained interpreter:
 ```bash
 brew install uv                       # or: pipx install uv
 uv venv --python 3.12 .venv-cad
-uv pip install --python .venv-cad/bin/python build123d
+uv pip install --python .venv-cad/bin/python build123d trimesh python-fcl rtree
 ```
+
+(`trimesh` + `python-fcl` are only needed for `collision_check.py`.)
 
 `.venv-cad/` is git-ignored.
 
