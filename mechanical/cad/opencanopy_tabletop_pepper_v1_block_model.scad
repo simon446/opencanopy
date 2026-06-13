@@ -102,16 +102,6 @@ module led_driver()   { translate([iso_x + iso_t/2 + 14, 226, wall_t + 6]) cube(
 module power_input()  { translate([iso_x + iso_t/2 + 14, 26, wall_t + 6]) cube([90, 56, 30]); }
 module electronics_bay() { pcb(); led_driver(); power_input(); }
 
-// quiet fan — upper rear-right (square plate + circular bore)
-module fan_mount() {
-    fs = 60; ft = 15; bore = 50;
-    translate([390, env_d - ft - 2, 470]) rotate([-90, 0, 0])
-        difference() {
-            translate([-fs/2, -fs/2, 0]) cube([fs, fs, ft]);
-            translate([0, 0, -1]) cylinder(h = ft + 2, d = bore);
-        }
-}
-
 // front LED status diffuser (4 LEDs behind a frosted strip; no screen/controls)
 module status_led_diffuser() {
     dw = 120; dh = 16; dd = 6;
@@ -135,7 +125,6 @@ module assembly() {
     color([0.15,0.45,0.25]) pcb();
     color([0.28,0.28,0.30]) led_driver();
     color([0.45,0.45,0.48]) power_input();
-    color([0.55,0.55,0.58]) fan_mount();
     color([0.35,0.80,0.55]) status_led_diffuser();
     color([0.85,0.72,0.25]) cable_channel();
 }
@@ -152,6 +141,5 @@ else if (part == "reservoir")  reservoir_placeholder();
 else if (part == "pcb")        pcb();
 else if (part == "driver")     led_driver();
 else if (part == "power")      power_input();
-else if (part == "fan")        fan_mount();
 else if (part == "status")     status_led_diffuser();
 else if (part == "cable")      cable_channel();

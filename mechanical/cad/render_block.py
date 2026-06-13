@@ -43,7 +43,6 @@ PARTS_DEF = {
     "pcb":        ("controller PCB",        (0.15, 0.55, 0.30)),
     "driver":     ("LED driver",            (0.30, 0.30, 0.33)),
     "power":      ("power input (24 V)",    (0.55, 0.55, 0.60)),
-    "fan":        ("fan",                   (0.50, 0.60, 0.70)),
     "status":     ("status LEDs (front)",   (0.30, 0.82, 0.55)),
     "cable":      ("cable channel",         (0.85, 0.72, 0.25)),
 }
@@ -52,7 +51,7 @@ PARTS_DEF = {
 EXPECTED_CONTACT = {
     frozenset(("frame", "base")), frozenset(("iso_wall", "base")),
     frozenset(("pot", "base")), frozenset(("led_bar", "frame")),
-    frozenset(("cable", "frame")), frozenset(("fan", "frame")),
+    frozenset(("cable", "frame")),
     frozenset(("status", "base")), frozenset(("cable", "base")),
 }
 
@@ -65,7 +64,7 @@ VIEWS = [  # name, camera-direction (from focal pt), view-up, parts to hide
     ("block-iso-back",  (1, 1, 0.5),    (0, 0, 1), ()),
     ("block-top",       (0, 0, 1),      (0, 1, 0), ()),
     ("block-base",      (0.5, -1, 0.45), (0, 0, 1),
-        ("base", "pot", "frame", "led_bar", "cable", "fan", "status")),
+        ("base", "pot", "frame", "led_bar", "cable", "status")),
 ]
 EDGE_ANGLE = 40.0
 
