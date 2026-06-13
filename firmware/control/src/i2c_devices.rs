@@ -46,7 +46,10 @@ pub fn sht40_parse(resp: &[u8; 6]) -> Option<TempRh> {
     // Datasheet conversions.
     let temp_c = -45.0 + 175.0 * (t_raw as f32) / 65535.0;
     let rh = -6.0 + 125.0 * (rh_raw as f32) / 65535.0;
-    Some(TempRh { temp_c, rh_pct: crate::math::clampf(rh, 0.0, 100.0) })
+    Some(TempRh {
+        temp_c,
+        rh_pct: crate::math::clampf(rh, 0.0, 100.0),
+    })
 }
 
 // ==================================================================================== DS3231 ====
@@ -67,8 +70,9 @@ fn bcd_to_dec(b: u8) -> u32 {
 fn days_from_civil(y: i64, m: u32, d: u32) -> i64 {
     let y = if m <= 2 { y - 1 } else { y };
     let era = (if y >= 0 { y } else { y - 399 }) / 400;
-    let yoe = (y - era * 400) as i64; // [0, 399]
-    let doy = ((153 * (if m > 2 { m - 3 } else { m + 9 }) as i64 + 2) / 5 + d as i64 - 1) as i64;
+    let yoe = y - era * 400; // [0, 399]
+    let mp = (if m > 2 { m - 3 } else { m + 9 }) as i64;
+    let doy = (153 * mp + 2) / 5 + d as i64 - 1; // [0, 365]
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy; // [0, 146096]
     era * 146097 + doe - 719468
 }
@@ -101,7 +105,10 @@ pub fn ds3231_parse(time_regs: &[u8; 7], status_reg: u8) -> WallTime {
     if unix < 0 {
         WallTime::INVALID
     } else {
-        WallTime { valid: true, unix_s: unix as u64 }
+        WallTime {
+            valid: true,
+            unix_s: unix as u64,
+        }
     }
 }
 
@@ -140,6 +147,91 @@ pub fn ina219_calibration(current_lsb_ua: u32, r_shunt_milliohm: u32) -> u16 {
     } else {
         (40_960_000u64 / denom).min(0xFFFF) as u16
     }
+}
+
+// ============================================================================ BUS DRIVERS =======
+//
+// The full I2C *driving* logic (transaction sequences: address, write command, read registers,
+// parse) lives here, generic over a minimal [`I2cBus`] trait so it is host-testable with a mock
+// bus. `controller/` provides a thin adapter implementing `I2cBus`/`DelayMs` for the esp-hal `I2c`
+// and `Delay` — no logic there. This keeps `control` dependency-free (no `embedded-hal`) while still
+// validating addressing, register reads, NAK handling, and parsing in cheap `cargo` tests.
+
+/// Minimal blocking I2C controller interface (mirrors the embedded-hal shape). `controller/` impls
+/// this for esp-hal's `I2c`; tests impl it for a mock device bus.
+pub trait I2cBus {
+    type Error;
+    fn write(&mut self, addr: u8, bytes: &[u8]) -> Result<(), Self::Error>;
+    fn read(&mut self, addr: u8, buf: &mut [u8]) -> Result<(), Self::Error>;
+    fn write_read(&mut self, addr: u8, bytes: &[u8], buf: &mut [u8]) -> Result<(), Self::Error>;
+}
+
+/// Minimal blocking millisecond delay (for the SHT40 conversion wait).
+pub trait DelayMs {
+    fn delay_ms(&mut self, ms: u32);
+}
+
+/// Why a device transaction failed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeviceError {
+    /// Bus-level failure (NAK / device absent / wiring).
+    Bus,
+    /// Device responded but the payload was invalid (CRC / implausible).
+    Protocol,
+}
+
+/// Read SHT40 temp/RH: write the high-precision measure command, wait for the conversion, read the
+/// 6-byte response, CRC-check and convert. A missing device (NAK) → `Bus`; a bad CRC → `Protocol`.
+pub fn read_sht40<I: I2cBus, D: DelayMs>(
+    i2c: &mut I,
+    delay: &mut D,
+) -> Result<TempRh, DeviceError> {
+    i2c.write(SHT40_ADDR, &[SHT40_CMD_MEASURE_HIGH])
+        .map_err(|_| DeviceError::Bus)?;
+    delay.delay_ms(10);
+    let mut buf = [0u8; 6];
+    i2c.read(SHT40_ADDR, &mut buf)
+        .map_err(|_| DeviceError::Bus)?;
+    sht40_parse(&buf).ok_or(DeviceError::Protocol)
+}
+
+/// Read the DS3231 wall clock: timekeeping registers from 0x00 + the status register (OSF bit).
+/// Any bus error (or OSF/implausible time) yields [`WallTime::INVALID`] → safe-schedule fallback.
+pub fn read_ds3231<I: I2cBus>(i2c: &mut I) -> WallTime {
+    let mut t = [0u8; 7];
+    if i2c
+        .write_read(DS3231_ADDR, &[DS3231_REG_SECONDS], &mut t)
+        .is_err()
+    {
+        return WallTime::INVALID;
+    }
+    let mut status = [0u8; 1];
+    if i2c
+        .write_read(DS3231_ADDR, &[DS3231_REG_STATUS], &mut status)
+        .is_err()
+    {
+        return WallTime::INVALID;
+    }
+    ds3231_parse(&t, status[0])
+}
+
+/// Program the INA219 calibration register (required before current reads are meaningful, §7.5).
+pub fn init_ina219<I: I2cBus>(
+    i2c: &mut I,
+    current_lsb_ua: u32,
+    r_shunt_milliohm: u32,
+) -> Result<(), DeviceError> {
+    let cal = ina219_calibration(current_lsb_ua, r_shunt_milliohm).to_be_bytes();
+    i2c.write(INA219_ADDR, &[INA219_REG_CALIBRATION, cal[0], cal[1]])
+        .map_err(|_| DeviceError::Bus)
+}
+
+/// Read the INA219 CURRENT register → mA (pump dry-run / clog detection). `None` on bus error.
+pub fn read_ina219_ma<I: I2cBus>(i2c: &mut I, current_lsb_ua: u32) -> Option<i32> {
+    let mut buf = [0u8; 2];
+    i2c.write_read(INA219_ADDR, &[INA219_REG_CURRENT], &mut buf)
+        .ok()?;
+    Some(ina219_current_ma(i16::from_be_bytes(buf), current_lsb_ua))
 }
 
 #[cfg(test)]
@@ -242,5 +334,158 @@ mod tests {
     fn ina219_calibration_value() {
         // 100 µA LSB, 100 mΩ shunt → cal = 40_960_000 / (100*100) = 4096.
         assert_eq!(ina219_calibration(100, 100), 4096);
+    }
+
+    // ====================================================== BUS-DRIVER INTEGRATION TESTS =========
+    //
+    // A mock I2C bus that simulates the three real devices on the shared bus, so the full driver
+    // transaction sequences (address, command, register read, parse, NAK) run in `cargo` — no
+    // hardware, no Wokwi.
+
+    struct MockBus {
+        sht40: Option<[u8; 6]>,        // None = device absent (NAK)
+        ds3231: Option<([u8; 7], u8)>, // (time regs, status reg)
+        ina219_current: Option<i16>,   // None = absent
+        ina219_cal: Option<u16>,       // last calibration written
+        writes: Vec<(u8, Vec<u8>)>,    // recorded writes
+    }
+    impl MockBus {
+        fn new() -> Self {
+            MockBus {
+                sht40: None,
+                ds3231: None,
+                ina219_current: None,
+                ina219_cal: None,
+                writes: Vec::new(),
+            }
+        }
+    }
+    impl I2cBus for MockBus {
+        type Error = ();
+        fn write(&mut self, addr: u8, bytes: &[u8]) -> Result<(), ()> {
+            self.writes.push((addr, bytes.to_vec()));
+            match addr {
+                SHT40_ADDR => self.sht40.map(|_| ()).ok_or(()),
+                DS3231_ADDR => self.ds3231.map(|_| ()).ok_or(()),
+                INA219_ADDR => {
+                    self.ina219_current.ok_or(())?;
+                    if bytes.len() == 3 && bytes[0] == INA219_REG_CALIBRATION {
+                        self.ina219_cal = Some(u16::from_be_bytes([bytes[1], bytes[2]]));
+                    }
+                    Ok(())
+                }
+                _ => Err(()),
+            }
+        }
+        fn read(&mut self, addr: u8, buf: &mut [u8]) -> Result<(), ()> {
+            match addr {
+                SHT40_ADDR => {
+                    let r = self.sht40.ok_or(())?;
+                    buf[..6].copy_from_slice(&r);
+                    Ok(())
+                }
+                _ => Err(()),
+            }
+        }
+        fn write_read(&mut self, addr: u8, bytes: &[u8], buf: &mut [u8]) -> Result<(), ()> {
+            match (addr, bytes.first().copied()) {
+                (DS3231_ADDR, Some(DS3231_REG_SECONDS)) => {
+                    let (t, _) = self.ds3231.ok_or(())?;
+                    buf[..7].copy_from_slice(&t);
+                    Ok(())
+                }
+                (DS3231_ADDR, Some(DS3231_REG_STATUS)) => {
+                    let (_, s) = self.ds3231.ok_or(())?;
+                    buf[0] = s;
+                    Ok(())
+                }
+                (INA219_ADDR, Some(INA219_REG_CURRENT)) => {
+                    let c = self.ina219_current.ok_or(())?;
+                    buf[..2].copy_from_slice(&c.to_be_bytes());
+                    Ok(())
+                }
+                _ => Err(()),
+            }
+        }
+    }
+    struct NoDelay;
+    impl DelayMs for NoDelay {
+        fn delay_ms(&mut self, _ms: u32) {}
+    }
+
+    fn valid_sht40(temp_raw: u16, rh_raw: u16) -> [u8; 6] {
+        let t = temp_raw.to_be_bytes();
+        let rh = rh_raw.to_be_bytes();
+        [t[0], t[1], sht4x_crc(&t), rh[0], rh[1], sht4x_crc(&rh)]
+    }
+
+    #[test]
+    fn sht40_driver_reads_value_over_bus() {
+        let mut bus = MockBus::new();
+        bus.sht40 = Some(valid_sht40(26214, 29360)); // ~25 °C / 50 %
+        let v = read_sht40(&mut bus, &mut NoDelay).unwrap();
+        assert!((v.temp_c - 25.0).abs() < 0.1 && (v.rh_pct - 50.0).abs() < 0.1);
+        // The driver must issue the measure command on the wire.
+        assert!(bus
+            .writes
+            .iter()
+            .any(|(a, b)| *a == SHT40_ADDR && b == &[SHT40_CMD_MEASURE_HIGH]));
+    }
+
+    #[test]
+    fn sht40_driver_nak_is_bus_error() {
+        let mut bus = MockBus::new(); // sht40 absent
+        assert_eq!(read_sht40(&mut bus, &mut NoDelay), Err(DeviceError::Bus));
+    }
+
+    #[test]
+    fn sht40_driver_bad_crc_is_protocol_error() {
+        let mut bus = MockBus::new();
+        let mut r = valid_sht40(26214, 29360);
+        r[2] ^= 0xFF; // corrupt temp CRC
+        bus.sht40 = Some(r);
+        assert_eq!(
+            read_sht40(&mut bus, &mut NoDelay),
+            Err(DeviceError::Protocol)
+        );
+    }
+
+    #[test]
+    fn ds3231_driver_reads_time_over_bus() {
+        let mut bus = MockBus::new();
+        bus.ds3231 = Some(([0x15, 0x30, 0x08, 0x01, 0x14, 0x06, 0x26], 0x00));
+        let wt = read_ds3231(&mut bus);
+        assert!(wt.valid);
+        let expect = super::days_from_civil(2026, 6, 14) as u64 * 86_400 + 8 * 3600 + 30 * 60 + 15;
+        assert_eq!(wt.unix_s, expect);
+    }
+
+    #[test]
+    fn ds3231_driver_absent_is_invalid() {
+        let mut bus = MockBus::new();
+        assert!(!read_ds3231(&mut bus).valid);
+    }
+
+    #[test]
+    fn ds3231_driver_osf_is_invalid() {
+        let mut bus = MockBus::new();
+        bus.ds3231 = Some(([0x00, 0x00, 0x08, 0x01, 0x14, 0x06, 0x26], DS3231_OSF_MASK));
+        assert!(!read_ds3231(&mut bus).valid);
+    }
+
+    #[test]
+    fn ina219_driver_init_then_read() {
+        let mut bus = MockBus::new();
+        bus.ina219_current = Some(1000); // raw
+        init_ina219(&mut bus, 100, 100).unwrap();
+        assert_eq!(bus.ina219_cal, Some(4096)); // calibration actually written to the device
+        assert_eq!(read_ina219_ma(&mut bus, 100), Some(100)); // 1000 * 100 µA = 100 mA
+    }
+
+    #[test]
+    fn ina219_driver_absent() {
+        let mut bus = MockBus::new();
+        assert_eq!(init_ina219(&mut bus, 100, 100), Err(DeviceError::Bus));
+        assert_eq!(read_ina219_ma(&mut bus, 100), None);
     }
 }

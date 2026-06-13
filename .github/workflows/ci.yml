@@ -171,7 +171,7 @@ jobs:
           path: firmware/controller/wokwi
           timeout: 60000
           scenario: scenario.yaml
-          expect_text: 'EMULATOR SMOKE TEST COMPLETE'
+          expect_text: 'REAL-DRIVER SMOKE TEST COMPLETE'
           fail_text: 'panicked'
           serial_log_file: ${{ github.workspace }}/wokwi-serial.log
       # Always surface whatever the firmware printed over serial, so a timeout is diagnosable.

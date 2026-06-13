@@ -1,6 +1,11 @@
 # Wokwi CLI scenario for the emulator smoke test.
-# The firmware must boot, print its banner, run the full simulated-day control loop, and print the
-# completion sentinel — all without panicking (the CI command adds `--fail-text "panicked"`).
+# The firmware must boot, print its banner, run the real-driver control loop (reading the mock I2C
+# chips + ADC/GPIO), and print the completion sentinel — all without panicking (the CI command adds
+# `--fail-text "panicked"`).
+#
+# NOTE: running Wokwi consumes cloud-simulation minutes, so this is a MANUAL job. The driver logic
+# itself is validated far more cheaply by `cargo test -p control` (host I2C mock tests) and the
+# xtensa cross-compile; this scenario is the on-silicon boot/integration smoke test only.
 name: OpenCanopy ESP32-S3 emulator smoke test
 version: 1
 author: OpenCanopy Firmware track
@@ -8,7 +13,7 @@ author: OpenCanopy Firmware track
 steps:
   # Sign of life: the boot banner from main.rs.
   - wait-serial: "OpenCanopy firmware"
-  # The real App booted with valid calibration.
-  - wait-serial: "calibration=valid"
+  # The real-driver control loop started.
+  - wait-serial: "real-driver loop"
   # The control loop ran a full simulated day and finished cleanly.
-  - wait-serial: "EMULATOR SMOKE TEST COMPLETE"
+  - wait-serial: "REAL-DRIVER SMOKE TEST COMPLETE"

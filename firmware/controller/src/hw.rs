@@ -23,50 +23,44 @@ use esp_println::println;
 
 use control::app_state::{App, AppConfig, SensorFrame};
 use control::calibration::Calibration;
-use control::hal::{SensorError, TempRh, WallTime};
-use control::i2c_devices as dev;
+use control::hal::SensorError;
+use control::i2c_devices::{self as dev, DeviceError};
 
 const UTC_OFFSET_S: i32 = 0;
 /// INA219 current LSB (µA/bit) and shunt — chosen so a ~1 A pump reads with headroom.
 const INA219_CURRENT_LSB_UA: u32 = 100;
 const INA219_SHUNT_MOHM: u32 = 100;
 
-/// Read SHT40 temp/RH over I2C: write the measure command, wait, read 6 bytes, parse+CRC-check.
-fn read_sht40(i2c: &mut I2c<'_, esp_hal::Blocking>, delay: &Delay) -> Result<TempRh, SensorError> {
-    i2c.write(dev::SHT40_ADDR, &[dev::SHT40_CMD_MEASURE_HIGH])
-        .map_err(|_| SensorError::Bus)?;
-    delay.delay_millis(10); // high-precision conversion time
-    let mut buf = [0u8; 6];
-    i2c.read(dev::SHT40_ADDR, &mut buf).map_err(|_| SensorError::Bus)?;
-    dev::sht40_parse(&buf).ok_or(SensorError::OutOfRange)
-}
-
-/// Read the DS3231 wall clock: 7 timekeeping registers from 0x00 + the status register (OSF).
-fn read_ds3231(i2c: &mut I2c<'_, esp_hal::Blocking>) -> WallTime {
-    let mut t = [0u8; 7];
-    if i2c.write_read(dev::DS3231_ADDR, &[dev::DS3231_REG_SECONDS], &mut t).is_err() {
-        return WallTime::INVALID;
+// Thin adapters binding esp-hal's concrete types to control's host-tested driver traits. All the
+// I2C transaction *logic* lives in `control::i2c_devices` (host-tested); these only forward calls.
+// (Newtypes are required by the orphan rule — both trait and esp-hal type are foreign to this crate.)
+struct I2cAdapter<'a>(I2c<'a, esp_hal::Blocking>);
+impl dev::I2cBus for I2cAdapter<'_> {
+    type Error = esp_hal::i2c::master::Error;
+    fn write(&mut self, addr: u8, bytes: &[u8]) -> Result<(), Self::Error> {
+        self.0.write(addr, bytes)
     }
-    let mut status = [0u8; 1];
-    if i2c.write_read(dev::DS3231_ADDR, &[dev::DS3231_REG_STATUS], &mut status).is_err() {
-        return WallTime::INVALID;
+    fn read(&mut self, addr: u8, buf: &mut [u8]) -> Result<(), Self::Error> {
+        self.0.read(addr, buf)
     }
-    dev::ds3231_parse(&t, status[0])
+    fn write_read(&mut self, addr: u8, bytes: &[u8], buf: &mut [u8]) -> Result<(), Self::Error> {
+        self.0.write_read(addr, bytes, buf)
+    }
 }
 
-/// Read the INA219 CURRENT register → mA (for the pump dry-run / clog fault path).
-fn read_ina219_ma(i2c: &mut I2c<'_, esp_hal::Blocking>) -> Option<i32> {
-    let mut buf = [0u8; 2];
-    i2c.write_read(dev::INA219_ADDR, &[dev::INA219_REG_CURRENT], &mut buf).ok()?;
-    let raw = i16::from_be_bytes(buf);
-    Some(dev::ina219_current_ma(raw, INA219_CURRENT_LSB_UA))
+struct DelayAdapter(Delay);
+impl dev::DelayMs for DelayAdapter {
+    fn delay_ms(&mut self, ms: u32) {
+        self.0.delay_millis(ms);
+    }
 }
 
-/// Program the INA219 calibration register (must be set before current reads are meaningful).
-fn init_ina219(i2c: &mut I2c<'_, esp_hal::Blocking>) {
-    let cal = dev::ina219_calibration(INA219_CURRENT_LSB_UA, INA219_SHUNT_MOHM);
-    let bytes = cal.to_be_bytes();
-    let _ = i2c.write(dev::INA219_ADDR, &[dev::INA219_REG_CALIBRATION, bytes[0], bytes[1]]);
+/// Map a device-driver error to the control crate's sensor-fault type.
+fn map_dev_err(e: DeviceError) -> SensorError {
+    match e {
+        DeviceError::Bus => SensorError::Bus,
+        DeviceError::Protocol => SensorError::OutOfRange,
+    }
 }
 
 /// Demo calibration used so the loop exercises the full watering path (real dev values come from
@@ -89,21 +83,28 @@ fn demo_calibration() -> Calibration {
 /// Set up every peripheral from the pin map and run the control loop against the real drivers.
 pub fn run(peripherals: Peripherals) -> ! {
     let delay = Delay::new();
+    let mut delayer = DelayAdapter(delay);
 
     // ---- I2C0: SHT40 (0x44) + DS3231 (0x68) + INA219 (0x40), GPIO8=SDA, GPIO9=SCL ----
-    let mut i2c = I2c::new(peripherals.I2C0, I2cConfig::default())
-        .expect("i2c init")
-        .with_sda(peripherals.GPIO8)
-        .with_scl(peripherals.GPIO9);
-    init_ina219(&mut i2c);
+    let mut i2c = I2cAdapter(
+        I2c::new(peripherals.I2C0, I2cConfig::default())
+            .expect("i2c init")
+            .with_sda(peripherals.GPIO8)
+            .with_scl(peripherals.GPIO9),
+    );
+    let _ = dev::init_ina219(&mut i2c, INA219_CURRENT_LSB_UA, INA219_SHUNT_MOHM);
 
     // ---- ADC1: capacitive moisture probe on GPIO4 (CH3) ----
     let mut adc_cfg = AdcConfig::new();
     let mut moisture_pin = adc_cfg.enable_pin(peripherals.GPIO4, Attenuation::_11dB);
     let mut adc1 = Adc::new(peripherals.ADC1, adc_cfg);
 
-    // ---- Digital inputs: leak (GPIO7, active-high) + reservoir float (GPIO5, pull-up, closed=low) ----
+    // ---- Digital inputs ----
+    // Leak (GPIO7): pin map "active-high = leak"; pull-down so an unconnected input reads "no leak".
     let leak_in = Input::new(peripherals.GPIO7, Pull::Down);
+    // Reservoir level (GPIO5): pin map net RES_LOW_SW, "internal pullup; closed=low". The switch
+    // is wired so it closes (pin LOW) when the reservoir is LOW; open (pulled HIGH) = not low.
+    // ASSUMPTION to confirm at WI-EE-08 bring-up: the float's NO/NC orientation matches this.
     let res_float_in = Input::new(peripherals.GPIO5, Pull::Up);
 
     // ---- LEDC PWM: pump (GPIO10), fan (GPIO12, 25 kHz), grow LED (GPIO14) ----
@@ -133,7 +134,7 @@ pub fn run(peripherals: Peripherals) -> ! {
     // ---- Boot the controller ----
     let cal = demo_calibration();
     let cal_bytes = cal.encode();
-    let boot_rtc = read_ds3231(&mut i2c);
+    let boot_rtc = dev::read_ds3231(&mut i2c);
     let mut app = App::boot(AppConfig { utc_offset_s: UTC_OFFSET_S }, Some(&cal_bytes), 60, 0, boot_rtc, true);
     println!("=== OpenCanopy real-driver loop (ESP32-S3) ===");
     println!("boot: state={} rtc_valid={}", app.state().name(), boot_rtc.valid);
@@ -147,14 +148,14 @@ pub fn run(peripherals: Peripherals) -> ! {
     let mut now_ms = 0u64;
     let mut tick = 0u64;
     loop {
-        // --- Read every sensor through the REAL drivers ---
-        let temp_rh = read_sht40(&mut i2c, &delay);
-        let rtc = read_ds3231(&mut i2c);
+        // --- Read every sensor through the REAL drivers (logic in host-tested control crate) ---
+        let temp_rh = dev::read_sht40(&mut i2c, &mut delayer).map_err(map_dev_err);
+        let rtc = dev::read_ds3231(&mut i2c);
         let moisture_raw: Result<u16, SensorError> =
             nb::block!(adc1.read_oneshot(&mut moisture_pin)).map_err(|_| SensorError::Bus);
-        let pump_ma = read_ina219_ma(&mut i2c);
-        let reservoir_low = res_float_in.is_low(); // closed=low=full; open=high → low water
-        let leak = leak_in.is_high();
+        let pump_ma = dev::read_ina219_ma(&mut i2c, INA219_CURRENT_LSB_UA);
+        let reservoir_low = res_float_in.is_low(); // RES_LOW_SW closes (low) when reservoir is low
+        let leak = leak_in.is_high(); // active-high = leak
 
         let frame = SensorFrame {
             now_ms,
