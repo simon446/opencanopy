@@ -41,11 +41,17 @@ HERE = Path(__file__).resolve().parent
 STEP = HERE.parent / "step"
 PRINTABLE = HERE.parent.parent / "stl" / "printable"
 PROTO = HERE.parent.parent / "stl" / "prototypes"
-for d in (STEP, PRINTABLE, PROTO):
+# Assembly-coordinate meshes (every part in its placed position). These are the
+# input for render.py and collision_check.py — they let CI render/inspect the whole
+# build WITHOUT an OpenCascade kernel. Coarser tessellation: visualization, not print.
+ASSEMBLY = HERE.parent.parent / "stl" / "assembly"
+for d in (STEP, PRINTABLE, PROTO, ASSEMBLY):
     d.mkdir(parents=True, exist_ok=True)
 
 STL_TOL = 0.12          # linear deflection (mm) — fine enough for fit, modest file size
 STL_ANG = 0.45          # angular deflection (rad)
+ASM_TOL = 0.4           # coarser deflection for the placed visualization meshes
+ASM_ANG = 0.6
 
 # Printed release parts -> printable STL + STEP.
 PRINTED = [
@@ -88,7 +94,14 @@ def main():
         n_step += 1
         n_stl += 1
 
-    print(f"exported {n_step} STEP, {n_stl} STL")
+    # placed assembly meshes (coarse) for rendering / collision, one per body
+    n_asm = 0
+    for label, solid, _zone in assembly._placed():
+        export_stl(solid, str(ASSEMBLY / f"{label}.stl"),
+                   tolerance=ASM_TOL, angular_tolerance=ASM_ANG)
+        n_asm += 1
+
+    print(f"exported {n_step} STEP, {n_stl} STL, {n_asm} placed assembly meshes")
     # report the §12.1 checks alongside the build
     sz = assembly.envelope_report()
     assembly.assert_zone_separation()

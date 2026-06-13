@@ -13,12 +13,16 @@ on:
       - "README.md"
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
+      - "mechanical/stl/assembly/**"
+      - "mechanical/cad/source/render.py"
   pull_request:
     paths:
       - "docs/**"
       - "README.md"
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
+      - "mechanical/stl/assembly/**"
+      - "mechanical/cad/source/render.py"
   workflow_dispatch:
 
 permissions:
@@ -41,6 +45,14 @@ jobs:
 
       - name: Install MkDocs
         run: pip install --quiet mkdocs mkdocs-material
+
+      - name: Render full-assembly views
+        # Lightweight (numpy + matplotlib + trimesh, headless) — reads the committed
+        # placed meshes in mechanical/stl/assembly/, no OpenCascade/build123d needed.
+        # Refreshes docs/assets/renders/*.png so the site always matches the geometry.
+        run: |
+          pip install --quiet numpy matplotlib trimesh
+          python mechanical/cad/source/render.py
 
       - name: Generate fallback mkdocs.yml if none committed
         shell: bash

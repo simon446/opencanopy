@@ -23,8 +23,14 @@ opencanopy/
 build.py             export STEP (../step) + STL (../../stl)
 verify.py            compute §12.1 verification numbers
 collision_check.py   FCL worst-case interference sim on the real models
+render.py            sketch renders of the full assembly -> ../../../docs/assets/renders
 drawings.py          orthographic SVGs -> ../../drawings
 ```
+
+`build.py` also writes placed assembly meshes to `../../stl/assembly/` (every part in
+its assembly position, coarse tessellation). Those are the input for `render.py` and
+`collision_check.py`, and they let the Pages CI render the full build with only
+numpy/matplotlib/trimesh — no OpenCascade kernel needed.
 
 ## Toolchain setup (headless, no GUI)
 
