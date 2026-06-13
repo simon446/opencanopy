@@ -81,6 +81,8 @@ All §17 safety requirements are tracked here as risks, each with an owner and a
 | Date | Change | Reference |
 |---|---|---|
 | 2026-06-13 | Register seeded with §22 engineering risks (R1–R7) and §17 safety risks (S1–S22). | WI-PS-05 |
+| 2026-06-13 | Design review (spec §23): pump current-sense made required (DR-04) and battery-backed RTC added (DR-05); pre-order modeling + bench-characterization + surrogate-shakedown gates added (DR-01/02/03). | spec §23 |
+| 2026-06-13 | Grow-trial decision: run **n=2 parallel units** (DR-03) — no single-unit-trial risk accepted. | spec §23 DR-03, WI-QA-07/10 |
 
 > To change a locked requirement or reopen a non-goal, add a row here describing the change, its risk
 > impact, and the approving track before the change takes effect.
