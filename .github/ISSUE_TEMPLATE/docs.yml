@@ -1,0 +1,60 @@
+name: "📄 Documentation issue"
+description: Errors, gaps, or improvements in any guide under docs/ (or README/CONTRIBUTING).
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For the README, safety, assembly, calibration, operation, troubleshooting, LED legend,
+        maintenance, plant profile, references, or validation write-ups (spec §14.3).
+  - type: dropdown
+    id: track
+    attributes:
+      label: Affected track
+      options:
+        - Documentation (06)
+        - Plant Science (01) — plant profile / references
+        - Validation & QA (05) — validation reports
+        - Project & Repo (00) — README / CONTRIBUTING / requirements / scope
+      default: 0
+    validations:
+      required: true
+  - type: input
+    id: doc-file
+    attributes:
+      label: Document / page
+      description: Which file or section is affected?
+      placeholder: "docs/calibration.md → Moisture calibration"
+    validations:
+      required: true
+  - type: input
+    id: spec-section
+    attributes:
+      label: Spec section
+      description: Related spec section, if any. Use "N/A" if not spec-driven.
+      placeholder: "§9.9"
+    validations:
+      required: true
+  - type: input
+    id: hw-rev
+    attributes:
+      label: Applicable hardware/firmware revision
+      description: Which rev does this doc describe or mis-describe? Use "N/A" if version-independent.
+      placeholder: "PCB rev A / fw v1.0 / N/A"
+    validations:
+      required: false
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+      description: Quote the current text if it is incorrect, and describe the gap or fix.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested change
+      description: Proposed wording or the missing content, if you have it.
+    validations:
+      required: false

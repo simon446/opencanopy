@@ -1,0 +1,15 @@
+# scripts/
+
+Project tooling and calculators for OpenCanopy (spec §14.1). Plain Python, no heavy dependencies, so
+they run locally and in CI.
+
+| Script | Purpose | Used by |
+|---|---|---|
+| `bom_check.py` | Validate `electronics/bom/bom.csv`; fail if a grow light lacks the §16.3 required fields. | CI (WI-PS-06), Electronics |
+| `dli_calculator.py` | Convert PPFD ↔ DLI for a given photoperiod. | Plant Science (WI-PS/M1) |
+| `pump_calibration.py` | Derive pump on-time ↔ delivered-volume calibration. | Firmware / Validation |
+| `moisture_calibration.py` | Map raw capacitive readings to dry/wet calibration points. | Firmware / Validation |
+| `log_parser.py` | Parse exported device logs into analyzable form. | Validation |
+
+`bom_check.py` ships with this track (WI-PS-06); the remaining scripts are stubbed by their owning
+tracks. CI invokes `bom_check.py` on every PR.

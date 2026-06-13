@@ -1,2 +1,68 @@
 # Planning artifacts are tracked in their own independent git repo (plan/.git)
 plan/
+
+# ---------------------------------------------------------------------------
+# OS / editor scratch
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*~
+*.swp
+.idea/
+.vscode/
+*.code-workspace
+
+# ---------------------------------------------------------------------------
+# KiCad (electronics/) — keep sources, drop autosave/backup/cache
+# ---------------------------------------------------------------------------
+*-backups/
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*.bak
+*.kicad_prl
+fp-info-cache
+*.lck
+_autosave-*
+*.000
+*.net
+
+# ---------------------------------------------------------------------------
+# Firmware build — Rust / Cargo (esp-hal, no_std)
+# ---------------------------------------------------------------------------
+target/
+firmware/target/
+**/target/
+# Keep Cargo.lock for the firmware binaries (reproducible builds); it is committed, not ignored.
+*.elf
+*.bin
+*.map
+# espflash / probe scratch
+.embuild/
+
+# ---------------------------------------------------------------------------
+# Python (scripts/, tooling)
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# CAD scratch / lock / recovery files (mechanical/) — keep released source/STEP/STL
+# ---------------------------------------------------------------------------
+*.FCStd1
+*.FCBak
+*.FCStd.lock
+*.f3d.lock
+*.SLDPRT~
+*.SLDASM~
+*.bak1
+~$*
+ApplicationCache/

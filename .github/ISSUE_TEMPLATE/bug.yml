@@ -1,0 +1,74 @@
+name: "🐞 Bug report"
+description: A defect in behavior — firmware, tooling, docs, or hardware that does not work as specified.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Fill in the track, spec section, and steps so it can be triaged
+        to the right specialist. For safety-related faults, also read `docs/safety.md` first.
+  - type: dropdown
+    id: track
+    attributes:
+      label: Affected track
+      description: Which discipline owns the area this bug touches?
+      options:
+        - Project & Repo (00)
+        - Plant Science (01)
+        - Firmware (02)
+        - Electronics (03)
+        - Mechanical (04)
+        - Validation & QA (05)
+        - Documentation (06)
+        - Unsure / cross-cutting
+    validations:
+      required: true
+  - type: input
+    id: spec-section
+    attributes:
+      label: Spec section
+      description: Relevant section(s) of the V1 spec (e.g. "§9.6 Irrigation control"). Use "unknown" if unsure.
+      placeholder: "§9.6"
+    validations:
+      required: true
+  - type: input
+    id: hw-rev
+    attributes:
+      label: Hardware revision
+      description: PCB/mechanical revision, or firmware build/commit. Use "N/A" for docs-only issues, "sim" for simulation.
+      placeholder: "PCB rev A / fw commit abc1234 / sim / N/A"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen, per the spec?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened? Include log excerpts / LED status if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, ordered steps. Include scenario file or fixture if applicable.
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Environment / additional context
+      description: Room temp, reservoir state, sensors connected, OS/toolchain versions, etc.
+    validations:
+      required: false

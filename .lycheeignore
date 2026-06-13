@@ -1,0 +1,6 @@
+# Link-checker ignore patterns (lychee, WI-PS-06).
+# The planning repo (plan/) is tracked separately and is gitignored here, so links into it
+# do not resolve in a CI checkout of the public repo. Exclude them from the docs link check.
+plan/
+# Placeholder project remote — the public GitHub repo/Discussions may not exist yet.
+github\.com/opencanopy

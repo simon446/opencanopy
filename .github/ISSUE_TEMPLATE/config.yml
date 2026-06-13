@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / discussion
+    url: https://github.com/opencanopy/opencanopy/discussions
+    about: For open-ended questions or design discussion, please use Discussions rather than an issue.
+  - name: Security or safety concern
+    about: For water/electrical or other safety issues, see docs/safety.md and the risk register (docs/risk-register.md) before filing; mark the issue clearly.
+    url: https://github.com/opencanopy/opencanopy/blob/main/docs/risk-register.md

@@ -1,0 +1,78 @@
+name: "🔧 Firmware issue"
+description: Control logic, state machine, simulation, HIL, calibration, logging, or connectivity.
+title: "[Firmware]: "
+labels: ["firmware", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For firmware behavior, control-rule changes, simulation/HIL, or calibration. Deterministic,
+        offline-first control is a hard requirement (spec §9). Safety paths (pump fail-off, leak
+        lockout) must stay intact.
+  - type: dropdown
+    id: track
+    attributes:
+      label: Affected track
+      options:
+        - Firmware (02)
+        - Plant Science (01) — setpoint/rule source
+        - Electronics (03) — driver/sensor interface
+        - Validation & QA (05)
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Firmware area
+      options:
+        - State machine / fault priority (§9.3)
+        - Light control (§9.5)
+        - Irrigation control (§9.6)
+        - Climate / fan control (§9.7)
+        - LED status logic (§9.8)
+        - Calibration / storage (§9.9)
+        - Data logging (§9.10)
+        - Connectivity (§9.11)
+        - Simulation (§10.3)
+        - HIL (§10.4)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: spec-section
+    attributes:
+      label: Spec section
+      description: Specific subsection this concerns.
+      placeholder: "§9.6"
+    validations:
+      required: true
+  - type: input
+    id: hw-rev
+    attributes:
+      label: Hardware revision / firmware build
+      description: Board rev and firmware commit, or "sim" / "host-test".
+      placeholder: "fw commit abc1234 on PCB rev A / sim"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Behavior change, new rule, or defect. State expected vs. actual against the spec.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps / scenario to reproduce
+      description: Reference a sim scenario or HIL fixture if one exists; otherwise list steps.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: This change preserves pump fail-off on reset/brownout and leak-triggered pump lockout (§17.1), or explains why not.
+          required: true

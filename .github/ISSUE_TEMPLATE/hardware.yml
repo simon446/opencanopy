@@ -1,0 +1,68 @@
+name: "🔌 Hardware / PCB issue"
+description: Schematic, PCB layout, BOM, wiring/harness, power, or electrical verification.
+title: "[Hardware]: "
+labels: ["hardware", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For the controller PCB, wiring harness, BOM, power architecture, or electrical bring-up/verification
+        (spec §7, §11, §16). Remember: no AC mains inside the unit; electronics live in the upper dry bay.
+  - type: dropdown
+    id: track
+    attributes:
+      label: Affected track
+      options:
+        - Electronics (03)
+        - Firmware (02) — pin/interface impact
+        - Mechanical (04) — fit/mounting impact
+        - Validation & QA (05)
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Hardware area
+      options:
+        - Schematic / ERC (§11.1)
+        - PCB layout / DRC (§7.9)
+        - Trace / current sizing (§7.10)
+        - BOM / part selection (§16)
+        - Grow-light spec / data (§16.3)
+        - Wiring / harness (§7, §8.5)
+        - Power architecture (§7.8)
+        - Sensors (§7.5–§7.6)
+        - Bring-up / verification (§11.2–§11.4)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: spec-section
+    attributes:
+      label: Spec section
+      placeholder: "§7.10"
+    validations:
+      required: true
+  - type: input
+    id: hw-rev
+    attributes:
+      label: Hardware revision
+      description: PCB revision and/or board serial; harness version. Use "pre-rev/PoC" for breadboard.
+      placeholder: "PCB rev A, board #003 / PoC breadboard"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is wrong or proposed? For a BOM/light issue, include the candidate part's datasheet fields.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce / how observed
+      description: Measurement setup, instrument, test point, conditions. Attach scope/meter readings if available.
+    validations:
+      required: true

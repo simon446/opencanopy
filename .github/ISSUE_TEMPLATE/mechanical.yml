@@ -1,0 +1,67 @@
+name: "🛠️ Mechanical issue"
+description: Frame, bays, mounts, tube/cable routing, printed parts, fit and tolerances.
+title: "[Mechanical]: "
+labels: ["mechanical", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For the frame, electronics/wet bays, pot & reservoir mounts, routing, drip tray, fan guard,
+        and printable parts (spec §8, §12, §16.2). The locked envelope lives in `docs/product-requirements.md`.
+  - type: dropdown
+    id: track
+    attributes:
+      label: Affected track
+      options:
+        - Mechanical (04)
+        - Electronics (03) — bay/mount interface
+        - Validation & QA (05)
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Mechanical area
+      options:
+        - Layout / envelope (§8.1)
+        - Bays / modules (§8.2)
+        - Materials (§8.3, §16.2)
+        - Serviceability / removable pot+reservoir (§8.4)
+        - Cable & tube routing (§8.5)
+        - Light/plant clearance (§8.6)
+        - Acoustic design (§8.7)
+        - Print settings / tolerances (§12.2)
+        - Water path / drip tray (§12.3)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: spec-section
+    attributes:
+      label: Spec section
+      placeholder: "§8.4"
+    validations:
+      required: true
+  - type: input
+    id: hw-rev
+    attributes:
+      label: Hardware revision
+      description: CAD/STL revision or printed-part version; printer/material if a print issue.
+      placeholder: "frame rev B / STL printable v2 / PETG, 0.2mm"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: The fit, tolerance, interference, or design problem — with measured dimensions where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce / how observed
+      description: Print settings, assembly step, or fit-test that surfaced it.
+    validations:
+      required: true

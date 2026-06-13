@@ -1,0 +1,86 @@
+name: Docs build & publish
+
+# Builds a browsable documentation site from docs/ and publishes it to GitHub Pages on main
+# (spec §14.3 documentation requirements). On PRs it builds only, as a gate that the docs render.
+# If the Documentation track later commits an mkdocs.yml, that config is used as-is; otherwise a
+# minimal config is generated on the fly so the workflow works before site config is owned.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "README.md"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "README.md"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build docs site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs
+        run: pip install --quiet mkdocs mkdocs-material
+
+      - name: Generate fallback mkdocs.yml if none committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f mkdocs.yml ]; then
+            echo "Using committed mkdocs.yml"
+          else
+            echo "No mkdocs.yml — generating a minimal fallback config."
+            cat > mkdocs.yml <<'YAML'
+          site_name: OpenCanopy Documentation
+          site_description: Tabletop automated pepper grower — open hardware
+          theme:
+            name: material
+          docs_dir: docs
+          use_directory_urls: false
+          YAML
+          fi
+
+      - name: Build
+        run: mkdocs build --site-dir _site
+
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

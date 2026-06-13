@@ -1,0 +1,16 @@
+// markdownlint-cli2 config for OpenCanopy docs CI (WI-PS-06).
+// Cosmetic rules that fight long technical tables/links are relaxed; structural rules stay on.
+{
+  "config": {
+    "default": true,
+    "MD013": false, // line length — tables and spec references run long
+    "MD033": false, // inline HTML — used in the PR template
+    "MD040": false, // fenced code language — some examples are plain text
+    "MD041": false, // first line in file must be a heading — relaxed for partials
+    "MD024": { "siblings_only": true }, // duplicate headings ok if not siblings
+    "MD029": false, // ordered-list numbering style — spec quotes use 1..n
+    "MD060": false  // table column/pipe alignment — we hand-align wide spec tables
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["node_modules", "plan", "**/node_modules"]
+}
