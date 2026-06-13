@@ -11,9 +11,6 @@
       "attrs": {}
     }
   ],
-  "connections": [
-    [ "esp:TX", "$serialMonitor:RX", "", [] ],
-    [ "esp:RX", "$serialMonitor:TX", "", [] ]
-  ],
+  "connections": [],
   "dependencies": {}
 }
