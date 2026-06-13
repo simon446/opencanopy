@@ -1,0 +1,27 @@
+[package]
+name = "control"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "OpenCanopy platform-agnostic no_std control logic (host-testable)"
+
+# ZERO external dependencies on purpose: the entire §10.2 unit-test matrix runs offline on
+# stable Rust with no crates.io access and no Xtensa toolchain. Math (exp for VPD), the
+# calibration codec, and the log ring buffer are all implemented in-crate against `core` so
+# the same code runs on the host and on the ESP32-S3. (On-target, `controller/` may swap in
+# `libm`/`postcard`/`esp-storage` behind its own bindings; `control` itself stays dep-free.)
+[dependencies]
+
+[features]
+default = []
+# `mock` is always available to tests; the flag lets `sim/` and `controller/` opt into the
+# host mock HAL implementations explicitly. The mocks themselves are dep-free.
+mock = []
+# Compile-time profile that starts the grow cycle from a purchased transplant (§5.1): skips
+# S0/S1 by initializing the age clock to the S1->S2 boundary. See plant_profile::reset_age_days.
+transplant_profile = []
+
+[lib]
+# no_std for the real build; test builds link std for the harness (see `#![cfg_attr]` in lib.rs).
+test = true

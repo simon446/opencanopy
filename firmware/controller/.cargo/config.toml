@@ -1,0 +1,15 @@
+# Controller-local cargo config: building from this directory targets the ESP32-S3 by default and
+# flashes/monitors with espflash. (The workspace-root config intentionally does NOT force a target,
+# so host tests stay on stable Rust; this local config applies only to the on-target binary.)
+[build]
+target = "xtensa-esp32s3-none-elf"
+rustflags = ["-C", "force-frame-pointers"]
+
+[target.xtensa-esp32s3-none-elf]
+runner = "espflash flash --monitor"
+
+[unstable]
+build-std = ["core", "alloc"]
+
+[env]
+ESP_LOG = "info"

@@ -111,10 +111,13 @@ jobs:
         with:
           default: true
           buildtargets: esp32s3
+      # controller/ is a STANDALONE package (excluded from the host workspace) so the host job never
+      # resolves esp-hal/esp-wifi. Build it from its own directory; the target + esp toolchain come
+      # from controller/.cargo/config.toml and controller/rust-toolchain.toml.
       - name: Build controller for xtensa-esp32s3-none-elf
         if: steps.detect.outputs.present == 'true'
-        working-directory: firmware
-        run: cargo build -p controller --release --target xtensa-esp32s3-none-elf
+        working-directory: firmware/controller
+        run: cargo build --release
 
   bom:
     name: BOM — §16.3 grow-light gate

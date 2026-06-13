@@ -1,0 +1,14 @@
+[package]
+name = "sim"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "OpenCanopy host plant/environment simulator — drives the real `control` crate (§10.3)"
+
+[dependencies]
+# Drives the ACTUAL control logic (not a reimplementation) through the hal.rs seam, per WI-FW-09.
+control = { path = "../control", features = ["mock"] }
+
+[features]
+default = []

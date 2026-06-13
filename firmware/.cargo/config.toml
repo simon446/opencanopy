@@ -1,0 +1,23 @@
+# Cargo config for the firmware workspace.
+#
+# IMPORTANT: we deliberately do NOT set `[build] target = "xtensa-esp32s3-none-elf"` globally.
+# Forcing the Xtensa target here would break `cargo test -p control` on a normal host (it would
+# try to cross-compile the host test harness for Xtensa), which violates the WI-FW-01 acceptance
+# criterion that host tests run on stable Rust with no Xtensa toolchain. Host-testability of the
+# control logic is the higher-priority requirement.
+#
+# The on-target binary therefore selects the target explicitly. Build/flash the controller with:
+#
+#   cargo build  --release -p controller --target xtensa-esp32s3-none-elf   # (from controller/)
+#   cargo espflash flash --release            --target xtensa-esp32s3-none-elf
+#
+# or use the alias below.
+[alias]
+esp = "build --release --target xtensa-esp32s3-none-elf"
+
+# espflash is the flasher/monitor for ESP32-S3. Used by `cargo run` for the controller binary.
+[target.xtensa-esp32s3-none-elf]
+runner = "espflash flash --monitor"
+
+[target.xtensa-esp32s3-none-elf.env]
+ESP_LOG = "info"

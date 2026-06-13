@@ -6,7 +6,7 @@
 | Milestone | M3-02 |
 | Depends on | WI-FW-01 |
 | Spec refs | §10.1, §9.2 |
-| Status | Not started |
+| Status | Done |
 
 ## Objective
 
@@ -17,11 +17,11 @@ hardware. These `no_std` traits are the seam between `control/` and the `control
 
 ## Deliverables
 
-- [ ] `no_std` traits for: temp/RH sensor, capacitive moisture, reservoir level, leak sensor, fan
+- [x] `no_std` traits for: temp/RH sensor, capacitive moisture, reservoir level, leak sensor, fan
       (PWM + tach), pump (drive + optional current), LED dimming, status LEDs, `Clock`/time.
       Use `embedded-hal` traits where a standard one fits; define project traits otherwise.
-- [ ] Mock (host) trait implementations with injectable readings and fault-injection hooks.
-- [ ] **Injected `Clock` trait** (simulated time) so schedules and timeouts run deterministically in tests.
+- [x] Mock (host) trait implementations with injectable readings and fault-injection hooks.
+- [x] **Injected `Clock` trait** (simulated time) so schedules and timeouts run deterministically in tests.
 
 ## Acceptance criteria
 
@@ -34,3 +34,14 @@ hardware. These `no_std` traits are the seam between `control/` and the `control
 This is the seam that makes the entire §10.2 unit-test matrix and §10.3 simulator possible. Get the
 traits right before writing controllers. Prefer generics/monomorphization over `dyn` to stay
 allocation-free in `no_std`.
+
+## Implementation
+
+- `control/src/hal.rs`: project traits for temp/RH, capacitive moisture, reservoir, leak, fan
+  (PWM + tach), pump (drive + optional current), grow-LED, status LEDs, plus injected `Clock`
+  (monotonic) and `Rtc` (wall-clock) traits. Controllers are generic over these by `&mut T`
+  (monomorphized, no `dyn`/alloc).
+- `control/src/testkit.rs`: host mocks for every trait with injectable readings + fault hooks
+  (leak, sensor error, stuck reading via constant raw, fan-tach zero, pump current). Exercised
+  end-to-end in `control/tests/hal_integration.rs` (leak keeps the Pump trait de-energized;
+  injected sensor fault disables watering) and as the foundation of the `sim/` harness.

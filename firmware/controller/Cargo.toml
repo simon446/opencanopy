@@ -1,0 +1,43 @@
+# On-target ESP32-S3 binary. This is a STANDALONE package (excluded from the host workspace) so the
+# host unit/sim suite never needs to resolve esp-hal/esp-wifi. Build only with the Espressif Rust
+# channel (espup) for `xtensa-esp32s3-none-elf`:
+#
+#   cd firmware/controller
+#   cargo build --release            # target comes from controller/.cargo/config.toml
+#   cargo run   --release            # flashes + monitors via espflash
+#
+# Versions below are indicative; pin exact versions when bringing up real hardware (WI-EE-08).
+[package]
+name = "controller"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "OpenCanopy ESP32-S3 firmware binary — binds control's hal.rs traits to esp-hal peripherals"
+
+[[bin]]
+name = "controller"
+path = "src/main.rs"
+
+[dependencies]
+control = { path = "../control" }
+
+esp-hal = { version = "0.23", features = ["esp32s3"] }
+esp-backtrace = { version = "0.15", features = ["esp32s3", "panic-handler", "exception-handler", "println"] }
+esp-println = { version = "0.13", features = ["esp32s3", "uart"] }
+esp-storage = { version = "0.4", features = ["esp32s3"] }
+embedded-storage = "0.3"
+
+# Telemetry is optional and DEFAULT-OFF (§9.11): no control path may depend on it.
+esp-wifi = { version = "0.12", features = ["esp32s3", "wifi"], optional = true }
+
+[features]
+default = []
+# Wi-Fi/MQTT/Home-Assistant telemetry + optional NTP. Builds and runs without this (offline-first).
+telemetry = ["dep:esp-wifi"]
+# Mirror of control's transplant build flag (§5.1).
+transplant_profile = ["control/transplant_profile"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1

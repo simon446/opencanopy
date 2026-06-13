@@ -1,0 +1,10 @@
+# The ESP32-S3 is Xtensa, which is not on upstream stable Rust. Install the Espressif Rust channel
+# and this pins it for builds in this directory:
+#
+#   cargo install espup
+#   espup install
+#
+# Host crates (control/, sim/) do NOT use this channel — they build with ordinary stable Rust from
+# the firmware/ workspace root.
+[toolchain]
+channel = "esp"

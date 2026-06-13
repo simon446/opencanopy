@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+
+# Host-testable members only. These two crates are pure-Rust with **zero external
+# dependencies**, so `cargo test` runs offline on stable Rust with no Xtensa toolchain
+# (WI-FW-01 acceptance: "cargo test -p control passes on the host").
+#
+# `controller/` (the on-target esp-hal binary) is intentionally NOT a workspace member:
+# it pulls in esp-hal/esp-wifi which only build for `xtensa-esp32s3-none-elf` and need the
+# espup toolchain + crates.io. Keeping it out of the host workspace means the host unit/sim
+# suite never tries to resolve or build those. It is built separately in CI with the esp
+# channel (see controller/README.md and .cargo/config.toml).
+members = [
+    "control",
+    "sim",
+]
+
+# `controller/` is its own standalone package (built only with the esp toolchain). Excluding it
+# keeps it out of the host workspace's lockfile so host `cargo test` never tries to resolve
+# esp-hal/esp-wifi from crates.io. `hil/` holds fixtures/procedures, not a crate.
+exclude = [
+    "controller",
+    "hil",
+]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+rust-version = "1.75"
+
+[profile.release]
+opt-level = "s"
+lto = true

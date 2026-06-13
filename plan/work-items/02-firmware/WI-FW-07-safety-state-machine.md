@@ -6,7 +6,7 @@
 | Milestone | M3-07, M1-06 |
 | Depends on | WI-FW-04, WI-FW-05, WI-FW-06 |
 | Spec refs | §9.3, §9.4, §11.4 |
-| Status | Not started |
+| Status | Done |
 
 ## Objective
 
@@ -15,15 +15,24 @@ controllers when safety states are active.
 
 ## Deliverables
 
-- [ ] States: BOOT, SELF_TEST, NORMAL, WATERING, LOW_WATER, LEAK_DETECTED, SENSOR_FAULT, PUMP_FAULT,
+- [x] States: BOOT, SELF_TEST, NORMAL, WATERING, LOW_WATER, LEAK_DETECTED, SENSOR_FAULT, PUMP_FAULT,
       FAN_FAULT, LED_FAULT, OVER_TEMP, MAINTENANCE, SAFE_SHUTDOWN (§9.3).
-- [ ] Priority arbitration: LEAK > OVER_TEMP(critical) > PUMP_FAULT > SENSOR_FAULT(watering) >
+- [x] Priority arbitration: LEAK > OVER_TEMP(critical) > PUMP_FAULT > SENSOR_FAULT(watering) >
       LOW_WATER > NORMAL/WATERING.
-- [ ] Boot sequence per §9.4 (self-test, restore grow-cycle age from flash, pump forced off).
-- [ ] Watchdog + brownout enable (`esp-hal` RWDT/brownout); leak fault latches until manual clear (§11.4).
-- [ ] Unit tests proving highest-priority state always wins.
+- [x] Boot sequence per §9.4 (self-test, restore grow-cycle age from flash, pump forced off).
+- [x] Watchdog + brownout enable (`esp-hal` RWDT/brownout); leak fault latches until manual clear (§11.4).
+- [x] Unit tests proving highest-priority state always wins.
 
 ## Acceptance criteria
 
 - Fault-priority tests pass (spec §10.2 "Fault priority").
 - Leak/over-temp states demonstrably override controller outputs (pump off, LED off/min).
+
+## Implementation
+
+- `control/src/safety_controller.rs`: `SystemState` (all 13 states), total-ordering `arbitrate()`,
+  `gates()` (pump-off / LED-off-min enforcement), latched leak (`clear_leak`), and the §9.4
+  `boot()` sequence (pump forced off; bad calibration → fault, never NORMAL). Host-tested incl.
+  "highest-priority state always wins" and leak/over-temp overriding controller outputs.
+- Watchdog (RWDT) + brownout enable are esp-hal concerns wired in `controller/src/drivers`
+  (`Platform::enable_watchdog`/`feed_watchdog`), verified on hardware at WI-EE-08 bring-up.
