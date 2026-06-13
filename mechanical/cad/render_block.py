@@ -44,15 +44,16 @@ PARTS_DEF = {
     "driver":     ("LED driver",            (0.30, 0.30, 0.33)),
     "power":      ("power input (24 V)",    (0.55, 0.55, 0.60)),
     "status":     ("status LEDs (front)",   (0.30, 0.82, 0.55)),
-    "cable":      ("cable channel",         (0.85, 0.72, 0.25)),
+    "feet":       ("feet (x4)",             (0.50, 0.50, 0.52)),
+    "screws":     ("M3 screws (joints)",    (0.20, 0.20, 0.22)),
 }
 
 # Pairs that are SUPPOSED to touch (mounted to / seated on each other).
 EXPECTED_CONTACT = {
     frozenset(("frame", "base")), frozenset(("iso_wall", "base")),
     frozenset(("pot", "base")), frozenset(("led_bar", "frame")),
-    frozenset(("cable", "frame")),
-    frozenset(("status", "base")), frozenset(("cable", "base")),
+    frozenset(("status", "base")), frozenset(("feet", "base")),
+    frozenset(("screws", "frame")), frozenset(("screws", "base")),
 }
 
 VIEWS = [  # name, camera-direction (from focal pt), view-up, parts to hide
@@ -64,7 +65,7 @@ VIEWS = [  # name, camera-direction (from focal pt), view-up, parts to hide
     ("block-iso-back",  (1, 1, 0.5),    (0, 0, 1), ()),
     ("block-top",       (0, 0, 1),      (0, 1, 0), ()),
     ("block-base",      (0.5, -1, 0.45), (0, 0, 1),
-        ("base", "pot", "frame", "led_bar", "cable", "status")),
+        ("base", "pot", "frame", "led_bar", "status", "screws")),
 ]
 EDGE_ANGLE = 40.0
 

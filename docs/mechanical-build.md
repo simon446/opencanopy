@@ -6,10 +6,13 @@ envelope, from the parametric OpenSCAD source
 [CAD brief](cad_brief_for_claude.md)). Rendered with a real z-buffered renderer (VTK)
 and collision-checked with FCL — see `mechanical/cad/render_block.py`.
 
-**Architecture:** open-frame tabletop unit — base cabinet + corner posts + top hood,
-**open front, sides and back**. **Electronics live in the base, *beside* the water
-reservoir, isolated by an additional vertical wall** (wet | wall | dry). Fixed LED grow
-bar under the hood; 4-LED status strip on the front; no screen, no controls.
+**Architecture:** open-frame tabletop unit — rounded base cabinet + four rounded corner
+posts + top hood, on **four feet**, **open front, sides and back**. **Electronics live in
+the base, *beside* the water reservoir, isolated by an additional vertical wall** (wet |
+wall | dry). Fixed LED grow bar under the hood; 4-LED status strip on the front; no
+screen, no controls. Cables route **through the hollow posts** (no external channel).
+Parts bolt together with **M3 heat-set inserts + screws** — see
+[fastening & assembly](fastening.md).
 
 ## Exterior
 
