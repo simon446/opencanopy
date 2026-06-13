@@ -44,19 +44,15 @@ jobs:
       - name: Install MkDocs
         run: pip install --quiet mkdocs mkdocs-material
 
-      - name: Render v0 block-model views
-        # Best-effort refresh: render the OpenSCAD block model to docs/assets/renders so
-        # the published site always matches the current geometry (electronics in the
-        # base, beside the reservoir). The committed PNGs publish as-is if this hiccups.
-        # OpenSCAD's preview PNG (colours + transparency) needs a GL context -> xvfb.
+      - name: Render + collision-check v0 block model
+        # Best-effort refresh: export each OpenSCAD part (CGAL, headless), render the
+        # assembly from many angles with VTK (z-buffered, labelled) and run the FCL
+        # collision check. The committed PNGs publish as-is if this hiccups.
         continue-on-error: true
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq openscad xvfb
-          F=mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad
-          R=docs/assets/renders
-          xvfb-run -a openscad -o $R/block-iso.png   --imgsize=1100,1000 --viewall --autocenter --camera=0,0,0,58,0,28,0 "$F"
-          xvfb-run -a openscad -o $R/block-front.png --imgsize=950,1050  --viewall --autocenter --camera=0,0,0,90,0,180,0 "$F"
-          xvfb-run -a openscad -o $R/block-base.png  --imgsize=1100,820  --viewall --autocenter -D show_top=false --camera=0,0,0,55,0,32,0 "$F"
+          sudo apt-get update -qq && sudo apt-get install -y -qq openscad
+          pip install --quiet numpy trimesh python-fcl vtk-osmesa
+          python mechanical/cad/render_block.py
 
       - name: Generate fallback mkdocs.yml if none committed
         shell: bash
