@@ -36,3 +36,10 @@ testing.
 ## Notes
 
 Calibration values produced here populate [WI-FW-11](../02-firmware/WI-FW-11-calibration-storage.md) NVS schema.
+
+> **Blocker tracked as [risk R8](../../../docs/risk-register.md):** this item's in-hardware safety
+> proofs — pump fail-off (S6) and leak lockout (S5) via the HIL fault tests — are gated on
+> [WI-FW-07](../02-firmware/WI-FW-07-safety-state-machine.md) (safety state machine, *Not started*).
+> The HIL fixture can be built and dry-validated against the firmware sim / HAL mocks ahead of
+> silicon; the pump-fail-off hardware guarantee (gate pull-down, [WI-EE-03](WI-EE-03-schematic.md))
+> is already firmware-independent.
