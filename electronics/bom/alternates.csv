@@ -1,0 +1,10 @@
+replaces_ref,item,part_no,manufacturer,spec_ref,power_w,ppf_or_ppfd,dimming,spectrum,thermal_mounting,electrical_cert,notes
+U1,ESP32-C6 module,ESP32-C6-WROOM-1,Espressif,§7.1,,,,,,,acceptable; adds Thread/Matter, fewer IO
+U2,Temp/RH SHT31,SHT31-DIS-B,Sensirion,§7.5,,,,,,,SHT3x-class equivalent
+U3,RTC RV-3028,RV-3028-C7,Micro Crystal,§16.1,,,,,,,ultra-low-power alt to DS3231
+Q1,Pump MOSFET alt,CSD18540,Texas Instruments,§7.10,,,,,,,higher current headroom
+M1,Pump (12V),PMP-12-1m,generic,§7.3,,,,,,,uses 12V rail; size 12V buck >=2A
+LED_STATUS,Discrete RGB + driver,TLC59116,Texas Instruments,§7.11,,,,,,,I2C constant-current alt to WS2812 (avoids 5V data-level issue)
+U6,24->12V buck alt,LMR33630,Texas Instruments,§7.8,,,,,,,higher efficiency
+LED_BAR,Grow light (full-yield 100W),LIGHT-CANDIDATE-100W,generic-hort,§7.2/§16.3,100,220 PPFD @300mm (PPF ~220 umol/s),PWM + 0-10V,full-spectrum white 3500K + 660nm horticultural,remote heatsink driver; requires <=0.60 C/W heatsink (WI-EE-10),CE/UL listed,full-yield variant only; DR-01 GO-with-mitigation
+SEN2,Reservoir analog level,eTape-PN-12110215TC-12,Milone,§7.7,,,,,,,optional analog level on RES_LEVEL_ADC

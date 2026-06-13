@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: CERN-OHL-S-2.0 -->
+<!-- OpenCanopy V1 system wiring diagram (WI-EE-05). Zones per spec §6.2 / §8.5. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="660" viewBox="0 0 920 660" font-family="sans-serif" font-size="13">
+  <style>
+    .box{fill:#f4f6f8;stroke:#33414e;stroke-width:1.5;rx:6;}
+    .ctrl{fill:#e8f0fe;stroke:#1a4fa0;stroke-width:2;}
+    .zone{fill:none;stroke-dasharray:6 4;stroke-width:1.5;}
+    .dry{stroke:#2e7d32;} .wet{stroke:#1565c0;}
+    .lbl{fill:#1b2733;} .pin{fill:#566;font-size:11px;}
+    .pwr{stroke:#c62828;stroke-width:2.5;} .gnd{stroke:#222;stroke-width:1.5;}
+    .sig{stroke:#6a1b9a;stroke-width:1.5;} .v12{stroke:#ef6c00;stroke-width:2;}
+    .title{font-size:18px;font-weight:bold;fill:#1b2733;}
+    .ztext{font-size:12px;font-weight:bold;}
+  </style>
+
+  <text x="20" y="28" class="title">OpenCanopy V1 — System Wiring (WI-EE-05)</text>
+  <text x="20" y="46" class="pin">Power = red/thick · GND = black · 12 V = orange · Signal = purple. Every field connector is locking/keyed, polarity + voltage labeled (§7.9, §8.5).</text>
+
+  <!-- Zones -->
+  <rect x="14" y="60" width="892" height="330" class="zone dry"/>
+  <text x="24" y="78" class="ztext" fill="#2e7d32">UPPER DRY BAY (electronics) — §6.2</text>
+  <rect x="14" y="400" width="892" height="240" class="zone wet"/>
+  <text x="24" y="420" class="ztext" fill="#1565c0">LOWER WET BAY (reservoir / pump / leak tray) — §6.2 · drip loops on every cable crossing</text>
+
+  <!-- Controller -->
+  <rect x="360" y="150" width="200" height="150" class="box ctrl"/>
+  <text x="460" y="178" text-anchor="middle" class="lbl" font-weight="bold">Controller PCB</text>
+  <text x="460" y="196" text-anchor="middle" class="pin">ESP32-S3-WROOM-1</text>
+  <text x="460" y="212" text-anchor="middle" class="pin">F1 · revpol · TVS</text>
+  <text x="460" y="228" text-anchor="middle" class="pin">24→12→5→3V3</text>
+  <text x="460" y="244" text-anchor="middle" class="pin">pump MOSFET (fail-OFF)</text>
+  <text x="460" y="260" text-anchor="middle" class="pin">I2C · ADC1 · PWM</text>
+
+  <!-- PSU -->
+  <rect x="360" y="80" width="200" height="46" class="box"/>
+  <text x="460" y="100" text-anchor="middle" class="lbl">24 VDC certified PSU</text>
+  <text x="460" y="116" text-anchor="middle" class="pin">external brick · 120/150 W</text>
+  <line x1="460" y1="126" x2="460" y2="150" class="pwr"/>
+  <text x="468" y="142" class="pin">J_PWR +24V/GND 18AWG</text>
+
+  <!-- LED (dry, top-right) -->
+  <rect x="650" y="150" width="200" height="56" class="box"/>
+  <text x="750" y="172" text-anchor="middle" class="lbl">Grow light + driver</text>
+  <text x="750" y="190" text-anchor="middle" class="pin">remote driver in dry bay</text>
+  <line x1="560" y1="178" x2="650" y2="178" class="pwr"/>
+  <line x1="560" y1="190" x2="650" y2="190" class="sig"/>
+  <text x="566" y="172" class="pin">J_LED +24V/GND/DIM/NTC</text>
+
+  <!-- SHT40 sensor (dry) -->
+  <rect x="650" y="230" width="200" height="50" class="box"/>
+  <text x="750" y="250" text-anchor="middle" class="lbl">SHT40 temp/RH (I2C)</text>
+  <text x="750" y="266" text-anchor="middle" class="pin">shaded mid-height</text>
+  <line x1="560" y1="252" x2="650" y2="252" class="sig"/>
+  <text x="566" y="246" class="pin">J_SENS 3V3/GND/SDA/SCL</text>
+
+  <!-- Status LED (dry, left) -->
+  <rect x="70" y="150" width="200" height="50" class="box"/>
+  <text x="170" y="170" text-anchor="middle" class="lbl">Status LED board</text>
+  <text x="170" y="186" text-anchor="middle" class="pin">5 indicators · front UI</text>
+  <line x1="270" y1="175" x2="360" y2="175" class="sig"/>
+  <text x="276" y="169" class="pin">J_STATUS 5V/GND/DATA</text>
+
+  <!-- Fan (dry, left) -->
+  <rect x="70" y="230" width="200" height="50" class="box"/>
+  <text x="170" y="250" text-anchor="middle" class="lbl">92 mm PWM fan</text>
+  <text x="170" y="266" text-anchor="middle" class="pin">canopy + bay airflow</text>
+  <line x1="270" y1="252" x2="360" y2="252" class="v12"/>
+  <line x1="270" y1="264" x2="360" y2="264" class="sig"/>
+  <text x="276" y="246" class="pin">J_FAN 12V/GND/PWM/TACH</text>
+
+  <!-- USB/UART (dry) -->
+  <rect x="360" y="320" width="200" height="40" class="box"/>
+  <text x="460" y="344" text-anchor="middle" class="pin">J_USB (USB-C) · J_DBG (UART) — service only</text>
+  <line x1="460" y1="300" x2="460" y2="320" class="sig"/>
+
+  <!-- WET ZONE modules -->
+  <!-- Pump -->
+  <rect x="360" y="470" width="200" height="50" class="box"/>
+  <text x="460" y="490" text-anchor="middle" class="lbl">Submersible pump</text>
+  <text x="460" y="506" text-anchor="middle" class="pin">in reservoir · filter screen</text>
+  <line x1="455" y1="300" x2="455" y2="470" class="pwr"/>
+  <text x="360" y="440" class="pin">J_PUMP +24V / switched-RET 20AWG · DRIP LOOP</text>
+
+  <!-- Moisture -->
+  <rect x="70" y="470" width="200" height="50" class="box"/>
+  <text x="170" y="490" text-anchor="middle" class="lbl">Capacitive moisture probe</text>
+  <text x="170" y="506" text-anchor="middle" class="pin">root zone · replaceable</text>
+  <line x1="170" y1="300" x2="170" y2="470" class="sig"/>
+  <text x="76" y="440" class="pin">J_MOIST 3V3/GND/SIG · DRIP LOOP · ADC1</text>
+
+  <!-- Reservoir level -->
+  <rect x="650" y="470" width="200" height="50" class="box"/>
+  <text x="750" y="490" text-anchor="middle" class="lbl">Reservoir low-level</text>
+  <text x="750" y="506" text-anchor="middle" class="pin">float switch (+analog opt.)</text>
+  <line x1="750" y1="300" x2="750" y2="470" class="sig"/>
+  <text x="656" y="440" class="pin">J_RES SW/GND/(LEVEL) · DRIP LOOP</text>
+
+  <!-- Leak -->
+  <rect x="360" y="560" width="200" height="50" class="box"/>
+  <text x="460" y="580" text-anchor="middle" class="lbl">Leak sensor (tray)</text>
+  <text x="460" y="596" text-anchor="middle" class="pin">comparator → latched lockout</text>
+  <line x1="540" y1="520" x2="540" y2="560" class="sig"/>
+  <text x="546" y="548" class="pin">J_LEAK SENSE/GND</text>
+
+  <text x="20" y="652" class="pin">Routing rule (DR-08): the pump SUPPLY TUBE must never cross over the electronics bay. Harness labels match the mechanical cable channel (WI-ME-07).</text>
+</svg>

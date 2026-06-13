@@ -1,0 +1,25 @@
+test_id,component,part_no,date,operator,condition,measured_value,unit,reference_value,pass_fail,notes
+M2-01,esp32s3-devkitc-1,MCU-ESP32S3-N8R8,,,boot+bus-enumerate,,bool,,,all I2C/ADC buses up
+M2-02,sht40,SEN-SHT40,,,ambient,,degC,,,vs calibrated reference
+M2-02,sht40,SEN-SHT40,,,ambient,,%RH,,,vs calibrated reference
+M2-03,moisture,SEN-CAP-V2,,,raw_air,,adc,,,§7.6 calibration model
+M2-03,moisture,SEN-CAP-V2,,,raw_dry_media,,adc,,,
+M2-03,moisture,SEN-CAP-V2,,,raw_field_capacity,,adc,,,
+M2-03,moisture,SEN-CAP-V2,,,raw_saturated,,adc,,,
+M2-04,reservoir-float,SEN-FLOAT-LOW,,,low-level-edge,,bool,,,fill/drain cycle
+M2-05,leak,SEN-LEAK-TRACE,,,wet-detect,,bool,,,verify pump lockout + latch
+M2-06,pump,PMP-24-1m,,,30s_run_1,,ml,,,into graduated cylinder
+M2-06,pump,PMP-24-1m,,,30s_run_2,,ml,,,
+M2-06,pump,PMP-24-1m,,,30s_run_3,,ml,,,
+M2-06,pump,PMP-24-1m,,,noise_1m,,dBA,,,SPL meter @1 m
+M2-07,fan,FAN-92-12V-PWM,,,min_spin_duty,,pct,,,lowest reliable spinning duty
+M2-07,fan,FAN-92-12V-PWM,,,tach_at_50pct,,rpm,,,
+M2-07,fan,FAN-92-12V-PWM,,,noise_1m,,dBA,,,
+M2-08,grow-light,LIGHT-TBD-DR01,,,ppfd_25pct,,umol/m2/s,,,PAR meter at canopy plane
+M2-08,grow-light,LIGHT-TBD-DR01,,,ppfd_50pct,,umol/m2/s,,,
+M2-08,grow-light,LIGHT-TBD-DR01,,,ppfd_75pct,,umol/m2/s,,,
+M2-08,grow-light,LIGHT-TBD-DR01,,,ppfd_100pct,,umol/m2/s,,,
+DR04,pump-current,SEN-INA219,,,idle,,mA,,,clog/dry-run signature
+DR04,pump-current,SEN-INA219,,,normal,,mA,,,
+DR04,pump-current,SEN-INA219,,,blocked_intake,,mA,,,
+DR04,pump-current,SEN-INA219,,,dry_run,,mA,,,

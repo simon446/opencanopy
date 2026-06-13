@@ -6,7 +6,7 @@
 | Milestone | M4-03 |
 | Depends on | WI-EE-03 |
 | Spec refs | §7.9, §8.5 |
-| Status | Not started |
+| Status | Done — [harness-table.csv](../../../electronics/wiring/harness-table.csv), [wiring-diagram.svg](../../../electronics/wiring/wiring-diagram.svg), [README](../../../electronics/wiring/README.md) |
 
 ## Objective
 
@@ -15,10 +15,10 @@ cable-routing plan.
 
 ## Deliverables
 
-- [ ] `electronics/wiring/harness-table.csv` — every connector, pin, signal, polarity, voltage, gauge.
-- [ ] `electronics/wiring/wiring-diagram.svg` — full system wiring.
-- [ ] Labels matching mechanical routing (pump, fan, LED, moisture, reservoir, leak) per §8.5.
-- [ ] Strain-relief and drip-loop callouts at each removable module.
+- [x] `electronics/wiring/harness-table.csv` — every connector, pin, signal, polarity, voltage, gauge. *(11 connectors, 32 pins; every row has polarity + voltage.)*
+- [x] `electronics/wiring/wiring-diagram.svg` — full system wiring. *(Drawn against dry/wet zone model; well-formed.)*
+- [x] Labels matching mechanical routing (pump, fan, LED, moisture, reservoir, leak) per §8.5. *(Labels + DR-08 supply-tube rule noted.)*
+- [x] Strain-relief and drip-loop callouts at each removable module. *(Drip loops on all wet-zone modules; clamps/grommets documented.)*
 
 ## Acceptance criteria
 

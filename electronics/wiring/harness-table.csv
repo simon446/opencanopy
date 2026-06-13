@@ -1,0 +1,33 @@
+connector_ref,connector_name,connector_type,pin,signal,polarity,voltage_v,wire_awg,wire_color,destination,strain_relief,notes
+J_PWR,Power input,XT30 / 2-pos screw,1,+24V,+,24,18,red,External 24VDC PSU brick,grommet + clamp at case wall,fused F1 downstream; reverse-polarity protected
+J_PWR,Power input,XT30 / 2-pos screw,2,GND,-,0,18,black,External 24VDC PSU brick,grommet + clamp at case wall,
+J_LED,Grow light,JST VH 4-pos keyed,1,+24V,+,24,18,red,LED bar/driver,clamp at light mount; service loop,supply tube must NOT cross this run (DR-08)
+J_LED,Grow light,JST VH 4-pos keyed,2,GND,-,0,18,black,LED bar/driver,clamp at light mount,
+J_LED,Grow light,JST VH 4-pos keyed,3,LED_DIM,signal,0-10/PWM,24,white,LED driver dim input,,0-10V or PWM per selected driver
+J_LED,Grow light,JST VH 4-pos keyed,4,LED_NTC,signal,0-3.3,26,grey,LED heatsink NTC (optional),,DR-09 secondary thermal; ADC1
+J_PUMP,Pump,JST VH 2-pos keyed,1,PUMP_+24V,+,24,20,red,Submersible pump,drip loop below electronics; clamp,low-side switched; flyback on board
+J_PUMP,Pump,JST VH 2-pos keyed,2,PUMP_RET,switched-,0,20,black,Submersible pump,drip loop,returns to pump MOSFET drain
+J_FAN,Fan,4-pin fan / JST XH,1,GND,-,0,26,black,92mm PWM fan,grommet at fan mount,
+J_FAN,Fan,4-pin fan / JST XH,2,+12V,+,12,24,yellow,92mm PWM fan,grommet at fan mount,
+J_FAN,Fan,4-pin fan / JST XH,3,FAN_PWM,signal,3.3,28,blue,92mm PWM fan,,25 kHz
+J_FAN,Fan,4-pin fan / JST XH,4,FAN_TACH,signal,3.3,28,green,92mm PWM fan,,open-collector; pullup on board
+J_MOIST,Moisture probe,JST PH 3-pos keyed,1,+3V3,+,3.3,26,red,Capacitive soil probe,drip loop at pot; replaceable conn,corrosion-resistant probe
+J_MOIST,Moisture probe,JST PH 3-pos keyed,2,GND,-,0,26,black,Capacitive soil probe,drip loop,
+J_MOIST,Moisture probe,JST PH 3-pos keyed,3,MOIST_SIG,signal,0-3.0,26,white,Capacitive soil probe,,ADC1; analog
+J_RES,Reservoir level,JST PH 3-pos keyed,1,RES_LOW_SW,signal,3.3,26,white,Float switch,drip loop at reservoir,closed=low; internal pullup
+J_RES,Reservoir level,JST PH 3-pos keyed,2,GND,-,0,26,black,Float switch / analog sensor,drip loop,
+J_RES,Reservoir level,JST PH 3-pos keyed,3,RES_LEVEL_ADC,signal,0-3.3,26,grey,Analog level (optional),,ADC1
+J_LEAK,Leak sensor,JST PH 2-pos keyed,1,LEAK_SENSE,signal,3.3,26,white,Conductive trace/rope on tray,route along tray; below water path,to on-board comparator; FW latches
+J_LEAK,Leak sensor,JST PH 2-pos keyed,2,GND,-,0,26,black,Conductive trace/rope on tray,,
+J_SENS,Temp/RH sensor,JST PH 4-pos keyed,1,+3V3,+,3.3,28,red,SHT40 board,shaded mid-height mount; service loop,I2C 0x44
+J_SENS,Temp/RH sensor,JST PH 4-pos keyed,2,GND,-,0,28,black,SHT40 board,,
+J_SENS,Temp/RH sensor,JST PH 4-pos keyed,3,I2C_SDA,signal,3.3,28,white,SHT40 board,,shared I2C; 4.7k pullup on board
+J_SENS,Temp/RH sensor,JST PH 4-pos keyed,4,I2C_SCL,signal,3.3,28,green,SHT40 board,,shared I2C
+J_STATUS,Status LED board,JST XH 3-pos keyed,1,+5V,+,5,26,red,Front-panel LED board,clip behind front UI,WS2812 chain
+J_STATUS,Status LED board,JST XH 3-pos keyed,2,GND,-,0,26,black,Front-panel LED board,,
+J_STATUS,Status LED board,JST XH 3-pos keyed,3,STATUS_DATA,signal,3.3,28,white,Front-panel LED board,,RMT data; series R on board
+J_DBG,Debug UART,2.54mm header 4-pos,1,+3V3,+,3.3,n/a,red,Service tool (assembly only),hidden in normal use,
+J_DBG,Debug UART,2.54mm header 4-pos,2,UART0_TX,signal,3.3,n/a,white,Service tool,,
+J_DBG,Debug UART,2.54mm header 4-pos,3,UART0_RX,signal,3.3,n/a,green,Service tool,,
+J_DBG,Debug UART,2.54mm header 4-pos,4,GND,-,0,n/a,black,Service tool,,
+J_USB,USB-C,USB-C receptacle,shell,USB-CDC,n/a,5,n/a,n/a,Flash + log capture,board edge,native USB-JTAG GPIO19/20

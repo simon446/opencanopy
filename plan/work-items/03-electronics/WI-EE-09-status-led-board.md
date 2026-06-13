@@ -6,7 +6,7 @@
 | Milestone | (part of M4) |
 | Depends on | WI-EE-03 |
 | Spec refs | §7.11, §3.5 |
-| Status | Not started |
+| Status | In progress — design complete ([report](../../../electronics/analysis/WI-EE-09-status-led-board.md)); KiCad board + fab pending source; diffuser fit pends WI-ME-01 |
 
 ## Objective
 
@@ -14,10 +14,10 @@ Design the separate front-panel status LED PCB driving the 5 indicators behind a
 
 ## Deliverables
 
-- [ ] Small front-panel PCB with 5 indicator positions (RGB or separate colored LEDs).
-- [ ] Current-limited; PWM dimming for night mode.
-- [ ] Connector back to the controller board.
-- [ ] Mechanical fit with the diffuser ([WI-ME-01](../04-mechanical/WI-ME-01-assembly-cad.md) front UI).
+- [x] Small front-panel PCB with 5 indicator positions (RGB or separate colored LEDs). *(5× WS2812B-2020 primary; discrete RGB + TLC59116 alternate.)*
+- [x] Current-limited; PWM dimming for night mode. *(Per-LED + global brightness; ≤1.5 W; data series-R + decoupling specified.)*
+- [x] Connector back to the controller board. *(J_STATUS 3-pin 5V/GND/DATA, in harness.)*
+- [ ] Mechanical fit with the diffuser ([WI-ME-01](../04-mechanical/WI-ME-01-assembly-cad.md) front UI). *(Pitch/outline pend WI-ME-01 front-UI CAD.)*
 
 ## Acceptance criteria
 

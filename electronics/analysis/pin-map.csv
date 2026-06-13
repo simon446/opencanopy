@@ -1,0 +1,25 @@
+net,esp32s3_gpio,direction,peripheral,connector,notes
+I2C_SDA,GPIO8,bidir,I2C0,J_SENS,SHT40 + DS3231 RTC + INA219 (pump current); 4.7k pullups to 3V3
+I2C_SCL,GPIO9,out,I2C0,J_SENS,shared I2C bus clock
+MOISTURE_ADC,GPIO4,in,ADC1_CH3,J_MOIST,capacitive probe analog; ADC1 (Wi-Fi safe)
+RES_LOW_SW,GPIO5,in,GPIO,J_RES,reservoir float switch; internal pullup; closed=low
+RES_LEVEL_ADC,GPIO6,in,ADC1_CH5,J_RES,optional analog level (eTape); ADC1
+LEAK_DET,GPIO7,in,GPIO,J_LEAK,from leak comparator; active-high = leak; latched in FW
+LED_HS_NTC,GPIO2,in,ADC1_CH1,J_LED,optional LED-heatsink NTC (DR-09 secondary); ADC1
+PUMP_PWM,GPIO10,out,LEDC,J_PUMP_DRV,pump MOSFET gate (via 100R + driver); EXTERNAL 10k pulldown = fail-OFF
+FAN_PWM,GPIO12,out,LEDC,J_FAN,25 kHz fan PWM
+FAN_TACH,GPIO13,in,PCNT,J_FAN,open-collector tach; pullup to 3V3
+LED_DIM_PWM,GPIO14,out,LEDC,J_LED,LED dim; PWM direct or PWM->RC->opamp for 0-10V
+STATUS_LED_DATA,GPIO21,out,RMT,J_STATUS,WS2812 data to front-panel board (single wire)
+UART0_TX,GPIO43,out,UART0,J_DBG,debug UART header
+UART0_RX,GPIO44,in,UART0,J_DBG,debug UART header
+USB_DM,GPIO19,bidir,USB-JTAG,J_USB,native USB-CDC (flash + log)
+USB_DP,GPIO20,bidir,USB-JTAG,J_USB,native USB-CDC
+BOOT,GPIO0,in,strap,SW_BOOT,boot/download button (hidden in normal use)
+EN_RESET,EN,in,reset,SW_RST,chip reset (hidden in normal use)
+EXP_HX711_DT,GPIO15,in,GPIO,J_EXP,reserved: load-cell (DR-04 option) DOUT
+EXP_HX711_SCK,GPIO16,out,GPIO,J_EXP,reserved: load-cell SCK
+EXP_GP1,GPIO17,bidir,GPIO,J_EXP,reserved: PAR / pH-EC analog front end
+EXP_GP2,GPIO18,bidir,GPIO,J_EXP,reserved expansion
+EXP_CAM1,GPIO47,bidir,GPIO,J_CAM,reserved: camera (unpopulated)
+EXP_CAM2,GPIO48,bidir,GPIO,J_CAM,reserved: camera (unpopulated)

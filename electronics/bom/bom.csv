@@ -1,0 +1,40 @@
+ref,item,category,subsystem,qty,value,part_no,manufacturer,package,spec_ref,power_w,ppf_or_ppfd,dimming,spectrum,thermal_mounting,electrical_cert,status,notes
+U1,ESP32-S3-WROOM-1,mcu,control,1,N8R8,ESP32-S3-WROOM-1-N8R8,Espressif,module,§7.1/§16.1,,,,,,,committed,octal flash+PSRAM; GPIO26-37 reserved
+U2,Temp/RH sensor,sensor,climate,1,SHT40,SHT40-AD1B,Sensirion,DFN,§7.5/§16.1,,,,,,,committed,I2C 0x44; on cabled breakout
+U3,RTC,timekeeping,control,1,DS3231SN,DS3231SN,Analog Devices,SOIC,§16.1/DR-05,,,,,,,committed,battery-backed; place away from driver heat
+BT1,RTC coin cell + holder,timekeeping,control,1,CR2032,CR2032+holder,generic,TH,§16.1,,,,,,,committed,RTC backup
+U4,Pump current monitor,sensor,irrigation,1,INA219,INA219AIDR,Texas Instruments,SOIC,§7.5/DR-04,,,,,,,committed,clog/dry-run detection (required V1)
+U5,Leak comparator,protection,irrigation,1,LM393,LM393DR,Texas Instruments,SOIC,§7.5,,,,,,,committed,clean debounced leak edge
+Q1,Pump MOSFET,power,irrigation,1,logic-level N-FET,DMN3404L,Diodes Inc,SOT23,§7.10/§9.6,,,,,,,committed,fails OFF via R-pulldown
+R1,Gate pulldown,power,irrigation,1,10k,RC0603-10k,generic,0603,§9.6/§11.4,,,,,,,committed,pump gate->GND fail-OFF
+R2,Gate series,power,irrigation,1,100R,RC0603-100R,generic,0603,§7.10,,,,,,,committed,
+F1,Input fuse + holder,protection,power,1,6.3A slow,fuse-6p3A,generic,5x20mm,§7.8/§11.4,,,,,,,committed,8A variant for 150W build
+Q2,Reverse-polarity P-FET,protection,power,1,P-FET 40V,DMP3056L,Diodes Inc,SOT23,§17.1,,,,,,,committed,high-side; Zener-clamped gate
+D1,Input TVS,protection,power,1,SMBJ28A,SMBJ28A,Littelfuse,SMB,§17.1,,,,,,,committed,28V standoff
+D2,Pump flyback,protection,irrigation,1,Schottky 3A,SS34,generic,SMC,§17.1,,,,,,,committed,
+D3,Fan flyback,protection,climate,1,Schottky 1A,SS14,generic,SMA,§17.1,,,,,,,committed,
+U6,24->12V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,committed,fan + 12V pump option
+U7,24->5V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,committed,sensors/status/3V3 feed
+U8,5->3.3V reg,power,power,1,1A,AP2112K-3.3,Diodes Inc,SOT23-5,§7.8,,,,,,,committed,MCU rail
+U9,LED dim buffer,interface,light,1,opamp,MCP6001,Microchip,SOT23-5,§7.2,,,,,,,optional,only if 0-10V dim needed
+CN_PWR,Power input connector,connector,power,1,XT30,XT30PW,generic,TH,§7.10,,,,,,,committed,>=10A
+CN_LED,LED connector,connector,light,1,JST VH 4,B4PS-VH,JST,TH,§7.9,,,,,,,committed,+24V/GND/DIM/NTC
+CN_PUMP,Pump connector,connector,irrigation,1,JST VH 2,B2PS-VH,JST,TH,§7.9,,,,,,,committed,
+CN_FAN,Fan connector,connector,climate,1,4-pin fan,47053-1000,Molex,TH,§7.9,,,,,,,committed,PWM+tach
+CN_MOIST,Moisture connector,connector,irrigation,1,JST PH 3,B3B-PH,JST,TH,§7.9,,,,,,,committed,replaceable probe
+CN_RES,Reservoir connector,connector,irrigation,1,JST PH 3,B3B-PH,JST,TH,§7.9,,,,,,,committed,
+CN_LEAK,Leak connector,connector,irrigation,1,JST PH 2,B2B-PH,JST,TH,§7.9,,,,,,,committed,
+CN_SENS,Sensor/I2C connector,connector,climate,1,JST PH 4,B4B-PH,JST,TH,§7.9,,,,,,,committed,SHT40
+CN_STATUS,Status LED connector,connector,ui,1,JST XH 3,B3B-XH,JST,TH,§7.9/§7.11,,,,,,,committed,5V/GND/DATA
+CN_DBG,Debug UART header,connector,control,1,2.54 4-pin,header-4,generic,TH,§7.9,,,,,,,committed,service only
+CN_USB,USB-C receptacle,connector,control,1,USB-C,USB4105,GCT,SMD,§7.9,,,,,,,committed,USB-CDC flash/log
+PCB1,Controller PCB,pcb,control,1,4-layer,opencanopy-ctrl,inhouse,board,§7.9,,,,,,,pending-cad,fab from KiCad source
+M1,Pump (24V submersible),actuator,irrigation,1,>=1.0m head,PMP-24-1m,generic,module,§7.3,,,,,,,committed,brushless centrifugal; <5W
+M2,Fan 92mm PWM,actuator,climate,1,92x92x25,FAN-92-12V-PWM,generic,module,§7.4,,,,,,,committed,fluid-dynamic bearing
+SEN1,Capacitive moisture probe,sensor,irrigation,1,v2 coated,SEN-CAP-V2,generic,module,§7.6,,,,,,,committed,corrosion-resistant; replaceable
+SEN2,Reservoir float switch,sensor,irrigation,1,low-level,SEN-FLOAT-LOW,generic,module,§7.7,,,,,,,committed,
+SEN3,Leak trace/rope,sensor,irrigation,1,tray,SEN-LEAK-TRACE,generic,module,§7.5,,,,,,,committed,
+LED_BAR,Grow light (compact),light,light,1,60W full-spectrum,LIGHT-CANDIDATE-60W,generic-hort,bar,§7.2/§16.3,60,150 PPFD @300mm (PPF ~150 umol/s; see validation/ppfd-measurements/),PWM + 0-10V,full-spectrum white 3500K + 660nm deep red horticultural,remote aluminum heatsink driver in upper dry bay,CE/UL listed,CANDIDATE-DR01-HOLD,not ordered until DR-01 photometric (WI-PL-06) passes; thermal half done (WI-EE-10)
+LED_STATUS,Status LED board parts (5x WS2812B),ui,ui,1,WS2812B-2020,WS2812B-2020,Worldsemi,2020,§7.11,,,,,,,committed,front-panel; see WI-EE-09
+PCB2,Status LED PCB,pcb,ui,1,2-layer,opencanopy-status,inhouse,board,§7.11,,,,,,,pending-cad,fab from KiCad source
+PSU1,External 24VDC PSU,power,power,1,120W (150W@100W LED),PSU-24-120,generic,brick,§7.8/§16.1,,,,,,CE/UL,committed,certified external brick; not inside unit

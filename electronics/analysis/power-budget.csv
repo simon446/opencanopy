@@ -1,0 +1,13 @@
+load,rail_v,source,typ_w,peak_w,typ_a_at_rail,peak_a_at_rail,duty,notes
+LED driver,24,PSU 24V,60,80,2.50,3.33,continuous when lit,compact 50-80W build; 100W variant -> 100W/4.17A
+Pump (24V brushless),24,PSU 24V,5,15,0.21,0.63,pulsed (low duty),15W is sub-second startup inrush; ~5W running
+Fan (12V PWM),12,12V buck,2,5,0.17,0.42,continuous,92mm 4-pin; runs at full under max light
+MCU + sensors,3.3/5,5V buck->3.3V,1.5,4,n/a,n/a,continuous,ESP32-S3 Wi-Fi TX bursts dominate peak
+Status LED board,5,5V buck,0.5,1.5,0.10,0.30,continuous,5 indicators; PWM-dimmed in night mode
+RTC + backup,3.3,3.3V + coin cell,0.05,0.1,n/a,n/a,continuous,DS3231; coin cell when unpowered
+,,,,,,,
+SUBTOTAL (compact 80W),,,69.0,105.0,,,,LED@80 + pump inrush + fan max + MCU peak
+CONTINUOUS WORST-CASE (compact),,,,95.0,,,,LED 80 + pump ~5 running + fan 5 + MCU 5
+CONTINUOUS WORST-CASE (100W variant),,,,115.0,,,,LED 100 + pump ~5 + fan 5 + MCU 5
+PSU RECOMMENDATION (compact),24,,,120.0,,,,120W brick -> 26% headroom on 95W continuous
+PSU RECOMMENDATION (100W variant),24,,,150.0,,,,150W brick -> 30% headroom on 115W continuous

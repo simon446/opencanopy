@@ -17,8 +17,14 @@ PCB, wiring, BOM, and electrical verification for OpenCanopy. Owned by the **Ele
   - `bom.csv` — primary BOM (must satisfy the §16 constraint list).
   - `alternates.csv` — approved alternate parts.
 - `test/` — electrical verification.
-  - `bringup.md` — bench bring-up procedure.
-  - `pcb-verification.md` — trace/current and electrical-safety verification report.
+  - `bringup.md` — bench bring-up procedure (WI-EE-08).
+  - `pcb-verification.md` — trace/current and thermal verification report (WI-EE-06).
+  - `hil-fixture.md` — HIL fixture design + automated fault-test matrix (WI-EE-08).
+  - `poc-logs/` — breadboard PoC bench-log templates (WI-EE-01).
+- `analysis/` — engineering design/analysis artifacts.
+  - thermal budget model + script (WI-EE-10), power budget (WI-EE-02), component PoC plan (WI-EE-01),
+    schematic capture + pin map (WI-EE-03), PCB layout design (WI-EE-04), status-LED board (WI-EE-09),
+    trace-width calculator. KiCad source is entered from these (`pcb/kicad/`).
 
 ## Key constraints
 
