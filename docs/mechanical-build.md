@@ -1,50 +1,44 @@
-# Mechanical build — full assembly views
+# Mechanical build — v0 block model
 
-Sketch renders of the **complete OpenCanopy V1 assembly** (every part in its placed
-position) within the locked **480 × 320 × 700 mm** envelope. They are generated from
-the parametric model and refreshed by the Pages CI on every build, so they always
-match the current geometry. Each part has a distinct colour (see the legend in each
-image) so reviewers can point at and comment on specific modules.
+Renders of the **OpenCanopy V1 v0 block model** within the locked **480 × 320 × 680 mm**
+envelope. Generated from the parametric OpenSCAD source
+(`mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad`) per the
+[CAD brief](cad_brief_for_claude.md); simple solids only (v0 — visual refinement later).
 
-> Source of truth: `mechanical/cad/source/` (parametric build123d model). These images
-> are produced by `mechanical/cad/source/render.py` from the placed meshes in
-> `mechanical/stl/assembly/`. STEP/STL exports live in `mechanical/cad/step/` and
-> `mechanical/stl/`.
+**Architecture (current):** an open-frame tabletop unit — base cabinet + corner posts +
+top hood, open at the front and sides. **The electronics live in the base, *beside* the
+water reservoir, isolated by an additional vertical wall** (side-by-side: wet | wall |
+dry). A fixed full-spectrum LED bar lights the pot from the hood; a 4-LED status strip
+on the front is the only interface (no screen, no controls).
 
-## Isometric
+## Exterior
 
-![Isometric, front-right](assets/renders/assembly-iso-front-right.png)
+![Isometric](assets/renders/block-iso.png)
 
-![Isometric, front-left](assets/renders/assembly-iso-front-left.png)
+![Front elevation](assets/renders/block-front.png)
 
-## Orthographic
+## Base internals — electronics beside the water, behind the isolating wall
 
-![Front elevation](assets/renders/assembly-front.png)
+The base holds two compartments separated by a solid wall, so a leak or overflow cannot
+reach the dry side: **blue reservoir (wet zone) | white isolating wall | dry electronics
+(controller PCB, LED driver, power)**. Only low-voltage wires cross the wall; mains stays
+out (external 24 V PSU).
 
-![Right elevation](assets/renders/assembly-right.png)
+![Base internals](assets/renders/block-base.png)
 
-![Rear elevation](assets/renders/assembly-back.png)
+## Modules (per the brief)
 
-![Top / plan](assets/renders/assembly-top.png)
+`outer_frame` · `top_light_module` · `bottom_base` (+ isolating wall) ·
+`pot_placeholder` · `reservoir_placeholder` · `electronics_bay` (base, beside water) ·
+`fan_mount` · `status_led_diffuser` · `cable_channel` · `assembly`.
 
-## What to look for
+Reproduce / re-render:
 
-- **Vertical stack & zone separation (§6.2):** electronics dry bay + lid on top;
-  grow zone (LED fixture, light mount, fan, cable channel) in the middle; pot on its
-  tray; reservoir + pump + leak tray at the bottom. Water lives low, electronics high.
-- **Open front (§8.1):** the lower and mid rails are omitted at the front so the
-  reservoir drawer pulls out and the pot lifts out without obstruction.
-- **Fan (rear):** guarded 92 mm fan on a rear cross-rail, above the pot rim so it
-  circulates the canopy rather than blasting a seedling.
-- **Light mount:** adjustable carrier just below the dry bay, LED head with secondary
-  retention.
+```sh
+openscad -o out.stl mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad
+# base-internals view: add  -D show_top=false
+```
 
-## Verification
-
-These views accompany the numeric checks:
-
-- [CAD verification checklist](../mechanical/cad-verification-checklist.md) (§12.1).
-- [Tolerance & interference analysis](../mechanical/tolerance-analysis.md) — worst-case
-  FCL collision sim on the real models (zero interferences, ≥2 mm clearances).
-
-*(The above two links point into the repo's `mechanical/` tree, not the docs site.)*
+> v0 acceptance (brief): opens without errors; envelope 480 × 320 × 680; front open;
+> all modules present; **electronics in the base, beside/isolated from the water**;
+> no screen or controls. All met.

@@ -13,16 +13,14 @@ on:
       - "README.md"
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
-      - "mechanical/stl/assembly/**"
-      - "mechanical/cad/source/render.py"
+      - "mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad"
   pull_request:
     paths:
       - "docs/**"
       - "README.md"
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
-      - "mechanical/stl/assembly/**"
-      - "mechanical/cad/source/render.py"
+      - "mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad"
   workflow_dispatch:
 
 permissions:
@@ -46,19 +44,19 @@ jobs:
       - name: Install MkDocs
         run: pip install --quiet mkdocs mkdocs-material
 
-      - name: Render full-assembly views
-        # Best-effort refresh: the VTK-rendered PNGs are committed and validated, so a
-        # headless-rendering hiccup never blocks the Pages deploy — the committed images
-        # are published as-is in that case.
+      - name: Render v0 block-model views
+        # Best-effort refresh: render the OpenSCAD block model to docs/assets/renders so
+        # the published site always matches the current geometry (electronics in the
+        # base, beside the reservoir). The committed PNGs publish as-is if this hiccups.
+        # OpenSCAD's preview PNG (colours + transparency) needs a GL context -> xvfb.
         continue-on-error: true
-        # Reads the committed placed meshes in mechanical/stl/assembly/ and renders
-        # them with VTK — a real z-buffered renderer (correct occlusion, uniform faces,
-        # clean feature edges). No OpenCascade/build123d needed. vtk-osmesa is the
-        # headless software-rendering wheel (no X server / GPU), so `import vtk` works
-        # offscreen in CI. Refreshes docs/assets/renders/*.png to match the geometry.
         run: |
-          pip install --quiet trimesh vtk-osmesa
-          python mechanical/cad/source/render.py
+          sudo apt-get update -qq && sudo apt-get install -y -qq openscad xvfb
+          F=mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad
+          R=docs/assets/renders
+          xvfb-run -a openscad -o $R/block-iso.png   --imgsize=1100,1000 --viewall --autocenter --camera=0,0,0,58,0,28,0 "$F"
+          xvfb-run -a openscad -o $R/block-front.png --imgsize=950,1050  --viewall --autocenter --camera=0,0,0,90,0,180,0 "$F"
+          xvfb-run -a openscad -o $R/block-base.png  --imgsize=1100,820  --viewall --autocenter -D show_top=false --camera=0,0,0,55,0,32,0 "$F"
 
       - name: Generate fallback mkdocs.yml if none committed
         shell: bash

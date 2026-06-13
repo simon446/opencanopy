@@ -40,8 +40,11 @@ optional larger configuration. Every dimension below is a hard limit, not a targ
 
 ## 2. Architecture & safety envelope (locked)
 
-- **Two-zone layout:** electronics in an **upper dry bay**, water (reservoir + pump) in a **lower wet
-  bay**, physically isolated. No water path can overflow into electronics (§17.1).
+- **Two-zone layout (current):** electronics and water both live in the **base**, in two
+  side-by-side compartments separated by an **additional isolating wall** — the **wet zone**
+  (reservoir + pump) on one side and the sealed **dry electronics** compartment **beside** it on the
+  other. Electronics are horizontally walled off from the water; only low-voltage wires cross the wall.
+  No water path can overflow into electronics (§17.1).
 - **No AC mains inside the unit.** Power is an **external certified 24 VDC PSU** only (§17.1).
 - **Open-frame / non-enclosed default** (§3.6): not a sealed grow chamber. Room temperature is assumed
   **22–25 °C**. Firmware does **not** maintain an independent air-temperature setpoint. No humidifier,
