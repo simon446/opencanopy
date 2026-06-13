@@ -37,11 +37,9 @@ use esp_println::println;
 #[esp_hal::main]
 fn main() -> ! {
     // --- Peripheral init (§9.4 step 1) ---
-    let peripherals = esp_hal::init({
-        let mut cfg = esp_hal::Config::default();
-        cfg.cpu_clock = esp_hal::clock::CpuClock::max();
-        cfg
-    });
+    // Use the default clock config: forcing CpuClock::max() reconfigures the PLL, which the Wokwi
+    // emulator doesn't fully model and can hang boot. The default clock is fine for this controller.
+    let peripherals = esp_hal::init(esp_hal::Config::default());
 
     // Boot banner over UART — the first observable sign of life (and the Wokwi smoke-test anchor).
     println!("=== OpenCanopy firmware v{FIRMWARE_VERSION} (ESP32-S3) ===");
