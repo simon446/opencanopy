@@ -93,3 +93,27 @@ external telemetry. None of these are functional in V1 — see [`scope.md`](scop
 | Sensor set | §7.5–§7.6, §20 |
 | Open-frame / power / two-zone | §3.6, §7.8, §17 |
 | Expansion headers | §4.3 |
+
+## 8. Rationale & research basis
+
+These decisions are grounded in extension/research guidance (full list in
+[`references.md`](references.md); design detail in spec §2 and §5). The key "whys":
+
+- **Open-frame, room 22–25 °C, no enclosure.** A 22–25 °C indoor room is adequate for hot peppers, so
+  the cost/complexity of a sealed, actively climate-controlled chamber isn't justified for V1; the
+  device manages only LED heat, airflow, watering, and warnings (§2.3, §3.6). [R4, R5]
+- **Pot locked at 10 L (top of the compact band).** Container plants dry fast and root volume drives
+  plant health and yield; maximizing root volume within the compact envelope directly mitigates the
+  "too-small pot" risk (§3.3, risk-register R2). [R7, R8, R9]
+- **Light specified in DLI/PPFD, broad-spectrum white, dimmable.** Fruiting peppers are high-light:
+  the target is DLI ≈ 20–25 mol·m⁻²·day⁻¹ and ≥ ~400 µmol·m⁻²·s⁻¹ PPFD across the canopy, achievable
+  in a tabletop footprint only with a constrained canopy, a real PPFD map, and pruning. Lumens / "plant
+  lamp" claims are rejected (§2.1, §7.2, §16.3). [R1, R2, R3, R14]
+- **Consistent-moisture watering with safety caps.** Steady moisture supports fruit retention and
+  reduces blossom-end rot, but waterlogging harms roots — hence closed-loop watering with daily/runtime
+  caps and leak lockout (§5.6, §17; risk-register R3). [R5, R8, R15, R16]
+- **VPD computed from temp/RH, not RH alone.** VPD is the physiologically meaningful driver of
+  transpiration and disease pressure (§5.4). [R13]
+
+See [`references.md`](references.md) for the cited sources and [`scope.md`](scope.md) for what these
+constraints deliberately exclude.

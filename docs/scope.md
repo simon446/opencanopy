@@ -10,6 +10,14 @@ an [§4.3 optional expansion header](#expansion-headers-provisioned-not-in-scope
 > **Change control:** Adding any non-goal back into V1 scope requires a [`risk-register.md`](risk-register.md)
 > entry (scope creep is tracked risk #7) and Project & Repo sign-off.
 
+**Why this scope (research basis).** V1 is deliberately *a small indoor device, not a commercial
+greenhouse crop plan* (spec §2.3): the compact geometry trades maximum yield for table fit, and the
+goal is **credible indoor fruiting, not commercial yield**. That framing is what justifies excluding
+active climate control (a 22–25 °C room is adequate for hot peppers) and deferring pH/EC dosing,
+camera/AI, and multi-plant support — none are needed to prove the core grow loop. The excluded items
+return only through change control or the V2 roadmap (§19). Sources and the full rationale:
+[`references.md`](references.md), spec §2.
+
 ---
 
 ## In scope for V1 (§4.1)

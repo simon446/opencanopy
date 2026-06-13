@@ -12,6 +12,11 @@ ledger for the project: any change to a locked requirement
 Impact: Low / Medium / High / **Critical** (Critical = safety or project-killing). Work-item IDs link
 to `../plan/work-items/`.
 
+**Basis.** The plant-facing risks (R1 light, R2 root volume, R3 overwatering, R6 yield expectations)
+are grounded in extension/research guidance — see [`references.md`](references.md) and spec §2. For
+example, R3's overwatering/blossom-end-rot link comes from sources R5/R8/R15/R16; R1's DLI/PPFD framing
+from R1/R2/R3.
+
 ---
 
 ## A. Key engineering risks (spec §22)
