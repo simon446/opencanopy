@@ -1803,6 +1803,25 @@ Tasks:
 | M1-05 | Define VPD calculation | Firmware utility | Unit-tested |
 | M1-06 | Define fault priorities | State machine doc | Testable state priority |
 
+### 15.2.1 Milestone M1.5 — Pre-order modeling gate
+
+**Objective:** De-risk the most expensive, least reversible decisions (the grow light and the frame
+thermal design) with analysis **before** any parts are ordered or CAD is frozen. Added per §23 DR-01.
+
+Tasks:
+
+| ID | Task | Output | Acceptance |
+|---|---|---|---|
+| M1.5-01 | Photometric delivery model | PPFD map + DLI per candidate fixture | ≥350 µmol/m²/s avg at ≥0.6 uniformity achievable in the locked envelope |
+| M1.5-02 | Thermal budget model | LED/heatsink/canopy/electronics-bay temps at 50–100 W | Within LED, printed-material, and electronics limits at 25 °C ambient |
+
+The grow-light purchase in M2 and the CAD freeze in M5 are **gated** on this milestone. The post-build
+PPFD (M6/WG-QA) and thermal (M6-04) measurements later validate these models against reality.
+
+Bench characterization of sensor/actuator physics (§23 DR-02) follows M2 PoC and re-parameterizes the
+M3 simulator from measured data before any live-plant loop; a surrogate full-loop shakedown (§23 DR-03)
+gates the M7 grow trial.
+
 ### 15.3 Milestone M2 — Electronics proof of concept
 
 **Objective:** Validate sensor and actuator choices before custom PCB.

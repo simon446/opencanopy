@@ -5,7 +5,7 @@
 | Track | Firmware |
 | Milestone | M3-09 |
 | Depends on | WI-FW-05, WI-FW-06, WI-FW-07 |
-| Spec refs | §10.3 |
+| Spec refs | §10.3, §23 (DR-02) |
 | Status | Not started |
 
 ## Objective
@@ -27,3 +27,10 @@ and implement the 11 required scenarios.
 
 - All 11 §10.3 scenarios pass via `cargo test` against the actual `control` logic (not a reimplementation).
 - Simulator runs in CI on stable Rust (no hardware, no Xtensa toolchain) — coordinate with [WI-PS-06](../00-project-setup/WI-PS-06-ci-pipeline.md).
+
+## Notes
+
+The models here start from engineering estimates but **must be re-parameterized from measured bench
+data** ([WI-QA-09](../05-validation-qa/WI-QA-09-bench-characterization.md), §23 DR-02) before the sim
+is trusted to gate a live-plant grow loop. Passing scenarios proves the control logic, not that
+reality matches the model.

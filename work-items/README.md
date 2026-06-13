@@ -47,10 +47,17 @@ The tracks are intentionally parallelizable, but there is a critical path:
 ```
 
 - **Plant science** must lock setpoints before firmware control logic is meaningful.
-- **Firmware simulation** (`02-firmware`) can be fully validated before any PCB exists.
+- **Pre-order modeling gate** (M1.5: [WI-PL-06](01-plant-science/WI-PL-06-photometric-model.md) +
+  [WI-EE-10](03-electronics/WI-EE-10-thermal-budget-model.md)) must pass before the grow light is
+  ordered or CAD is frozen — see spec §23 (DR-01).
+- **Firmware simulation** (`02-firmware`) can be fully validated before any PCB exists, but its models
+  must be re-parameterized from measured bench data
+  ([WI-QA-09](05-validation-qa/WI-QA-09-bench-characterization.md), §23 DR-02) before gating a live
+  grow loop.
 - **Electronics PoC** can run in parallel with plant science; the custom PCB waits on PoC results.
 - **Validation** integrates the outputs of firmware + electronics + mechanical.
-- **Grow trial** is the final gate and depends on a fully integrated unit.
+- **Grow trial** is the final gate and depends on a fully integrated unit; a surrogate full-loop
+  shakedown ([WI-QA-10](05-validation-qa/WI-QA-10-surrogate-shakedown.md), §23 DR-03) precedes it.
 
 ## Release gate
 

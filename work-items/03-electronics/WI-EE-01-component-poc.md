@@ -4,8 +4,8 @@
 |---|---|
 | Track | Electronics |
 | Milestone | M2-01 … M2-08 |
-| Depends on | WI-PS-04 |
-| Spec refs | §7.1–§7.7, §16 |
+| Depends on | WI-PS-04, WI-PL-06, WI-EE-10 |
+| Spec refs | §7.1–§7.7, §16, §23 (DR-01) |
 | Status | Not started |
 
 ## Objective
@@ -24,6 +24,9 @@ to a custom PCB. De-risk the parts, not the layout.
 - [ ] Fan (80/92 mm PWM): min reliable duty + noise measured (§7.4).
 - [ ] LED dimming: PPFD map at 25/50/75/100% recorded (§7.2) using [WI-PL-02](../01-plant-science/WI-PL-02-light-dli-targets.md) calculator.
 - [ ] Grow-light candidate meets §16.3 gating (real PPF/PPFD, dimming, spectrum, thermal data).
+- [ ] Grow-light BOM entry **not finalized** until the §23 DR-01 modeling gate passes
+      ([WI-PL-06](../01-plant-science/WI-PL-06-photometric-model.md) photometric +
+      [WI-EE-10](WI-EE-10-thermal-budget-model.md) thermal).
 
 ## Acceptance criteria
 
