@@ -6,7 +6,7 @@
 | Milestone | M0-06 |
 | Depends on | WI-PS-04 |
 | Spec refs | §22 (key risks), §17 (safety) |
-| Status | Not started |
+| Status | Done |
 
 ## Objective
 
@@ -14,7 +14,7 @@ Track the engineering and safety risks the spec calls out, with owners and mitig
 
 ## Deliverables
 
-- [ ] `docs/risk-register.md` seeded with the seven §22 risks:
+- [x] `docs/risk-register.md` seeded with the seven §22 risks:
   1. Underpowered / poorly specified light.
   2. Too-small pot (root volume).
   3. Overwatering from bad moisture calibration.
@@ -22,7 +22,7 @@ Track the engineering and safety risks the spec calls out, with owners and mitig
   5. Heat/noise from forcing a high-light crop into a compact frame.
   6. Excessive yield expectations from the 8–10 L baseline.
   7. Scope creep (AI/app/display/enclosure).
-- [ ] Each risk has: likelihood, impact, owning track, mitigation, and the work item that closes it.
+- [x] Each risk has: likelihood, impact, owning track, mitigation, and the work item that closes it.
 
 ## Acceptance criteria
 

@@ -15,14 +15,15 @@ and implement the 11 required scenarios.
 
 ## Deliverables
 
-- [ ] Simulator (`firmware/sim/`) modeling: moisture decline (faster under light/high VPD), pump→
-      moisture rise after delay, reservoir drawdown, fan→RH effect, LED→heat, injectable leak/sensor
-      faults (§10.3).
-- [ ] All 11 required scenarios implemented as automated tests:
+- [ ] Rust simulator crate (`firmware/sim/`) that drives the **real `control` crate** through host
+      implementations of the `hal.rs` traits, with models for: moisture decline (faster under
+      light/high VPD), pump→moisture rise after delay, reservoir drawdown, fan→RH effect, LED→heat,
+      injectable leak/sensor faults (§10.3). Models may live under `sim/models/`.
+- [ ] All 11 required scenarios implemented as automated `cargo test` cases (data under `sim/scenarios/`):
       normal seedling, normal fruiting, reservoir empty, sensor stuck wet, sensor stuck dry, pump
       disconnected, leak, hot room, humid night, RTC invalid, power loss mid-watering.
 
 ## Acceptance criteria
 
-- All 11 §10.3 scenarios pass with the documented expected results.
-- Simulator runs in CI (no hardware) — coordinate with [WI-PS-06](../00-project-setup/WI-PS-06-ci-pipeline.md).
+- All 11 §10.3 scenarios pass via `cargo test` against the actual `control` logic (not a reimplementation).
+- Simulator runs in CI on stable Rust (no hardware, no Xtensa toolchain) — coordinate with [WI-PS-06](../00-project-setup/WI-PS-06-ci-pipeline.md).

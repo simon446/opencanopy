@@ -509,7 +509,7 @@ Recommended V1 MCU:
 
 | Option | Recommendation | Reason |
 |---|---|---|
-| ESP32-S3 | Preferred | Good firmware ecosystem, Wi-Fi/BLE, enough RAM/IO, future camera compatibility |
+| ESP32-S3 | Preferred | Good firmware ecosystem (C/C++ **and** Rust via `esp-hal`), Wi-Fi/BLE, enough RAM/IO, future camera compatibility |
 | ESP32-C6 | Acceptable | Wi-Fi 6 + BLE + Thread/Zigbee/Matter path |
 | ESP32-C3 | Acceptable low-cost | Wi-Fi/BLE, fewer IO |
 | Raspberry Pi Pico W | Acceptable | Simple control, Wi-Fi, but less integrated CEA ecosystem |
@@ -918,36 +918,57 @@ Mechanical noise mitigations:
 - Testable control logic independent of hardware.
 - Optional telemetry, not required.
 
-### 9.2 Firmware architecture
+### 9.2 Firmware language and architecture
 
-Recommended structure:
+**Language: Rust** (`no_std`), using the `esp-hal` bare-metal ecosystem for the ESP32-S3. Rust is
+chosen for this safety- and fault-first controller (§9.1): ownership/borrow checking removes whole
+classes of memory bugs, and the type system lets the state machine (§9.3) and fault priorities be
+encoded as compiler-checked state types rather than runtime conventions. The core control logic lives
+in a platform-agnostic `no_std` crate that compiles and unit-tests on the host with stable Rust, so no
+hardware is needed to validate rules (§10.1).
+
+Toolchain note: the ESP32-S3 is Xtensa, which is not on upstream stable Rust; install the Espressif
+Rust channel with `espup` and pin it via `rust-toolchain.toml`. Flashing/monitoring uses `espflash`.
+Host-only crates build with ordinary stable Rust. (Telemetry, §9.11, uses `esp-wifi` behind a Cargo
+feature and is never required for control.)
+
+Recommended structure (a Cargo workspace):
 
 ```text
 firmware/
-  controller/
+  Cargo.toml              # workspace manifest
+  rust-toolchain.toml     # pins the esp Rust channel (espup)
+  .cargo/config.toml      # default target xtensa-esp32s3-none-elf + espflash runner
+  control/                # no_std, platform-agnostic control logic — host-testable
     src/
-      main.cpp
-      app_state.cpp
-      plant_profile.cpp
-      scheduler.cpp
-      irrigation_controller.cpp
-      light_controller.cpp
-      climate_controller.cpp
-      safety_controller.cpp
-      led_status.cpp
+      lib.rs
+      app_state.rs
+      plant_profile.rs
+      scheduler.rs
+      irrigation_controller.rs
+      light_controller.rs
+      climate_controller.rs
+      safety_controller.rs
+      led_status.rs
+      hal.rs              # sensor/actuator/clock traits (the hardware seam)
+    tests/                # host unit + integration tests
+  controller/             # no_std esp-hal binary for ESP32-S3 — binds traits to real peripherals
+    src/
+      main.rs
       sensors/
       actuators/
       drivers/
-    include/
-    tests/
-      unit/
-      simulation/
-      fixtures/
-  sim/
-    python/
-    data/
+  sim/                    # host scenario runner driving the control crate (no hardware)
+    src/
+    scenarios/
+    models/
+  hil/
+    fixtures/
   tools/
 ```
+
+Dependency rule: `control/` depends only on its own `hal.rs` traits, never on `esp-hal`. `controller/`
+and `sim/` provide concrete trait implementations (real peripherals vs. simulated models).
 
 ### 9.3 Firmware state machine
 
@@ -1256,12 +1277,13 @@ No control loop may depend on cloud.
 
 Every control rule should be testable without physical hardware.
 
-Design firmware so the core logic compiles as a host-native library:
+Design firmware so the core logic lives in the `no_std` `control` crate, which compiles for the host
+with stable Rust and is tested with `cargo test` (no target hardware, no Xtensa toolchain needed):
 
 ```text
-hardware drivers        → mocked
+hardware drivers        → trait mocks (host impls of the hal.rs traits)
 sensor readings         → simulated
-time                    → simulated
+time                    → simulated (injected Clock trait)
 control decisions       → asserted
 ```
 
@@ -1283,7 +1305,7 @@ Required unit tests:
 | Fan controller | temp/RH/VPD duty behavior |
 | LED status | state-to-pattern mapping |
 | Fault priority | highest-priority state wins |
-| NVS config | defaults, missing/corrupt calibration |
+| Calibration store (flash) | defaults, missing/corrupt calibration |
 
 ### 10.3 Simulation tests
 
@@ -1359,10 +1381,10 @@ HIL tests:
 Repo CI should run:
 
 - Markdown lint.
-- Firmware formatting.
-- Static analysis.
-- Host unit tests.
-- Simulation tests.
+- Firmware formatting (`cargo fmt --check`).
+- Static analysis / lints (`cargo clippy -D warnings`).
+- Host unit tests (`cargo test` on the `control` crate, stable Rust).
+- Simulation tests (`sim` scenarios over the `control` crate).
 - Schematic ERC if tool supports CLI.
 - PCB DRC if tool supports CLI.
 - BOM generation check.
@@ -1649,13 +1671,18 @@ tabletop-pepper-grower/
     references.md
 
   firmware/
-    controller/
+    Cargo.toml            # Rust workspace manifest
+    rust-toolchain.toml   # pins the esp Rust channel (espup)
+    .cargo/
+      config.toml         # default target xtensa-esp32s3-none-elf + espflash runner
+    control/              # no_std, platform-agnostic control logic — host-testable
       src/
-      include/
       tests/
-      platformio.ini or CMakeLists.txt
+    controller/           # no_std esp-hal firmware binary for ESP32-S3
+      src/
     sim/
       README.md
+      src/
       scenarios/
       models/
     hil/
@@ -1810,7 +1837,7 @@ Tasks:
 | M3-06 | Climate controller | Code + tests | Fan/VPD tests pass |
 | M3-07 | Safety controller | Code + tests | Fault priority tests pass |
 | M3-08 | LED status module | Code + tests | Pattern map tests pass |
-| M3-09 | Simulator | Python or C++ sim | 10 required scenarios pass |
+| M3-09 | Simulator | Rust host sim over `control` (Python allowed for models) | 10 required scenarios pass |
 | M3-10 | Logging | Ring log | Exportable logs |
 
 ### 15.5 Milestone M4 — PCB and harness
@@ -2065,6 +2092,7 @@ The following should be explicitly decided before ordering parts:
 | Pot size | 8–10 L compact; 12–19 L optional full-yield variant |
 | Reservoir size | 2.5–4 L compact; 4–6 L optional full-yield variant |
 | MCU | ESP32-S3 |
+| Firmware language | Rust (`no_std`, `esp-hal`); host-testable `control` crate; espup/Xtensa toolchain |
 | Display | No display |
 | User controls | Hidden reset/service only |
 | Pump | Brushless DC submersible centrifugal |

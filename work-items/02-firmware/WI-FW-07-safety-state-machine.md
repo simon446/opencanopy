@@ -19,8 +19,8 @@ controllers when safety states are active.
       FAN_FAULT, LED_FAULT, OVER_TEMP, MAINTENANCE, SAFE_SHUTDOWN (§9.3).
 - [ ] Priority arbitration: LEAK > OVER_TEMP(critical) > PUMP_FAULT > SENSOR_FAULT(watering) >
       LOW_WATER > NORMAL/WATERING.
-- [ ] Boot sequence per §9.4 (self-test, restore grow-cycle age from NVS, pump forced off).
-- [ ] Watchdog + brownout enable; leak fault latches until manual clear (§11.4).
+- [ ] Boot sequence per §9.4 (self-test, restore grow-cycle age from flash, pump forced off).
+- [ ] Watchdog + brownout enable (`esp-hal` RWDT/brownout); leak fault latches until manual clear (§11.4).
 - [ ] Unit tests proving highest-priority state always wins.
 
 ## Acceptance criteria

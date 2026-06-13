@@ -18,7 +18,8 @@ may depend on connectivity.
 - [ ] Ring log capturing sensor readings (5–15 min), watering events, faults, LED derating,
       reservoir-low events, firmware + calibration versions (§9.10).
 - [ ] ≥7 days onboard persistence; export over USB/serial.
-- [ ] Optional Wi-Fi/MQTT/Home Assistant telemetry behind a build/runtime flag (§9.11).
+- [ ] Optional Wi-Fi/MQTT/Home Assistant telemetry behind a Cargo **feature** (`telemetry`, using
+      `esp-wifi`), default-off; control loop builds and runs with the feature disabled (§9.11).
 - [ ] Test confirming all control paths function with connectivity disabled.
 
 ## Acceptance criteria
