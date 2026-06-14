@@ -3,8 +3,9 @@
 """
 render_block.py — export, render and validate the OpenSCAD v1 product model.
 
-Exports each part (OpenSCAD CGAL), renders with VTK (z-buffered, smooth), and runs an
-FCL part-vs-part collision check. Two render groups:
+Exports each part (OpenSCAD CGAL) and renders with VTK (z-buffered, smooth). Interference
+and float verification is done separately and honestly by audit.py (no whitelist,
+volume-based). Two render groups:
   * PRODUCT views  — material colours (white shell / wood / dark service / water).
   * VALIDATION views — debug colours: exploded, underside screw-access, base cutaway,
     right-rear-arch conduit cross-section, and a TOP view with a crosshair overlay
@@ -13,9 +14,8 @@ FCL part-vs-part collision check. Two render groups:
 Usage:  .venv-cad/bin/python mechanical/cad/render_block.py
 """
 import subprocess, sys
-from itertools import combinations
 from pathlib import Path
-import numpy as np, trimesh, fcl, vtk
+import numpy as np, trimesh, vtk
 
 HERE = Path(__file__).resolve().parent
 SCAD = HERE / "opencanopy_tabletop_pepper_v1_block_model.scad"
@@ -48,14 +48,6 @@ P = {
  "screws":     ("M4/M3 screws",         (0.20,0.20,0.22),(0.95,0.2,0.2), (0,0,-70)),
  "cable":      ("cable path",           (0.9,0.6,0.2),(0.9,0.6,0.2),     (0,0,0)),
 }
-EXPECTED_CONTACT = {frozenset(p) for p in [
- ("left_arch","base"),("right_arch","base"),("bridge","left_arch"),("bridge","right_arch"),
- ("shelf","base"),("pot","shelf"),("led_bar","bridge"),("feet","base"),("iso_wall","base"),
- ("status","base"),("dowels","base"),("dowels","left_arch"),("dowels","right_arch"),
- ("screws","base"),("screws","left_arch"),("screws","right_arch"),("cable","right_arch"),
- ("cable","base"),("led_bar","cable"),("bridge","cable"),
- ("screws","led_bar"),("screws","bridge"),("led_bar","bridge")]}
-
 SHELL_CANOPY = ("left_arch","right_arch","bridge","led_bar","pot","shelf","status")
 # name, dir, up, hide, debug, explode, clip_x, focus, scale, overlay
 VIEWS = [
@@ -67,7 +59,7 @@ VIEWS = [
  ("p-iso-rr",  (1,1,0.5),  (0,0,1), ("cable",), 0,0,None,None,None,None),
  ("v-exploded",(-1,-1,0.45),(0,0,1),("cable",), 1,1,None,None,None,None),
  ("v-underside",(0.25,0.2,-1),(0,1,0),("cable","pot","shelf","led_bar","bridge"),1,0,None,None,None,None),
- ("v-base-cutaway",(0.7,1,0.45),(0,0,1), SHELL_CANOPY+("cable",),1,0,None,None,None,None),
+ ("v-base-cutaway",(0.7,1,0.45),(0,0,1), SHELL_CANOPY+("cable","screws","dowels"),1,0,None,None,None,None),
  ("v-conduit-xsec",(1,0.4,0.25),(0,0,1), (), 1,0, ENV_W-SIDE_T/2, None,None,None),
  ("v-led-center",(0,0,1),(0,1,0), ("cable",),1,0,None,None,None,"centerline"),
 ]
@@ -158,23 +150,6 @@ def render(meshes):
     for a in ovl: ren.RemoveActor(a)
 
 
-def _obj(m):
-    b=fcl.BVHModel(); b.beginModel(len(m.vertices),len(m.faces))
-    b.addSubModel(np.asarray(m.vertices,float),np.asarray(m.faces,np.int64)); b.endModel()
-    return fcl.CollisionObject(b,fcl.Transform())
-
-
-def collision(meshes):
-    keys=[k for k in meshes if k!="cable"]; objs={k:_obj(meshes[k]) for k in keys}
-    print("\nFCL collision check:"); fails=0
-    for a,b in combinations(sorted(objs),2):
-        r=fcl.DistanceResult(); g=fcl.distance(objs[a],objs[b],fcl.DistanceRequest(),r)
-        contact=frozenset((a,b)) in EXPECTED_CONTACT
-        if g<=1e-6 and not contact:
-            fails+=1; print(f"  COLLIDE {a} x {b}  <-- UNINTENDED")
-    print("COLLISION CHECK:", "PASS" if fails==0 else f"FAIL ({fails})"); return fails
-
-
 def main():
     export_parts()
     meshes={k:trimesh.load_mesh(str(PARTS/f"{k}.stl")) for k in P}
@@ -182,7 +157,8 @@ def main():
     print(f"LED centroid  X={lc[0]:.1f} Y={lc[1]:.1f}  (target {CX},{CY})")
     print(f"pot centroid  X={pc[0]:.1f} Y={pc[1]:.1f}  (target {CX},{CY})")
     print("rendering:"); render(meshes)
-    f=collision(meshes); return 0 if f==0 else 1
+    print("\n(interference/float verification: run audit.py — no whitelist, volume-based)")
+    return 0
 
 
 if __name__=="__main__":

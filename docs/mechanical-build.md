@@ -2,7 +2,8 @@
 
 Renders of the **OpenCanopy v1 product model** (480 × 320 × 680 mm) from the parametric
 OpenSCAD source (`mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad`),
-rendered with VTK and validated with FCL — see `mechanical/cad/render_block.py`.
+rendered with VTK (`mechanical/cad/render_block.py`) and validated by an honest,
+no-whitelist geometry audit (`mechanical/cad/audit.py`).
 
 **Architecture (unchanged):** electronics + reservoir in the base, side by side,
 separated by a **sealed vertical wall** (wet | wall | dry); open-frame; no fan; no
@@ -47,8 +48,15 @@ cross-section** (cable path base → arch → bridge → LED):
 
 ## Checks
 
-- **Collision (FCL):** all part pairs checked → **PASS**, no unintended collisions
-  (reservoir/electronics clear the corner arch feet, the deck and the sealed wall).
+- **Geometry audit (`audit.py`) — CLEAN.** Honest interference check on the real meshes
+  with **no whitelist**: it measures the true boolean **overlap volume** of every pair (so
+  abutting/touching faces are *not* mistaken for interpenetration) and each part's
+  **nearest-neighbour gap** (so a floating/unsupported part is caught — a collision check
+  alone never flags a gap). Result: **no interpenetration > 80 mm³ and no floating parts.**
+  Hardware (dowels, screws) sits in real clearance holes/sockets; reservoir + electronics
+  are seated on the base floor; the bridge abuts the arches; the status pill sits in its
+  front slot. *(Earlier whitelisted collision checks masked several real overlaps/floats;
+  this volume audit replaces them.)*
 - **Joints:** each arch foot tenons 26 mm into a base socket with 2 dowel pins + a
   hidden M4 from the underside (counterbored for a driver); the bridge tongues into the
   arch tops with dowels + screws. See [fastening & assembly](fastening.md).
@@ -59,14 +67,15 @@ cross-section** (cable path base → arch → bridge → LED):
   move **0.024 mm / 0.003° relative to the base** (joints rigid) — all well under the
   0.5 mm / 0.5° limit. Removing **each screw one at a time — and all screws together —
   gives the identical result**, proving the **dowels/tabs carry the shear** (joints are not
-  screw-dependent for holding). _(Idealised rigid-body + pin/weld constraints with ground
+  screw-dependent for holding). *(Idealised rigid-body + pin/weld constraints with ground
   contact, not FEA: validates free-standing stability and joint redundancy, not material
-  stress.)_
+  stress.)*
 
 Reproduce:
 
 ```sh
-.venv-cad/bin/python mechanical/cad/render_block.py   # export + renders + FCL collision
+.venv-cad/bin/python mechanical/cad/render_block.py   # export parts + renders
+.venv-cad/bin/python mechanical/cad/audit.py          # interference (volume) + float audit
 .venv-cad/bin/python mechanical/cad/physics_sim.py    # MuJoCo settling + screw-removal test
 openscad -D 'part="base"' --render -o base.stl mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad
 ```
