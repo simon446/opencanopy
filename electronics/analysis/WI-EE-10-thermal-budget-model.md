@@ -10,7 +10,7 @@
 > design **before** the LED/driver is ordered and CAD is frozen. The physical test
 > ([WI-QA-03](../../plan/work-items/05-validation-qa/WI-QA-03-thermal.md)) validates it post-build
 > and re-parameterizes the assumptions from measured data (§23 DR-02).
-
+>
 > **No-fan revision (ECO-001).** V1 ships with **no fan** — the fan was a plant-canopy circulation
 > actuator (VPD/airflow for the plant), removed in the mechanical redesign and not added back. The
 > *previous* version of this model had quietly leaned on that fan for **forced-air** heatsink cooling

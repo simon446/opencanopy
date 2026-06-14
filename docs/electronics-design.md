@@ -187,7 +187,7 @@ controller_netlist.py   ──ERC + BOM + pin-contract (CI gate)──►  green
 - **Layout contract**: [`design-rules.md`](https://github.com/simon446/opencanopy/blob/main/electronics/analysis/design-rules.md)
   (net classes, widths, clearances, stackup, placement).
 - **Trace/thermal**: [`pcb-verification.md`](https://github.com/simon446/opencanopy/blob/main/electronics/test/pcb-verification.md)
-  + [thermal model](https://github.com/simon446/opencanopy/blob/main/electronics/analysis/WI-EE-10-thermal-budget-model.md).
+  and the [thermal model](https://github.com/simon446/opencanopy/blob/main/electronics/analysis/WI-EE-10-thermal-budget-model.md).
 
 ### Reproduce
 
