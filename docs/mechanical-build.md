@@ -11,10 +11,13 @@ no-whitelist geometry audit (`mechanical/cad/audit.py`).
   **6 L reservoir** + an integrated **grow well**. There is **no electronics bay in the base**.
 - **Two vertical wooden pillars** (Ø28) rising from dry structural bosses, **centred on the
   base depth**.
-- One horizontal **top LED block** spanning the pillars; the LED is centred over the grow
-  module, and the **small 1.6 mm controller + driver PCB is encapsulated inside the block**
-  (an internal bay on standoff bosses, 4 mounting holes), with a **USB-C port through the
-  rear face** — no board is exposed. The block prints in two parts (body + bottom lid).
+- One horizontal **top LED block** spanning the pillars; below it, **one centered LED grow
+  panel + finned heatsink on a single central mount** (not a strip) — an 8×6 emitter board per
+  **WI-PL-06** (fixture C: a panel meets uniformity at the 150 mm target clearance, where a strip
+  needed ≥200–225 mm, which would force a taller unit). The LED optical centre is over the plant.
+  The **small 1.6 mm controller + driver PCB is encapsulated inside the
+  block** (internal bay on standoff bosses, 4 mounting holes), with a **USB-C port through the
+  rear face** — no board exposed. The block prints in two parts (body + bottom lid).
 - A **removable raised grow insert** (slotted/perforated, semi-hydro) for one pepper plant.
 - **Passive self-watering** (reservoir + wicking). **No pump, no fan, no screen/controls;
   4 status LEDs only.**
@@ -60,17 +63,25 @@ the right pillar to the top board):
   abutting/touching faces are *not* mistaken for interpenetration) and each part's
   **nearest-neighbour gap** (so a floating/unsupported part is caught). Result: **no
   interpenetration > 80 mm³ and no floating parts.** Hardware sits in real clearance holes; the
-  reservoir and raised insert are seated with a 0.5 mm wick gap; the boards/USB-C mount under
-  the block; the status pill sits in its front slot.
+  reservoir and raised insert are seated with a 0.5 mm wick gap; the controller PCB + USB-C are
+  encapsulated in the block bay; the panel + heatsink hang on the central mount; the status pill +
+  status LEDs sit in the front slot.
+- **Grow light: one centered panel + finned heatsink, single central mount** (not a strip) — 8×6
+  emitters across one board (WI-PL-06 fixture C), sized to fit between the pillar inner faces.
+  Per PL-06 a panel meets uniformity (≥ 0.6) at the 150 mm target clearance, where a single bar
+  needed ≥ 200–225 mm (a taller unit) — the panel keeps the form short and centered.
+- **Status LEDs** — the 4 indicators use the electrical team's **WS2812B-2020** part (vendor model
+  `electronics/pcb/3d-models/WS2812B-2020_C965555.step`), integrated at true datasheet dimensions
+  (2.0 × 2.0 × 0.8 mm) behind the diffuser (see `mechanical/cad/vendor/README.md`).
 - **LED centred over the grow module** — optical centre offset **0.0 / 0.0 mm** (≤ 5 mm limit).
 - **Reservoir** — **6.6 L** gross (≥ 6 L usable target). The grow insert is a **raised planter**
   so the base stays low (≤ 130 mm visible); media capacity is a documented trade-off (see
-  ECO-002 / open questions) pending a grow trial.
+  [ECO-003](ECO-003-v1-redesign.md) / open questions) pending a grow trial.
 - **Joints:** each pillar seats 30 mm into a base socket with an **M4 from the underside** into a
   threaded insert + an **anti-rotation dowel**; the block sockets onto the pillar tops with a
   **rear set screw**. See [fastening & assembly](fastening.md).
-- **Physics sim:** the free-standing MuJoCo sim is being re-built for the two-pillar
-  architecture (`mechanical/cad/physics_sim.py`) — not yet re-run for this model.
+- **Physics sim:** deferred for the two-pillar architecture (per maintainer) — geometry is
+  validated by `audit.py`; a free-standing load sim can be re-run later (`physics_sim.py`).
 
 Reproduce:
 

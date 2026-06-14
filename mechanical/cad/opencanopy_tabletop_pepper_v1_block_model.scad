@@ -7,8 +7,9 @@
 //     in the base (electronics moved to the top — see below).
 //   - TWO vertical wooden cylindrical PILLARS, centred on the base depth, rising from dry
 //     structural bosses.
-//   - one horizontal top LED BLOCK spanning the pillars; the LED is centred over the grow
-//     module, and the small 1.6 mm controller+driver PCB is ENCAPSULATED inside the block
+//   - one horizontal top LED BLOCK spanning the pillars; below it, ONE centered LED PANEL (8×6
+//     emitters across one board, WI-PL-06) on a finned passive HEATSINK, single central mount.
+//     The small 1.6 mm controller+driver PCB is ENCAPSULATED inside the block
 //     (in an internal bay on standoff bosses), with a USB-C port through the rear face.
 //   - a removable RAISED GROW INSERT (slotted/perforated, semi-hydro) for ONE pepper plant.
 //   - passive self-watering: reservoir below + wicking. NO pump, NO fan, no screen/controls,
@@ -64,8 +65,14 @@ blk_y0 = gm_y - blk_d/2;       // 130
 blk_end_r = 16;                // end-cap radius (around pillar holes)
 blk_edge_r = 2;                // long edges
 
-// slim LED grow bar (emitter proud below the block)
-led_l = 280; led_w = 44; led_h = 16; led_z = blk_z - 10;
+// grow LED PANEL + heatsink — ONE centered board (emitters spread across its face, 8×6 grid,
+// per PL-06 fixture C) on a finned passive heatsink, single central mount under the block.
+// Sized to fit between the pillar inner faces (≤ ~324 mm) — panel meets uniformity at the
+// 150 mm target clearance, where a strip/bar needed ≥200–225 mm (WI-PL-06).
+pan_w = 300; pan_d = 210; pan_t = 3;            // panel board (X × Y × thickness)
+emit_z = 600;                                   // emitter plane (faces down); board = emit_z..+pan_t
+emit_nx = 8; emit_ny = 6;                        // emitter grid across the panel face
+hs_base = 6; hs_fin_h = 22; hs_fin_t = 3; hs_fin_pitch = 18;   // finned heatsink (on the board's back)
 
 // encapsulated PCB bay inside the block right end (around the right pillar)
 bay_x0 = 384; bay_x1 = 454; bay_z0 = 634; bay_z1 = 648;     // internal void (2 mm skin below)
@@ -150,7 +157,7 @@ module light_block() {
                     translate([xc, pil_y, blk_z-1]) cylinder(h=socket_d+1, d=pil_d+pil_clear);                 // pillar socket
                     translate([xc, blk_y0+blk_d+1, blk_z+blk_h/2]) rotate([90,0,0]) cylinder(h=blk_d/2+2, d=setscrew); // rear set screw
                 }
-                translate([gm_x, gm_y, blk_z-1]) rrect(0,0, led_l+8, led_w+8, 6, 0, 13);                       // LED recess
+                translate([gm_x, gm_y, blk_z-1]) cylinder(h=14, d=m4+5);                                      // grow-panel central mount boss/insert
                 translate([bay_x0, gm_y-24, bay_z0]) cube([bay_x1-bay_x0, 48, bay_z1-bay_z0]);                 // PCB bay (internal void)
                 translate([430, blk_y0+blk_d-8, pcb_z+1]) cube([20, 10, 8]);                                   // USB-C port (rear face)
             }
@@ -160,11 +167,27 @@ module light_block() {
     }
 }
 
-// slim LED grow bar — optical centre at (gm_x, gm_y); nests up into the block recess
-module led_bar() {
+// grow LED PANEL — one centered board with an 8×6 emitter grid spread across the down-facing
+// face (PL-06 fixture C). Optical centre = grow-module centre (gm_x, gm_y). Single central mount.
+module led_panel() {
     difference() {
-        translate([gm_x-led_l/2, gm_y-led_w/2, led_z]) rcube([led_l, led_w, led_h], 6, 3);
-        for (sx=[-1,1]) translate([gm_x+sx*(led_l/2-26), gm_y, led_z-1]) cylinder(h=led_h+2, d=m4+0.4);
+        translate([gm_x-pan_w/2, gm_y-pan_d/2, emit_z]) rcube([pan_w, pan_d, pan_t], 6, 1);   // board
+        translate([gm_x, gm_y, emit_z-1]) cylinder(h=pan_t+2, d=m4+0.6);                       // central mount clearance
+    }
+    for (i=[0:emit_nx-1]) for (j=[0:emit_ny-1])                                                // emitters (face down)
+        translate([gm_x + (i-(emit_nx-1)/2)*34, gm_y + (j-(emit_ny-1)/2)*32, emit_z-1.2]) cube([6,6,1.4], center=true);
+}
+
+// passive finned heatsink on the panel's back; base bonded to the board, fins rise to the block.
+module heatsink() {
+    hs0 = emit_z + pan_t;
+    difference() {
+        union() {
+            translate([gm_x-pan_w/2, gm_y-pan_d/2, hs0]) rcube([pan_w, pan_d, hs_base], 6, 1);  // base plate
+            for (x = [-(pan_w/2-14) : hs_fin_pitch : (pan_w/2-14)])
+                translate([gm_x+x-hs_fin_t/2, gm_y-pan_d/2+6, hs0+hs_base]) cube([hs_fin_t, pan_d-12, hs_fin_h]); // fins (along Y)
+        }
+        translate([gm_x, gm_y, hs0-1]) cylinder(h=hs_base+hs_fin_h+2, d=m4+0.6);                  // central mount clearance
     }
 }
 
@@ -196,10 +219,21 @@ module grow_insert() {
 // passive reservoir water volume (placeholder) — on the inner floor, between the pillar bosses
 module reservoir() { translate([res_x0, res_y0, res_z0]) rcube([res_x1-res_x0, res_y1-res_y0, res_z1-res_z0], 6, 3); }
 
-// 4 status LEDs behind a front pill diffuser (no screen/controls)
+// WS2812B-2020 addressable LED — true datasheet outline (2.0 × 2.0 × 0.8 mm body + emitter
+// lens), matching the electrical team's vendor model `electronics/pcb/3d-models/
+// WS2812B-2020_C965555.step` (the disjoint vendor tessellation isn't CGAL-importable in
+// OpenSCAD 2021.01, so we use the datasheet outline per that model's README; see vendor/README.md).
+// Centred at origin, emitter on +Z.
+module ws2812b_2020() {
+    translate([-1, -1, 0]) cube([2.0, 2.0, 0.8]);          // package body
+    translate([0, 0, 0.8]) cylinder(h=0.2, d=1.5);          // emitter lens/window
+}
+
+// 4 status LEDs (WS2812B-2020) behind a front pill diffuser (no screen/controls), facing
+// forward through the diffuser. (Electronics PCB2 still carries 5 — ECO-003 reduces it to 4.)
 module status_diffuser() {
     translate([gm_x, -1, 70]) front_pill(52, 8, 6);
-    for (i=[0:3]) translate([gm_x-21+i*14, 4, 70]) rotate([-90,0,0]) cylinder(h=3, d=5);
+    for (i=[0:3]) translate([gm_x-21+i*14, 6.0, 70]) rotate([90,0,0]) ws2812b_2020();
 }
 
 // fill-port plug/cap (sits in the port, proud lip)
@@ -213,10 +247,8 @@ module screws() {
         translate([xc, pil_y, 1]) cylinder(h=5, d=m4_head-1);
         translate([xc, blk_y0+blk_d-2, blk_z+blk_h/2]) rotate([90,0,0]) cylinder(h=14, d=setscrew-0.8); // block set screw
     }
-    for (sx=[-1,1]) translate([gm_x+sx*(led_l/2-26), gm_y, led_z]) {    // LED-bar mount screws
-        cylinder(h=blk_z-led_z+8, d=m4-0.8);
-        translate([0,0,-5]) cylinder(h=5, d=m4_head-1.5);
-    }
+    translate([gm_x, gm_y, emit_z-1]) cylinder(h=blk_z-emit_z+8, d=m4-0.6);   // grow-panel central mount screw (up into the block)
+    translate([gm_x, gm_y, emit_z-4]) cylinder(h=5, d=m4_head-1);             // head below the panel
     for (mx=pcb_mx) for (my=pcb_my) translate([mx, my, bay_z0]) cylinder(h=pcb_z-bay_z0+4, d=m25-0.6); // PCB mount screws
 }
 // cabling: sensor leads up the rear of the right pillar (base -> bay) + USB-C tail out the rear
@@ -233,7 +265,8 @@ module assembly() {
     color(WHITE)  base_shell();
     color(WOOD)   pillars();
     color(WHITE)  light_block();
-    color([0.97,0.92,0.5]) led_bar();
+    color([0.72,0.74,0.78]) heatsink();
+    color([0.97,0.92,0.5]) led_panel();
     color([0.15,0.7,0.3]) controller_pcb();
     color([0.2,0.2,0.22]) usb_c();
     color(BASKET) grow_insert();
@@ -253,7 +286,8 @@ else if (part=="pillar_left")  pillar_left();
 else if (part=="pillar_right") pillar_right();
 else if (part=="pillars")      pillars();
 else if (part=="light_block")  light_block();
-else if (part=="led_bar")      led_bar();
+else if (part=="led_panel")    led_panel();
+else if (part=="heatsink")     heatsink();
 else if (part=="pcb")          controller_pcb();
 else if (part=="usb_c")        usb_c();
 else if (part=="grow_insert")  grow_insert();

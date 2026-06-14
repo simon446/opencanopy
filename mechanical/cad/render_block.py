@@ -25,7 +25,7 @@ PARTS.mkdir(parents=True, exist_ok=True); RENDERS.mkdir(parents=True, exist_ok=T
 OPENSCAD = next((p for p in ("/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD","openscad")
                  if Path(p).exists() or p=="openscad"), "openscad")
 ENV_W = 480; PIL_X1 = 416
-CX, CY = 240, 190                      # grow module + LED optical centerline
+CX, CY = 240, 160                      # grow module + LED optical centerline
 
 WHITE=(0.90,0.90,0.89); WOOD=(0.78,0.60,0.36); DARK=(0.24,0.24,0.27); WATER=(0.30,0.62,0.88)
 BASKET=(0.36,0.40,0.37)
@@ -34,8 +34,9 @@ P = {
  "base":         ("base / reservoir body", WHITE, (0.85,0.85,0.88), (0,0,-120)),
  "pillar_left":  ("left wood pillar",       WOOD,  (0.80,0.62,0.38), (-70,0,40)),
  "pillar_right": ("right wood pillar",      WOOD,  (0.80,0.62,0.38), (70,0,40)),
- "light_block":  ("top LED block",          WHITE, (0.70,0.80,0.95), (0,0,170)),
- "led_bar":      ("LED grow bar",           (0.97,0.92,0.5),(0.97,0.85,0.2),(0,0,125)),
+ "light_block":  ("top LED block",          WHITE, (0.70,0.80,0.95), (0,0,200)),
+ "heatsink":     ("LED heatsink (finned)",  (0.72,0.74,0.78),(0.55,0.75,0.85),(0,0,150)),
+ "led_panel":    ("LED grow panel (8×6)",   (0.97,0.92,0.5),(0.97,0.85,0.2),(0,0,120)),
  "pcb":          ("controller+driver board",(0.15,0.6,0.3),(0.15,0.7,0.3), (95,0,70)),
  "usb_c":        ("USB-C input",            DARK,  (0.2,0.2,0.22),   (120,-30,50)),
  "grow_insert":  ("removable grow insert",  BASKET, (0.40,0.55,0.45),(0,0,215)),
@@ -48,7 +49,7 @@ P = {
  "cable":        ("sensor + USB-C cabling", (0.9,0.6,0.2),(0.9,0.6,0.2),     (0,90,0)),
 }
 INTERNAL = ("reservoir","dowels","screws","cable")            # hidden in clean product views
-CANOPY   = ("light_block","led_bar","pcb","usb_c")            # the top assembly
+CANOPY   = ("light_block","heatsink","led_panel","pcb","usb_c")   # the top assembly
 # name, dir, up, hide, debug, explode, clip_x, focus, scale, overlay
 VIEWS = [
  ("p-iso-fl",  (-1,-1,0.5),(0,0,1), INTERNAL, 0,0,None,None,None,None),
@@ -90,8 +91,8 @@ def build(meshes):
         mp=vtk.vtkPolyDataMapper(); mp.SetInputData(n.GetOutput()); mp.SetResolveCoincidentTopologyToPolygonOffset()
         ac=vtk.vtkActor(); ac.SetMapper(mp); pr=ac.GetProperty(); pr.SetAmbient(0.34); pr.SetDiffuse(0.72); pr.SetSpecular(0.05)
         fe=vtk.vtkFeatureEdges(); fe.SetInputData(pd); fe.BoundaryEdgesOn(); fe.FeatureEdgesOn()
-        fe.SetFeatureAngle(EDGE_ANGLE); fe.ManifoldEdgesOff(); fe.NonManifoldEdgesOff(); fe.Update()
-        emp=vtk.vtkPolyDataMapper(); emp.SetInputConnection(fe.GetOutputPort()); emp.SetResolveCoincidentTopologyToPolygonOffset()
+        fe.SetFeatureAngle(EDGE_ANGLE); fe.ManifoldEdgesOff(); fe.NonManifoldEdgesOff(); fe.ColoringOff(); fe.Update()
+        emp=vtk.vtkPolyDataMapper(); emp.SetInputConnection(fe.GetOutputPort()); emp.ScalarVisibilityOff(); emp.SetResolveCoincidentTopologyToPolygonOffset()
         ea=vtk.vtkActor(); ea.SetMapper(emp); ea.GetProperty().SetColor(0.12,0.12,0.12); ea.GetProperty().SetLineWidth(1.0)
         A[k]=(ac,ea,mp,emp)
     return A
@@ -105,7 +106,7 @@ def overlay_actors(meshes):
         ls=vtk.vtkLineSource(); ls.SetPoint1(*p0); ls.SetPoint2(*p1)
         m=vtk.vtkPolyDataMapper(); m.SetInputConnection(ls.GetOutputPort())
         a=vtk.vtkActor(); a.SetMapper(m); a.GetProperty().SetColor(0.9,0.1,0.1); a.GetProperty().SetLineWidth(2.5); acts.append(a)
-    for key,col in [("led_bar",(0.95,0.6,0.0)),("grow_insert",(0.1,0.3,0.9))]:
+    for key,col in [("led_panel",(0.95,0.6,0.0)),("grow_insert",(0.1,0.3,0.9))]:
         c=meshes[key].centroid
         s=vtk.vtkSphereSource(); s.SetCenter(c[0],c[1],zc); s.SetRadius(7)
         m=vtk.vtkPolyDataMapper(); m.SetInputConnection(s.GetOutputPort())
@@ -153,7 +154,7 @@ def render(meshes):
 def main():
     export_parts()
     meshes={k:trimesh.load_mesh(str(PARTS/f"{k}.stl")) for k in P}
-    lc, pc = meshes["led_bar"].centroid, meshes["grow_insert"].centroid
+    lc, pc = meshes["led_panel"].centroid, meshes["grow_insert"].centroid
     print(f"LED centroid    X={lc[0]:.1f} Y={lc[1]:.1f}  (target {CX},{CY})")
     print(f"insert centroid X={pc[0]:.1f} Y={pc[1]:.1f}  (target {CX},{CY})")
     print(f"LED<->grow offset  dX={abs(lc[0]-pc[0]):.1f}  dY={abs(lc[1]-pc[1]):.1f}  (accept <=5)")

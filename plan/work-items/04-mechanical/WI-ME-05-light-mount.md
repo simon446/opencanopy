@@ -15,6 +15,14 @@
 > the mount delivers a real passive heatsink* — so this work-item now owns that heatsink. The
 > 100 W full-yield variant is **not viable fan-less** and is deferred. See the added thermal
 > deliverable/criterion below.
+>
+> **Redesign ([ECO-003](../../../docs/ECO-003-v1-redesign.md)):** the mount is now the **centered LED
+> grow PANEL + finned heatsink on a single central mount** under the top block — an 8×6 emitter board
+> ([WI-PL-06](../01-plant-science/WI-PL-06-photometric-model.md) fixture C: a panel, **not a strip**;
+> a panel meets uniformity at the 150 mm target clearance where a bar needed ≥200–225 mm). Light height
+> is **fixed** (pillars set the clearance; adjustable height deferred to V2). The LED **driver moved into
+> the top block** with the controller (encapsulated PCB) — no longer a separate dry-bay item. The
+> passive heatsink requirement (above) is realised as the panel's finned heatsink.
 
 ## Objective
 
