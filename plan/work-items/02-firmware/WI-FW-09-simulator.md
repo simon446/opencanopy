@@ -16,15 +16,16 @@ and implement the 11 required scenarios.
 ## Deliverables
 
 - [x] Rust simulator crate (`firmware/sim/`) that drives the **real `control` crate** through host
-      implementations of the `hal.rs` traits, with models for: moisture decline (faster under
-      light/high VPD), pump→moisture rise after delay, reservoir drawdown, LED→heat,
-      injectable leak/sensor faults (§10.3). Models may live under `sim/models/`.
-      *(The fan→RH/heat-dispersion term was removed 2026-06-14 with the fan; air RH now tracks the
-      room and the LED is the only heat source/lever.)*
-- [x] All 11 required scenarios implemented as automated `cargo test` cases (data under `sim/scenarios/`):
-      normal seedling, normal fruiting, reservoir empty, sensor stuck wet, sensor stuck dry, pump
-      disconnected, leak, hot room (LED-derate, no fan), humid night (climate flags, no fan), RTC
-      invalid, power loss mid-watering.
+      implementations of the `hal.rs` traits, with **passive-watering** models (ECO-003): a capillary
+      wick holds the substrate near equilibrium while the reservoir has water (gentle diurnal
+      sawtooth, never plateaus) and dries it out on wick failure / empty reservoir; reservoir drains
+      by transpiration; LED→heat; injectable leak/sensor faults (§10.3). Models under `sim/models/`.
+      *(No pump (ECO-003) and no fan (ECO-001): air RH tracks the room, the LED is the only
+      heat source/lever, and watering is monitored not actuated.)*
+- [x] All 11 required scenarios implemented as automated `cargo test` cases (under `sim/scenarios/`):
+      normal passive grow, reservoir→LOW_WATER, wick-failure→MOISTURE_LOW (full tank), over-wet→
+      MOISTURE_HIGH, sensor stuck, sensor bus-error, leak warn (latched), hot-room LED-derate,
+      humid-night climate flag, RTC fallback, power-loss reboot.
 
 ## Acceptance criteria
 
@@ -41,8 +42,8 @@ reality matches the model.
 ## Implementation
 
 - `sim/` drives the real `control::app_state::App` (not a reimplementation): `sim/src/models.rs`
-  (moisture decline ∝ light/VPD, pump→rise after soak, reservoir drawdown, LED heat — no fan
-  dispersion in V1; injectable leak/sensor/pump faults), `sim/src/lib.rs` harness, and all **11 scenarios**
+  (passive wick sawtooth, transpiration reservoir drawdown, LED heat — no pump, no fan dispersion;
+  injectable leak/sensor/wick-failure faults), `sim/src/lib.rs` harness, and all **11 scenarios**
   in `sim/tests/scenarios.rs` (all passing via `cargo test -p sim`). Models documented in
   `sim/models/README.md`, scenarios in `sim/scenarios/README.md`, both flagged for
   re-parameterization from bench data (WI-QA-09 / §23 DR-02) before gating a live grow.

@@ -16,10 +16,11 @@ config, with safe handling of missing/corrupt data.
 ## Deliverables
 
 - [x] Flash-backed calibration store (e.g. `esp-storage` + `sequential-storage`, no ESP-IDF NVS) for
-      the §9.9 schema: `moisture_raw_dry/wet`, `pump_ml_per_sec`, `led_ppfd_map`, `reservoir_low_adc`.
-      Serialize with a `no_std` codec (e.g. `postcard`). *(`fan_min_pwm` removed 2026-06-14 with the
-      fan; the record shrank 30→28 bytes, so any old-format blob fails the length check → fail-safe.
-      Spec §9.9 still lists `fan_min_pwm` and needs a coordinated revision.)*
+      the §9.9 schema: `moisture_raw_dry/wet`, `led_ppfd_map`, `reservoir_low_adc`. Serialize with a
+      `no_std` codec (e.g. `postcard`). *(`fan_min_pwm` removed with the fan (ECO-001) and
+      `pump_ml_per_sec` removed with the pump (ECO-003); the record is now schema **v4**, 24 bytes,
+      so any old 28/30-byte blob fails the length check → fail-safe. Spec §9.9 still lists the dropped
+      fields and needs the Project track's pass.)*
 - [x] Safe defaults + validation: missing/corrupt calibration disables auto-watering and raises fault
       rather than acting on bad data (§7.6 fail-safe).
 - [x] Calibration version stamped into logs.

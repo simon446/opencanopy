@@ -15,8 +15,9 @@ may depend on connectivity.
 
 ## Deliverables
 
-- [x] Ring log capturing sensor readings (5–15 min), watering events, faults, LED derating,
-      reservoir-low events, firmware + calibration versions (§9.10).
+- [x] Ring log capturing sensor readings (5–15 min), faults/warnings, LED derating,
+      reservoir-low events, firmware + calibration versions (§9.10). *(The Watering event was removed
+      with the pump — ECO-003; V1 is passive, there is nothing to actuate or log as a watering pulse.)*
 - [x] ≥7 days onboard persistence; export over USB/serial.
 - [x] Optional Wi-Fi/MQTT/Home Assistant telemetry behind a Cargo **feature** (`telemetry`, using
       `esp-wifi`), default-off; control loop builds and runs with the feature disabled (§9.11).
@@ -36,9 +37,10 @@ may depend on connectivity.
 
 ## Implementation
 
-- `control/src/logging.rs`: allocation-free ring log capturing all §9.10 event kinds (sensors,
-  watering, faults, LED-derate, reservoir-low, firmware+calibration versions), with drop-count so
-  truncation is never silent. `OnboardLog` capacity sized for ≥7 days. Host-tested.
+- `control/src/logging.rs`: allocation-free ring log capturing the §9.10 event kinds (sensors,
+  faults/warnings, LED-derate, reservoir-low, firmware+calibration versions — the Watering event was
+  dropped with the pump, ECO-003), with drop-count so truncation is never silent. `OnboardLog`
+  capacity sized for ≥7 days. Host-tested.
 - Connectivity independence is structural: `control`/`sim` have no telemetry dependency at all;
   telemetry lives behind a default-off `telemetry` Cargo feature in `controller/` (`esp-wifi`),
   and the control loop builds/runs without it. RTC is the authoritative clock (`hal::Rtc`), with

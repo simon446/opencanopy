@@ -24,7 +24,7 @@ derating.
 ## Acceptance criteria
 
 - Schedule/ramp/derate tests pass (spec §10.2 "Light scheduler" + "LED derating").
-- RTC-invalid path raises amber System LED but does not block watering.
+- RTC-invalid path raises amber System LED but does not block the light schedule (passive watering — nothing to block, ECO-003).
 
 ## Implementation
 
@@ -32,4 +32,4 @@ derating.
   `ramp_factor()` (30-min up/down), `derate()` (air-temp ladder 30/32/35 °C + optional LED-heatsink
   60/70/80 °C ladder, combined by min-factor), and `evaluate()` combining schedule × ramp × derate
   via the calibrated PPFD→% map. Host-tested for schedule on/off, ramp, fallback wrap, and each
-  derate threshold. RTC-invalid surfaces as `rtc_fallback` → System amber (does not block watering).
+  derate threshold. RTC-invalid surfaces as `rtc_fallback` → System amber (does not block the light schedule).

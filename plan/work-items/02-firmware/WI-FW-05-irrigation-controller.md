@@ -1,4 +1,4 @@
-# WI-FW-05 — Irrigation controller
+# WI-FW-05 — Moisture monitor (was: irrigation controller)
 
 | Field | Value |
 |---|---|
@@ -6,39 +6,42 @@
 | Milestone | M3-05 |
 | Depends on | WI-FW-03, WI-PL-03 |
 | Spec refs | §9.6, §5.6 |
-| Status | Done |
+| Status | Done (redesigned: pump removed) |
+
+> **SCOPE CHANGE (2026-06-14): the pump was removed from V1** ([ECO-003](../../../docs/ECO-003-v1-redesign.md)).
+> Watering is now **passive** (reservoir + wick). There is no watering actuator, so the pulse-dosing
+> decision loop is gone — this item becomes a **moisture monitor**: validate the probe reading and
+> classify it into a warning (`MOISTURE_LOW` / `MOISTURE_HIGH` / `SENSOR_FAULT`). The pump interlocks,
+> daily caps, watering window, pump-fault/no-rise detection, and `ml_per_sec` calibration are all
+> removed. Spec §9.6 still describes the pumped loop and needs the Project track's passive-watering pass.
 
 ## Objective
 
-Implement the safety-first watering decision loop: pulse dosing with remeasure, daily caps, watering
-windows, and hard lockouts.
+Validate the substrate-moisture reading and classify it for the **Moisture status warning** (passive
+watering — monitor only, no actuation). *(Originally: a safety-first pulse-dosing loop for a pump.)*
 
 ## Deliverables
 
-- [x] Decision loop per §9.6 pseudo-code, evaluated every 5 min.
-- [x] Lockout precedence: leak → reservoir-low → moisture-sensor-invalid → pump-fault → normal.
-- [x] Pulse dosing using calibrated `ml_per_sec`; recheck delay; "moisture did not rise after N pulses
-      → PUMP_FAULT" detection.
-- [x] Daily-max caps per stage; max 3 pulses/hour; single-run ≤30 s; emergency watering when critically dry.
-- [x] Watering-window enforcement (first 60–70% of light period; not last 2 h).
-- [x] Unit tests: timeout, daily max, low water, leak lockout, no-rise fault, window logic.
+- [x] Moisture validation: bus/range error, uncalibrated normalize, and a **stuck** reading across the
+      plausibility window → `None` (= `SENSOR_FAULT`). (Kept from the original `MoistureValidator`.)
+- [x] Band classification → `MOISTURE_LOW` (below dry), `MOISTURE_HIGH` (above wet), `CriticalLow`
+      (below critical), `Ok`. Drives the Moisture LED / warning state; **never actuates**.
+- [x] Unit tests for the validator and the band classification.
+- [x] ~~Pulse dosing, daily caps, watering window, leak→pump lockout, no-rise → PUMP_FAULT~~ — removed
+      with the pump (ECO-003).
 
 ## Acceptance criteria
 
-- Pulse/lockout tests pass (spec §10.2 "Pump safety" + "Irrigation thresholds").
-- Pump can never enable while leak or reservoir-low is asserted.
+- Moisture validation + classification tests pass (spec §10.2 "Moisture monitor").
+- The monitor commands no actuator (V1 is passive — there is no pump).
 
 ## Notes
 
-Pump-off-on-reset is also a hardware guarantee (pull-down) — see [WI-EE-03](../03-electronics/WI-EE-03-schematic.md).
-This item owns the firmware side.
+With no pump there is no flood/overwater failure mode and no pump-fail-off requirement. The leak
+sensor is retained as a **flood/overflow warning** only (handled in `safety_controller`, WI-FW-07).
 
 ## Implementation
 
-- `control/src/irrigation_controller.rs`: the §9.6 decision loop with the exact interlock
-  precedence (leak → reservoir-low → moisture-invalid → pump-fault), pulse dosing with
-  calibrated `ml_per_sec` + recheck delay, no-rise → `PUMP_FAULT` after N pulses, ≤3 pulses/hour,
-  single-run ≤30 s, per-stage daily caps, emergency (critically-dry) bypass, and the
-  `within_watering_window` gate. Includes `MoistureValidator` (stuck/plausibility → sensor fault).
-  Host-tested for every rule. Fixed a latent rate-limit bug (a pulse at `now_ms==0` was dropped by
-  a `0` sentinel — now `Option<u64>`).
+- `control/src/moisture_monitor.rs` (renamed from `irrigation_controller.rs`): `MoistureValidator`
+  (stuck/plausibility → sensor fault) plus `classify()` → `MoistureStatus`. No dosing, no pump, no
+  daily caps, no watering window. Host-tested for every rule.

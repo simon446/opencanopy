@@ -7,7 +7,7 @@ in [`../src/models.rs`](../src/models.rs); this file documents the equations and
 > **must be re-parameterized from bench data** ([WI-QA-09](../../../plan/work-items/05-validation-qa/WI-QA-09-bench-characterization.md))
 > before the simulator is trusted to gate a live-plant grow loop. Passing scenarios proves the
 > **control logic** (monitor + warn), not that the model matches a real plant.
-
+>
 > **No pump, no fan in V1 (ECO-003 / ECO-001).** Watering is passive: a base reservoir feeds the
 > substrate through a capillary wick. The firmware never actuates water — it monitors and warns. The
 > only actuator is the grow LED.

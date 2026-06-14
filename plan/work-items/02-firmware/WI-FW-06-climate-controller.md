@@ -10,11 +10,13 @@
 
 > **SCOPE CHANGE (2026-06-14): the circulation fan was removed from the V1 design** by mechanical and
 > electronics. The climate controller no longer commands any actuator — it is now a **monitor**: VPD
-> calculation + temp/RH health flags for the Climate LED, plus an LED-derate request (cutting the
-> grow LED is the only remaining way to shed heat). `FAN_FAULT`, the fan-tach input, per-stage fan
-> minimums, the fan duty boosts, and `fan_min_pwm` were all removed from the firmware. Spec §9.7
-> (fan controller), §9.3 (`FAN_FAULT` state) and §9.9 (`fan_min_pwm`) still describe a fan and need a
-> coordinated revision by the spec owner.
+> calculation + temp/RH health flags, plus an LED-derate request (cutting the grow LED is the only
+> remaining way to shed heat). `FAN_FAULT`, the fan-tach input, per-stage fan minimums, the fan duty
+> boosts, and `fan_min_pwm` were all removed from the firmware.
+>
+> **Also (ECO-003, pump removed):** there is **no Climate LED** anymore (status LEDs 5→4) — climate
+> warnings fold into the **System** LED (amber). Spec §9.7 (fan controller), §9.3 (`FAN_FAULT`) and
+> §9.9 (`fan_min_pwm`) still describe a fan and need a coordinated Project-track revision.
 
 ## Objective
 
@@ -24,8 +26,9 @@ circulation fan; with the fan removed the response is monitoring + an LED-derate
 ## Deliverables
 
 - [x] VPD calculator (temp + RH → kPa) with unit tests against reference vectors from [WI-PL-04](../01-plant-science/WI-PL-04-vpd-climate-model.md).
-- [x] Temp/RH/VPD health classification → Climate LED amber/red (RH>85 amber, RH>90 red, VPD-stress
-      amber, temp >30 amber / >32 red, cold <16 amber, outside preferred RH band amber).
+- [x] Temp/RH/VPD health classification → System amber warning (RH>85 amber, RH>90 red, VPD-stress
+      amber, temp >30 amber / >32 red, cold <16 amber, outside preferred RH band amber). *(No Climate
+      LED — folds into System, ECO-003.)*
 - [x] LED-derate request at temp >32 °C (the only heat lever without a fan).
 - [x] Unit tests for the classification across temp/RH/VPD.
 - [x] ~~Per-stage fan minimums, lights-on vs lights-off duty cycling~~ — removed with the fan.

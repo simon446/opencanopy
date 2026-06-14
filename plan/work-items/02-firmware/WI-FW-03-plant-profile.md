@@ -15,7 +15,9 @@ Encode the hot-pepper lifecycle profile as a fixed in-firmware recipe: age → s
 ## Deliverables
 
 - [x] `plant_profile` module mapping grow-cycle age (days) to stage S0–S5.
-- [x] Per-stage setpoint lookup (photoperiod, PPFD/DLI target, RH/VPD band, watering thresholds).
+- [x] Per-stage setpoint lookup (photoperiod, PPFD/DLI target, RH/VPD band, moisture warning bands).
+      *(The pulse/daily-cap dosing setpoints were removed with the pump — ECO-003; the moisture
+      thresholds now classify warnings, they don't drive dosing.)*
 - [x] `TRANSPLANT_PROFILE` build flag skipping S0/S1.
 - [x] Unit tests covering stage boundaries and transplant flag.
 
