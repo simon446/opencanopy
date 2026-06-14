@@ -30,22 +30,55 @@ cantilever. The base stays low because the grow insert is a **raised planter** a
 
 ## Interactive 3D model
 
-**Drag to orbit, scroll to zoom.** The externally-visible assembly (base, pillars, top block,
-LED panel + heatsink, grow insert, status pill, feet) in web-standard glTF. Source:
-`mechanical/cad/exports/parts/*.stl` → `assets/models/opencanopy-v1.glb`
-(`mechanical/cad/render_block.py::export_glb`).
+**Drag to orbit, scroll to zoom.** The **full assembly — all parts** (web-standard glTF), rendered
+**translucent** so the internals (reservoir, controller PCB, cabling, joints) are visible. Toggle
+**Wireframe** below. Source: `mechanical/cad/exports/parts/*.stl` → `assets/models/opencanopy-v1.glb`
+(`mechanical/cad/render_block.py::export_glb`); download the [GLB](assets/models/opencanopy-v1.glb).
 
-<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
-<model-viewer
-  src="assets/models/opencanopy-v1.glb"
-  alt="OpenCanopy V1 — drag to rotate the assembly"
-  camera-controls auto-rotate touch-action="pan-y"
-  interaction-prompt="none" shadow-intensity="1" exposure="1.05"
-  camera-orbit="-35deg 72deg auto" min-camera-orbit="auto auto auto" max-camera-orbit="auto auto auto"
-  style="width:100%; height:520px; background:#f3f4f6; border-radius:10px;">
-  <p slot="poster" style="padding:1rem;">Loading 3D model… (or
-  <a href="assets/models/opencanopy-v1.glb">download the GLB</a>)</p>
-</model-viewer>
+<div style="margin:.4rem 0;display:flex;gap:1.2rem;align-items:center;flex-wrap:wrap;">
+  <label style="display:inline-flex;align-items:center;gap:.4rem;"><input type="checkbox" id="oc-wire"> Wireframe</label>
+  <label style="display:inline-flex;align-items:center;gap:.4rem;">Opacity <input type="range" id="oc-op" min="0.1" max="1" step="0.05" value="0.5"></label>
+</div>
+<div id="oc-viewer" style="width:100%;height:540px;background:#f3f4f6;border-radius:10px;overflow:hidden;"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const el = document.getElementById('oc-viewer');
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xf3f4f6);
+const camera = new THREE.PerspectiveCamera(40, el.clientWidth/el.clientHeight, 1, 8000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio); renderer.setSize(el.clientWidth, el.clientHeight);
+el.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x707070, 1.15));
+const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(1, 2, 1.5); scene.add(key);
+const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
+
+const mats = [];
+const setOpacity = v => mats.forEach(m => { m.opacity = v; m.transparent = v < 1; m.depthWrite = v >= 1; m.needsUpdate = true; });
+new GLTFLoader().load('assets/models/opencanopy-v1.glb', (gltf) => {
+  gltf.scene.traverse(o => { if (o.isMesh) { o.material.side = THREE.DoubleSide; mats.push(o.material); } });
+  scene.add(gltf.scene);
+  setOpacity(0.5);
+  const box = new THREE.Box3().setFromObject(gltf.scene), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const d = Math.max(size.x, size.y, size.z);
+  controls.target.copy(c); camera.position.set(c.x + d*0.85, c.y + d*0.55, c.z + d*1.4);
+  camera.near = d/200; camera.far = d*12; camera.updateProjectionMatrix();
+}, undefined, (err) => { el.innerHTML = '<p style="padding:1rem">3D viewer failed to load — <a href="assets/models/opencanopy-v1.glb">download the GLB</a>.</p>'; });
+
+document.getElementById('oc-wire').addEventListener('change', e => mats.forEach(m => { m.wireframe = e.target.checked; }));
+document.getElementById('oc-op').addEventListener('input', e => setOpacity(parseFloat(e.target.value)));
+new ResizeObserver(() => { if (!el.clientWidth) return; camera.aspect = el.clientWidth/el.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(el.clientWidth, el.clientHeight); }).observe(el);
+(function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+</script>
 
 ## Product views
 

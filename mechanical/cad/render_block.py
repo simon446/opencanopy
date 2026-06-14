@@ -74,11 +74,12 @@ def export_parts():
     print(f"exported {len(P)} part STLs")
 
 
-# parts shown in the interactive 3D model (the externally-visible product; internal/debug hidden)
-GLB_SKIP = ("reservoir","pcb","usb_c","dowels","screws","cable")
+# parts shown in the interactive 3D model — ALL parts (the docs viewer renders them translucent
+# so the internals are visible, with a wireframe toggle).
+GLB_SKIP = ()
 
 def export_glb(meshes):
-    """Write a colour-per-part GLB of the assembly for the docs <model-viewer> (web-rotatable)."""
+    """Write a colour-per-part GLB of the full assembly for the docs three.js viewer."""
     R = trimesh.transformations.rotation_matrix(-np.pi/2, [1,0,0])   # Z-up (CAD) -> Y-up (glTF)
     scene = trimesh.Scene()
     for k,m in meshes.items():
