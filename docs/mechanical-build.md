@@ -52,14 +52,16 @@ cross-section** (cable path base → arch → bridge → LED):
 - **Joints:** each arch foot tenons 26 mm into a base socket with 2 dowel pins + a
   hidden M4 from the underside (counterbored for a driver); the bridge tongues into the
   arch tops with dowels + screws. See [fastening & assembly](fastening.md).
-- **Dynamic physics sim (MuJoCo) — PASS.** Rigid-body settling test
-  (`mechanical/cad/physics_sim.py`): base fixed, **pot 10 kg**, gravity on, joints modelled
-  as dowel + screw `connect` constraints (welds for seated parts). After settling the
-  **max part displacement is 0.041 mm and max rotation 0.006°** — well under the 0.5 mm /
-  0.5° limit. Removing **each screw one at a time — and all screws together — gives the
-  identical result**, proving the **dowels/tabs carry the shear** and the joints are not
-  screw-dependent for holding. (Idealised rigid-body + pin/weld constraints, not FEA: it
-  validates kinematic stability and joint redundancy, not material stress.)
+- **Free-standing physics sim (MuJoCo) — PASS.** `mechanical/cad/physics_sim.py`:
+  **only the ground is fixed** — the ~21 kg unit (pot 10 kg) rests on its **4 feet** under
+  gravity; joints modelled as dowel + screw `connect` constraints (welds for seated parts).
+  After settling: **base settles 0.028 mm, tilt 0.000°** (doesn't sink or tip) and parts
+  move **0.024 mm / 0.003° relative to the base** (joints rigid) — all well under the
+  0.5 mm / 0.5° limit. Removing **each screw one at a time — and all screws together —
+  gives the identical result**, proving the **dowels/tabs carry the shear** (joints are not
+  screw-dependent for holding). _(Idealised rigid-body + pin/weld constraints with ground
+  contact, not FEA: validates free-standing stability and joint redundancy, not material
+  stress.)_
 
 Reproduce:
 
