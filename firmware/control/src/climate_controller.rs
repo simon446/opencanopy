@@ -15,7 +15,7 @@ pub fn svp_kpa(temp_c: f32) -> f32 {
     (0.6108 * exp(17.27 * t / (t + 237.3))) as f32
 }
 
-/// Air vapour-pressure deficit, kPa (vpd-climate-model §1). RH is clamped to [0,100]; an
+/// Air vapour-pressure deficit, kPa (vpd-climate-model §1). RH is clamped to `[0, 100]`; an
 /// out-of-range RH is a sensor fault upstream (§7.6), not a valid VPD input.
 pub fn vpd_kpa(temp_c: f32, rh_pct: f32) -> f32 {
     let rh = clampf(rh_pct, 0.0, 100.0);

@@ -210,7 +210,7 @@ pub fn render(inp: &PanelInputs) -> Panel {
     }
 }
 
-/// Push a rendered panel to the hardware (§9.8). Generic over the [`StatusLeds`] trait.
+/// Push a rendered panel to the hardware (§9.8). Generic over the [`crate::hal::StatusLeds`] trait.
 pub fn drive<L: crate::hal::StatusLeds>(leds: &mut L, panel: &Panel) {
     leds.set(LedId::Water, panel.water.color, panel.water.pattern);
     leds.set(

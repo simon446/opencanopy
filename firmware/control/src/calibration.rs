@@ -122,7 +122,7 @@ impl Calibration {
     }
 
     /// Commanded LED power (%) needed to hit a target PPFD, via piecewise-linear interpolation of
-    /// the measured `led_ppfd_map` (§9.9). Clamped to [0,100].
+    /// the measured `led_ppfd_map` (§9.9). Clamped to `[0, 100]`.
     pub fn percent_for_ppfd(&self, target_ppfd: u16) -> u8 {
         let pts = [
             (0u8, 0u16),

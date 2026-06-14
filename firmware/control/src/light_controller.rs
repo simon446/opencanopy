@@ -90,8 +90,8 @@ pub fn phase(sp: &Setpoints, rtc: WallTime, utc_offset_s: i32, boot_ms: u64, now
     }
 }
 
-/// Linear ramp factor in [0,1]: ramps up over the first [`RAMP_SECONDS`] after lights-on and down
-/// over the last [`RAMP_SECONDS`] before lights-off (§9.5). 0 when lights are off.
+/// Linear ramp factor in `[0, 1]`: ramps up over the first `RAMP_SECONDS` after lights-on and down
+/// over the last `RAMP_SECONDS` before lights-off (§9.5). 0 when lights are off.
 pub fn ramp_factor(ph: &Phase) -> f32 {
     if !ph.on {
         return 0.0;
@@ -107,7 +107,7 @@ pub fn ramp_factor(ph: &Phase) -> f32 {
 /// Result of the thermal-derate ladders (§9.5).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Derate {
-    /// Multiplier on commanded LED power, [0,1].
+    /// Multiplier on commanded LED power, `[0, 1]`.
     pub factor: f32,
     pub derated: bool,
     /// Air temp in the 30–60 % derate band (>32 °C) — climate fault (§9.5).

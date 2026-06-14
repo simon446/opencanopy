@@ -14,6 +14,9 @@ on:
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
       - "mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad"
+      # Rebuild the published Rust API docs when the host-doc'able firmware crates change.
+      - "firmware/control/**"
+      - "firmware/sim/**"
   pull_request:
     paths:
       - "docs/**"
@@ -21,6 +24,8 @@ on:
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
       - "mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad"
+      - "firmware/control/**"
+      - "firmware/sim/**"
   workflow_dispatch:
 
 permissions:
@@ -74,6 +79,31 @@ jobs:
 
       - name: Build
         run: mkdocs build --site-dir _site
+
+      # ---- Firmware API docs (cargo doc) published under /api ----
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build firmware API docs (control + sim)
+        working-directory: firmware
+        # Host-doc'able crates only; the controller crate is esp-hal/Xtensa-only. --no-deps keeps it
+        # to our own crates. rustdoc emits relative links, so the site works served under /api/.
+        run: cargo doc --no-deps -p control -p sim
+
+      - name: Stage API docs into the site under /api
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/api
+          cp -r firmware/target/doc/. _site/api/
+          # Landing page: /api/ -> the control crate index.
+          cat > _site/api/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en"><head><meta charset="utf-8">
+          <title>OpenCanopy firmware API docs</title>
+          <meta http-equiv="refresh" content="0; url=control/index.html"></head>
+          <body><a href="control/index.html">OpenCanopy firmware API documentation</a></body></html>
+          HTML
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
