@@ -18,6 +18,8 @@ PCB, wiring, BOM, and electrical verification for OpenCanopy. Owned by the **Ele
 - `bom/` — bill of materials.
   - `bom.csv` — primary BOM (must satisfy the §16 constraint list).
   - `alternates.csv` — approved alternate parts.
+  - `component-sourcing.md` — real buyable picks for pump / grow light / status LEDs / cables, with
+    3D-model sources and the firmware/mechanical/project flags they raise.
 - `test/` — electrical verification.
   - `bringup.md` — bench bring-up procedure (WI-EE-08).
   - `pcb-verification.md` — trace/current and thermal verification report (WI-EE-06).

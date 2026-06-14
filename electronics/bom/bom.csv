@@ -15,7 +15,7 @@ D2,Pump flyback,protection,irrigation,1,Schottky 3A,SS34,generic,SMC,§17.1,,,,,
 U6,24->12V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,optional,12V pump option only (no fan in V1, ECO-001); omit if 24V pump used
 U7,24->5V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,committed,sensors/status/3V3 feed
 U8,5->3.3V reg,power,power,1,1A,AP2112K-3.3,Diodes Inc,SOT23-5,§7.8,,,,,,,committed,MCU rail
-U9,LED dim buffer,interface,light,1,opamp,MCP6001,Microchip,SOT23-5,§7.2,,,,,,,optional,only if 0-10V dim needed
+U9,LED dim buffer,interface,light,1,opamp,MCP6001,Microchip,SOT23-5,§7.2,,,,,,,optional-dnp,NOT NEEDED - LDD-H driver takes logic-level 3.3V PWM directly (component-sourcing.md); remove in follow-up
 CN_PWR,Power input connector,connector,power,1,XT30,XT30PW,generic,TH,§7.10,,,,,,,committed,>=10A
 CN_LED,LED connector,connector,light,1,JST VH 4,B4PS-VH,JST,TH,§7.9,,,,,,,committed,+24V/GND/DIM/NTC
 CN_PUMP,Pump connector,connector,irrigation,1,JST VH 2,B2PS-VH,JST,TH,§7.9,,,,,,,committed,
@@ -28,12 +28,12 @@ CN_STATUS,Status LED connector,connector,ui,1,JST XH 3,B3B-XH,JST,TH,§7.9/§7.1
 CN_DBG,Debug UART header,connector,control,1,2.54 4-pin,header-4,generic,TH,§7.9,,,,,,,committed,service only
 CN_USB,USB-C receptacle,connector,control,1,USB-C,USB4105,GCT,SMD,§7.9,,,,,,,committed,USB-CDC flash/log
 PCB1,Controller PCB,pcb,control,1,4-layer,opencanopy-ctrl,inhouse,board,§7.9,,,,,,,pending-cad,fab from netlist (tscircuit flow)
-M1,Pump (24V submersible),actuator,irrigation,1,>=1.0m head,PMP-24-1m,generic,module,§7.3,,,,,,,committed,brushless centrifugal; <5W
+M1,Pump (24V submersible),actuator,irrigation,1,24V IP68 brushless,TL-B03H,TOPSFLO,module,§7.3,,,,,,,committed,brushless centrifugal IP68 submersible food-grade >20000h; 2.5m max head/390 L/h -> <5W at ~1m op point; 2-wire FET-switched (see component-sourcing.md)
 SEN1,Capacitive moisture probe,sensor,irrigation,1,v2 coated,SEN-CAP-V2,generic,module,§7.6,,,,,,,committed,corrosion-resistant; replaceable
 SEN2,Reservoir float switch,sensor,irrigation,1,low-level,SEN-FLOAT-LOW,generic,module,§7.7,,,,,,,committed,
 SEN3,Leak trace/rope,sensor,irrigation,1,tray,SEN-LEAK-TRACE,generic,module,§7.5,,,,,,,committed,
-LED_PANEL,Grow light (compact),light,light,1,60W full-spectrum,LIGHT-CANDIDATE-60W,generic-hort,panel,§7.2/§16.3,60,avg ~450 / min ~325 umol/m2/s @150mm unif>=0.64 (PPF ~150 umol/s; see validation/ppfd-measurements/model/ppfd-map-c-150mm.csv),PWM + 0-10V,full-spectrum white 3500K + 660nm deep red horticultural,remote aluminum heatsink driver in upper dry bay,CE/UL listed,CANDIDATE-DR01-PASS,DR-01 both halves pass (PL-06 photometric + EE-10 thermal); panel meets >=0.6 unif at 150mm; final procurement pick outstanding
-LED_STATUS,Status LED board parts (5x WS2812B),ui,ui,1,WS2812B-2020,WS2812B-2020,Worldsemi,2020,§7.11,,,,,,,committed,front-panel; see WI-EE-09
+LED_PANEL,Grow light (compact),light,light,1,~60W LM301H board,LM301H-board-60W,Samsung LED diodes + board vendor,panel,§7.2/§16.3,60,avg ~450 / min ~325 umol/m2/s @150mm unif>=0.64 (PPF ~150 umol/s; see validation/ppfd-measurements/model/ppfd-map-c-150mm.csv),PWM 100Hz-1kHz via LDD-H driver,full-spectrum white 3000-3500K LM301H + 660nm deep red horticultural,passive aluminum heatsink; DC-DC LDD driver in upper dry bay,CE/UL (board+driver),CANDIDATE-DR01-PASS,LM301H/EVO board PPE 2.7-3.1; finalize SKU vs published PPFD map (PL-06); driver = U_LED_DRV (see component-sourcing.md)
+LED_STATUS,Status LED board parts (5x WS2812B),ui,ui,5,WS2812B-2020,WS2812B-2020,Worldsemi,2020,§7.11,,,,,,,committed,front-panel; LCSC C965555 / JLCPCB stock; 3.7-5.3V (validates 4.5V design); see WI-EE-09
 PCB2,Status LED PCB,pcb,ui,1,2-layer,opencanopy-status,inhouse,board,§7.11,,,,,,,pending-cad,fab from netlist (tscircuit flow)
 PSU1,External 24VDC PSU,power,power,1,120W (150W@100W LED),PSU-24-120,generic,brick,§7.8/§16.1,,,,,,CE/UL,committed,certified external brick; not inside unit
 C2 C3 C_EN C_RTC C_INA C_U5 C_LK C_BULK3,Decoupling/bypass capacitor,passive,power,8,100nF,CL05B104KO5NNNC,Samsung,0402,§7.9,,,,,,,committed,per-IC 100nF + 24V HF bypass (netlist)
@@ -61,3 +61,5 @@ R_NTC,LED NTC divider top (DNP),passive,light,1,10k,RC0402FR-0710K,Yageo,0402,§
 R_DIMF C_DIMF,0-10V dim RC (DNP),passive,light,2,assorted,see-netlist,various,0402,§7.2,,,,,,,optional-dnp,with U9 op-amp; PWM-direct is default
 R_FANG R_TACH,Fan PWM/tach provision (DNP),passive,climate,2,assorted,see-netlist,various,0402,§7.4,,,,,,,optional-dnp,no fan in V1 (ECO-001); 4-pin PWM provision
 J_EXP J_CAM,Expansion headers (DNP),connector,control,2,header,PinHeader,generic,TH,§4.3,,,,,,,optional-dnp,camera/PAR/pH-EC/load-cell; unpopulated V1
+U_LED_DRV,LED constant-current driver,power,light,3,LDD-1000H,LDD-1000H,Mean Well,SIP-6,§7.2,,,,,,,committed,DC-DC CC step-down from 24V rail (9-56Vin); logic-level PWM dim 2.5-6V 100Hz-1kHz (3.3V direct); ~3x for 60W; STEP from Mean Well
+W1,Silicone hook-up wire,cable,wiring,1,18/20/26 AWG,silicone-UL3239,generic,wire,§8.5,,,,,,,committed,18AWG power / 20AWG pump / 26-28AWG signal; flexible silicone (wet zone); to chosen JST/XT30 housings
