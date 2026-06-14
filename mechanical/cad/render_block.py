@@ -32,40 +32,41 @@ RENDERS.mkdir(parents=True, exist_ok=True)
 OPENSCAD = next((p for p in (
     "/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD", "openscad") if Path(p).exists() or p == "openscad"), "openscad")
 
-# part key -> (legend label, RGB 0-1)
+# part key -> (legend label, RGB 0-1). Material grouping: white shell / wood / dark service.
+WHITE = (0.92, 0.92, 0.90); WOOD = (0.80, 0.62, 0.38); DARK = (0.26, 0.26, 0.29)
 PARTS_DEF = {
-    "frame":      ("frame (posts + hood)", (0.62, 0.62, 0.64)),
-    "base":       ("base cabinet",          (0.90, 0.89, 0.85)),
-    "iso_wall":   ("isolating wall",        (0.55, 0.65, 0.80)),
-    "led_bar":    ("LED grow bar",          (0.95, 0.88, 0.35)),
-    "pot":        ("pot (10 L, hollow)",    (0.80, 0.50, 0.34)),
-    "reservoir":  ("reservoir (water)",     (0.25, 0.60, 0.88)),
-    "pcb":        ("controller PCB",        (0.15, 0.55, 0.30)),
-    "driver":     ("LED driver",            (0.30, 0.30, 0.33)),
-    "power":      ("power input (24 V)",    (0.55, 0.55, 0.60)),
-    "status":     ("status LEDs (front)",   (0.30, 0.82, 0.55)),
-    "feet":       ("feet (x4)",             (0.50, 0.50, 0.52)),
-    "screws":     ("M3 screws (joints)",    (0.20, 0.20, 0.22)),
+    "side_frames": ("side-frame arches (shell)", WHITE),
+    "base":        ("base shell",                WHITE),
+    "bridge":      ("top light bridge (shell)",  WHITE),
+    "shelf":       ("wood shelf + pot well",     WOOD),
+    "led_bar":     ("LED grow bar",              (0.96, 0.90, 0.45)),
+    "pot":         ("pot (~9.5 L, hollow)",      (0.82, 0.55, 0.42)),
+    "reservoir":   ("reservoir (water)",         (0.30, 0.62, 0.88)),
+    "pcb":         ("controller PCB",            DARK),
+    "driver":      ("LED driver",                DARK),
+    "power":       ("power input (24 V)",        DARK),
+    "iso_wall":    ("sealed wet|dry wall",       (0.86, 0.88, 0.92)),
+    "status":      ("status pill (4 LEDs)",      (0.30, 0.82, 0.55)),
+    "feet":        ("feet (x4)",                 (0.45, 0.45, 0.48)),
 }
 
-# Pairs that are SUPPOSED to touch (mounted to / seated on each other).
+# Pairs that are SUPPOSED to touch (seated on / mounted to each other).
 EXPECTED_CONTACT = {
-    frozenset(("frame", "base")), frozenset(("iso_wall", "base")),
-    frozenset(("pot", "base")), frozenset(("led_bar", "frame")),
-    frozenset(("status", "base")), frozenset(("feet", "base")),
-    frozenset(("screws", "frame")), frozenset(("screws", "base")),
+    frozenset(("side_frames", "base")), frozenset(("bridge", "side_frames")),
+    frozenset(("shelf", "base")), frozenset(("pot", "shelf")),
+    frozenset(("led_bar", "bridge")), frozenset(("feet", "base")),
+    frozenset(("iso_wall", "base")), frozenset(("status", "base")),
 }
 
+# Rear/service cutaway hides the shell + canopy parts to expose the base internals.
+_CUT = ("side_frames", "bridge", "led_bar", "pot", "shelf")
 VIEWS = [  # name, camera-direction (from focal pt), view-up, parts to hide
-    ("block-front",     (0, -1, 0.04),  (0, 0, 1), ()),
-    ("block-iso",       (1, -1, 0.55),  (0, 0, 1), ()),
-    ("block-iso-left",  (-1, -1, 0.55), (0, 0, 1), ()),
-    ("block-right",     (1, 0, 0.04),   (0, 0, 1), ()),
-    ("block-back",      (0, 1, 0.04),   (0, 0, 1), ()),
-    ("block-iso-back",  (1, 1, 0.5),    (0, 0, 1), ()),
-    ("block-top",       (0, 0, 1),      (0, 1, 0), ()),
-    ("block-base",      (0.5, -1, 0.45), (0, 0, 1),
-        ("base", "pot", "frame", "led_bar", "status", "screws")),
+    ("block-front",   (0, -1, 0.04),  (0, 0, 1), ()),
+    ("block-side",    (1, 0, 0.04),   (0, 0, 1), ()),
+    ("block-iso",     (1, -1, 0.5),   (0, 0, 1), ()),
+    ("block-iso-left",(-1, -1, 0.5),  (0, 0, 1), ()),
+    ("block-top",     (0, 0, 1),      (0, 1, 0), ()),
+    ("block-service", (0.7, 1, 0.45), (0, 0, 1), _CUT),
 ]
 EDGE_ANGLE = 40.0
 

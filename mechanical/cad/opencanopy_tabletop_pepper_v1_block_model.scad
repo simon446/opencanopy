@@ -1,161 +1,169 @@
-// OpenCanopy Tabletop Pepper v1 — parametric block model (rounded, footed, fastened)
+// OpenCanopy Tabletop Pepper — v1 AESTHETIC PRODUCT MODEL
 // SPDX-License-Identifier: CERN-OHL-S-2.0
 //
-// Architecture: open-frame tabletop unit — base cabinet + four rounded corner posts +
-// top hood, OPEN front/sides/back. ELECTRONICS LIVE IN THE BASE, BESIDE the water
-// reservoir, isolated by an additional vertical wall (wet | wall | dry).
-//
-// This revision adds, per review: rounded edges (furniture look), 4 feet, cable routing
-// through HOLLOW posts (no dedicated channel), and a fastening scheme (M3 heat-set
-// inserts + socket screws at the post joints; dowels for alignment; printed in panels
-// because 480 mm exceeds consumer beds — see mechanical/fastening.md).
+// Compact Scandinavian tabletop appliance. SAME functional architecture as v0:
+//   - electronics + reservoir in the BASE; wet | sealed wall | dry (side by side)
+//   - open-frame / non-enclosed; no screen, no controls; 4 status LEDs only
+// New product form (silhouette-first; screws/wiring deferred):
+//   - two continuous rounded SIDE-FRAME ARCHES (left + right) replace the 4 posts
+//   - slim TOP LIGHT BRIDGE (not a thick top cage)
+//   - slimmer footed BASE, rounded front corners, recessed rear service bay
+//   - raised WOOD-LOOK SHELF with a recessed circular POT WELL (integrated pot)
+//   - small PILL status diffuser (4 tiny LED dots) instead of a big front panel
+// Material grouping: white shell / wood accent / dark recessed service / (reservoir
+// translucent in cutaway only).
 //
 // Per-part export:  openscad -D 'part="pot"' --render -o pot.stl this_file.scad
-//   parts: frame base iso_wall led_bar pot reservoir pcb driver power status feet screws
-//
-// Origin = front-left-bottom of envelope. X=width(0..480) Y=depth(0..320) Z=height(0..680). mm
+// Origin = front-left-bottom. X=width(0..480) Y=depth(0..320) Z=height(0..680). mm
 
 // ----------------------------- parameters --------------------------------
 env_w = 480; env_d = 320; env_h = 680;
 $fn = 96;
 
-foot_h   = 16;  foot_r = 17;  foot_inset = 36;   // 4 feet
-wall_t   = 10;  deck_t = 12;                       // base shell
-base_h   = 124;                                    // base top deck height
-post     = 40;  post_wall = 9;  rr_post = 6;       // corner posts (rounded, hollow)
-post_bore = post - 2*post_wall;                    // 22 mm cable bore through posts
-top_h    = 50;  rr_hood = 6;                        // top hood ring
-rr_base  = 12;                                      // base cabinet edge radius
-iso_x    = 315; iso_t = 12;                         // additional isolating wall
-floor_top  = foot_h + wall_t;                       // 26
-deck_bot   = base_h - deck_t;                       // 112
-post_bot   = base_h;                                // posts start on the base
-post_top_z = env_h - top_h;                         // 630, posts meet the hood
-screw_r  = 3;                                       // M3 socket-head representation
+base_h    = 120;           // visible base height (100-120)
+foot_h    = 14;  foot_r = 16;  foot_inset = 40;
+wall_t    = 10;
+side_t    = 26;            // side-frame visual thickness in X (22-28)
+fw        = 26;            // arch member width (Y/Z)
+arch_rr   = 26;            // arch outer corner radius (16-28)
+rr_base   = 20;            // base edge radius
+bridge_h  = 52;            // top light bridge height (45-60)
+bridge_y0 = 44; bridge_d = 80;   // bridge front position + depth
+iso_x     = 315; iso_t = 12;     // sealed wet|dry wall
 
-// rounded box of `size`, corner radius r (hull of 8 corner spheres)
+shelf_w = 360; shelf_d = 250; shelf_h = 30; well_d = 244; well_depth = 22;
+floor_top = foot_h + wall_t;
+deck_bot  = base_h - 12;
+
+// rounded box (hull of 8 corner spheres)
 module rbox(size, r) {
-    hull() for (x = [r, size[0]-r], y = [r, size[1]-r], z = [r, size[2]-r])
-        translate([x, y, z]) sphere(r = r, $fn = 40);
+    r = min(r, size[0]/2, size[1]/2, size[2]/2);
+    hull() for (x=[r,size[0]-r], y=[r,size[1]-r], z=[r,size[2]-r]) translate([x,y,z]) sphere(r=r,$fn=40);
+}
+// horizontal stadium/pill solid of length L (X), width w (Y), thickness t (Z)
+module pill(L, w, t) {
+    hull() for (x=[w/2, L-w/2]) translate([x, w/2, 0]) cylinder(h=t, d=w);
 }
 
 // ------------------------------- modules ----------------------------------
 
-// 4 feet — slightly tapered pucks; the unit stands on these, not flat on the counter
+// 4 feet
 module feet() {
-    for (x = [foot_inset, env_w - foot_inset], y = [foot_inset, env_d - foot_inset])
-        translate([x, y, 0]) cylinder(h = foot_h, r1 = foot_r, r2 = foot_r - 3);
+    for (x=[foot_inset, env_w-foot_inset], y=[foot_inset, env_d-foot_inset])
+        translate([x,y,0]) cylinder(h=foot_h, r1=foot_r, r2=foot_r-3);
 }
 
-// open cage: four rounded HOLLOW posts (cables run inside) + rounded top hood ring
-module outer_frame() {
-    ph = post_top_z - post_bot;
-    for (x = [0, env_w - post], y = [0, env_d - post])
-        translate([x, y, post_bot]) difference() {
-            rbox([post, post, ph], rr_post);
-            translate([post/2, post/2, -1]) cylinder(h = ph + 2, d = post_bore);  // cable bore
-        }
-    // top hood ring (rounded beams), hollow centre
-    translate([0, 0, post_top_z]) {
-        rbox([env_w, post, top_h], rr_hood);
-        translate([0, env_d - post, 0]) rbox([env_w, post, top_h], rr_hood);
-        rbox([post, env_d, top_h], rr_hood);
-        translate([env_w - post, 0, 0]) rbox([post, env_d, top_h], rr_hood);
-    }
-}
-
-// base cabinet: rounded shell, OPEN back + open top interior, closed deck on top.
-module base_cabinet() {
+// one inverted-U side arch (legs front+back, rounded top), thin in X
+module side_arch(x0) {
+    ysp = env_d - 12; hsp = env_h - base_h;
     difference() {
-        translate([0, 0, foot_h]) rbox([env_w, env_d, base_h - foot_h], rr_base);
-        // single interior cavity (iso wall added separately); OPEN at the back (Y+)
-        translate([wall_t, wall_t, floor_top])
-            cube([env_w - 2*wall_t, env_d, deck_bot - floor_top]);
-        // status-diffuser slot in the front wall
-        translate([240 - 66, -1, 44]) cube([132, wall_t + 2, 20]);
-        // deck drain hole over the WET side -> reservoir
-        translate([200, 150, deck_bot - 1]) cylinder(h = deck_t + 2, d = 26);
+        translate([x0, 6, base_h]) rbox([side_t, ysp, hsp], arch_rr);
+        translate([x0-1, 6+fw, base_h+fw]) rbox([side_t+2, ysp-2*fw, hsp-2*fw], max(3, arch_rr-10)); // opening
+        translate([x0-1, 6+fw, base_h-1]) cube([side_t+2, ysp-2*fw, fw+2]);                            // open bottom -> arch
+    }
+}
+module side_frames() { side_arch(0); side_arch(env_w - side_t); }
+
+// slim top light bridge connecting the two arches at the front-top
+module light_bridge() {
+    translate([side_t-6, bridge_y0, env_h - bridge_h]) rbox([env_w - 2*side_t + 12, bridge_d, bridge_h], 12);
+}
+
+// LED grow bar under the bridge (downlight)
+module led_bar() {
+    led_l = 360; led_w = 70; led_h = 20;
+    translate([240 - led_l/2, bridge_y0 + bridge_d/2 - led_w/2, env_h - bridge_h - led_h]) rbox([led_l, led_w, led_h], 4);
+}
+
+// base shell: slim, rounded, OPEN back + recessed rear service bay, closed deck
+module base_shell() {
+    difference() {
+        translate([0,0,foot_h]) rbox([env_w, env_d, base_h-foot_h], rr_base);
+        // interior cavity (wet+dry), open at the back
+        translate([wall_t, wall_t, floor_top]) cube([env_w-2*wall_t, env_d, deck_bot-floor_top]);
+        // recessed rear service bay (dark inset on the back)
+        translate([70, env_d-30, foot_h+12]) cube([env_w-140, 31, base_h-foot_h-24]);
+        // pill status slot on the front
+        translate([240-48, -1, 50]) pill_slot();
+        // deck drain hole over the wet side -> reservoir
+        translate([200,150,deck_bot-1]) cylinder(h=20, d=26);
+    }
+}
+module pill_slot() { rotate([-90,0,0]) translate([0,0,0]) pill(96, 18, wall_t+2); }
+
+// raised wood-look shelf with a recessed circular pot well
+module wood_shelf() {
+    difference() {
+        translate([240-shelf_w/2, 160-shelf_d/2, base_h]) rbox([shelf_w, shelf_d, shelf_h], 16);
+        translate([240,160, base_h+shelf_h-well_depth]) cylinder(h=well_depth+1, d=well_d);
     }
 }
 
-// the ADDITIONAL isolating wall between wet (left) and dry (right) compartments
-module iso_wall() {
-    translate([iso_x - iso_t/2, wall_t, floor_top])
-        cube([iso_t, env_d - wall_t, deck_bot - floor_top]);
-}
-
-// fixed full-spectrum LED grow bar (downlight) under the hood
-module top_light_module() {
-    led_l = 380; led_w = 90; led_h = 22;
-    translate([240 - led_l/2, 160 - led_w/2, post_top_z - led_h - 6]) rbox([led_l, led_w, led_h], 4);
-}
-
-// removable ~10 L pot — hollow (open top, walls, drain hole), on the deck
+// removable ~9.5 L pot — hollow, seated in the well
 module pot_placeholder() {
-    top_d = 280; bot_d = 235; pot_h = 230; pwall = 9; pfloor = 14;
-    translate([240, 150, base_h]) difference() {
-        cylinder(h = pot_h, d1 = bot_d, d2 = top_d);
-        translate([0, 0, pfloor]) cylinder(h = pot_h, d1 = bot_d - 2*pwall, d2 = top_d - 2*pwall);
-        translate([0, 0, -1]) cylinder(h = pfloor + 2, d = 22);
+    top_d=270; bot_d=232; pot_h=215; pwall=9; pfloor=14;
+    z0 = base_h + shelf_h - well_depth;
+    translate([240,160,z0]) difference() {
+        cylinder(h=pot_h, d1=bot_d, d2=top_d);
+        translate([0,0,pfloor]) cylinder(h=pot_h, d1=bot_d-2*pwall, d2=top_d-2*pwall);
+        translate([0,0,-1]) cylinder(h=pfloor+2, d=22);
     }
 }
 
-// reservoir — WET compartment (left of the isolating wall)
+// sealed isolating wall between wet (left) and dry (right)
+module iso_wall() { translate([iso_x-iso_t/2, wall_t, floor_top]) cube([iso_t, env_d-wall_t, deck_bot-floor_top]); }
+
+// reservoir — WET compartment (left)
 module reservoir_placeholder() {
-    rw = iso_x - iso_t/2 - wall_t - 16; rd = 150; rh = 80;
-    translate([wall_t + 8, 150, floor_top + 4]) rbox([rw, rd, rh], 6);
+    rw = iso_x-iso_t/2-wall_t-16; rd=150; rh=70;
+    translate([wall_t+8, 150, floor_top+4]) rbox([rw, rd, rh], 6);
 }
 
-// electronics — DRY compartment (right of the isolating wall), clear of the walls
-module pcb()         { translate([iso_x + iso_t/2 + 14, 96, floor_top + 12]) cube([90, 120, 8]); }
-module led_driver()  { translate([iso_x + iso_t/2 + 14, 226, floor_top + 6]) rbox([100, 60, 34], 3); }
-module power_input() { translate([iso_x + iso_t/2 + 14, 26, floor_top + 6]) rbox([90, 56, 30], 3); }
+// electronics — DRY compartment (right), dark recessed service parts
+module pcb()         { translate([iso_x+iso_t/2+14, 96, floor_top+12]) cube([90,120,8]); }
+module led_driver()  { translate([iso_x+iso_t/2+14, 226, floor_top+6]) rbox([100,60,34],3); }
+module power_input() { translate([iso_x+iso_t/2+14, 26, floor_top+6]) rbox([90,56,30],3); }
 module electronics_bay() { pcb(); led_driver(); power_input(); }
 
-// front LED status diffuser (4 LEDs behind a frosted strip; no screen/controls)
-module status_led_diffuser() {
-    dw = 120; dh = 16; dd = 6;
-    translate([240 - dw/2, 0.4, 54 - dh/2]) rbox([dw, dd, dh], 2);
-}
-
-// fastening: M3 socket-head screws at the 8 post joints (post<->base, post<->hood).
-// Heat-set brass inserts in the mating bosses; dowel pins align panels. See fastening.md.
-module screws() {
-    module cap() { cylinder(h = 4, d = 2*screw_r); translate([0,0,-8]) cylinder(h = 8, d = 3.4); }
-    for (x = [post/2, env_w - post/2], y = [post/2, env_d - post/2]) {
-        translate([x, y, base_h + 2]) cap();                 // post -> base (screws up)
-        translate([x, y, post_top_z - 2]) rotate([180,0,0]) cap(); // post -> hood (screws down)
+// small pill status diffuser (4 tiny LED dots) on the front face
+module status_diffuser() {
+    translate([240-48, 0.5, 50]) {
+        pill(96, 18, 5);
+        for (i=[0:3]) translate([20 + i*18.7, 9, 5]) cylinder(h=2, d=7);
     }
 }
 
 // ------------------------------- assembly ---------------------------------
+WHITE=[0.93,0.93,0.91]; WOOD=[0.80,0.62,0.38]; DARK=[0.26,0.26,0.29];
 module assembly() {
-    color([0.62,0.62,0.64]) outer_frame();
-    color([0.90,0.89,0.85]) base_cabinet();
-    color([0.55,0.65,0.80]) iso_wall();
-    color([0.95,0.88,0.35]) top_light_module();
-    color([0.80,0.50,0.34]) pot_placeholder();
-    color([0.25,0.60,0.88]) reservoir_placeholder();
-    color([0.15,0.55,0.30]) pcb();
-    color([0.28,0.28,0.33]) led_driver();
-    color([0.55,0.55,0.60]) power_input();
-    color([0.30,0.82,0.55]) status_led_diffuser();
-    color([0.50,0.50,0.52]) feet();
-    color([0.20,0.20,0.22]) screws();
+    color(WHITE)            side_frames();
+    color(WHITE)            base_shell();
+    color(WHITE)            light_bridge();
+    color(WOOD)             wood_shelf();
+    color([0.96,0.90,0.45]) led_bar();
+    color([0.82,0.55,0.42]) pot_placeholder();
+    color([0.30,0.62,0.88]) reservoir_placeholder();
+    color(DARK)             pcb();
+    color(DARK)             led_driver();
+    color(DARK)             power_input();
+    color([0.88,0.88,0.90]) iso_wall();
+    color([0.30,0.82,0.55]) status_diffuser();
+    color([0.55,0.55,0.58]) feet();
 }
 
 // ------------------------- per-part dispatch ------------------------------
 part = "all";
-if      (part == "all")        assembly();
-else if (part == "frame")      outer_frame();
-else if (part == "base")       base_cabinet();
-else if (part == "iso_wall")   iso_wall();
-else if (part == "led_bar")    top_light_module();
-else if (part == "pot")        pot_placeholder();
-else if (part == "reservoir")  reservoir_placeholder();
-else if (part == "pcb")        pcb();
-else if (part == "driver")     led_driver();
-else if (part == "power")      power_input();
-else if (part == "status")     status_led_diffuser();
-else if (part == "feet")       feet();
-else if (part == "screws")     screws();
+if      (part=="all")        assembly();
+else if (part=="side_frames") side_frames();
+else if (part=="base")       base_shell();
+else if (part=="bridge")     light_bridge();
+else if (part=="shelf")      wood_shelf();
+else if (part=="led_bar")    led_bar();
+else if (part=="pot")        pot_placeholder();
+else if (part=="reservoir")  reservoir_placeholder();
+else if (part=="pcb")        pcb();
+else if (part=="driver")     led_driver();
+else if (part=="power")      power_input();
+else if (part=="iso_wall")   iso_wall();
+else if (part=="status")     status_diffuser();
+else if (part=="feet")       feet();

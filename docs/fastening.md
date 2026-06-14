@@ -1,7 +1,7 @@
 # Fastening & assembly strategy
 
 How the parts join, and why. This addresses the "how is it held together?" question for
-the open-frame unit (base cabinet + corner posts + hood + internal panels).
+the open-frame unit (base cabinet + two side-frame arches + top light bridge + panels).
 
 ## Why it can't be a single print
 
@@ -43,15 +43,16 @@ Glue-only / plug-and-glue is avoided for the frame because the unit must stay
 
 | Joint | Fastening |
 |---|---|
-| Post ↔ base deck (×4) | 2× M3 heat-set inserts in each post foot; screws up through the deck. Modelled as the `screws` part. |
-| Post ↔ hood (×4) | 2× M3 inserts in each post top; screws down from the hood. |
-| Base cabinet panels (front/sides/floor/deck) | M3 inserts + screws at the edges; **dowel pins** locate the seams. |
-| Isolating wall | keyed (slot) into the floor + deck and screwed — a positive water/dry barrier, not just glued. |
-| Electronics (PCB, driver, PSU) | M3 heat-set standoffs on the dry-shelf floor. |
-| LED bar ↔ hood | M3 bracket screws + a **secondary-retention tether** so it can't fall (§7.2). |
-| Reservoir, pump | **no fasteners** — drop-in / lift-out from the open back for tool-free service (§8.4). |
-| Cables | routed **through the hollow posts** (no external channel); drip loop before the dry compartment (§8.5). |
-| Feet (×4) | M3 insert or screw-in rubber feet on the base underside. |
+| Side-frame arch ↔ base (×2) | M3 heat-set inserts in each arch foot (front + back leg); screws up through the base deck. |
+| Side-frame arch ↔ light bridge | M3 inserts in the arch tops; screws through the bridge ends. |
+| Base panels (front/sides/floor/deck) | M3 inserts + screws at the edges; **dowel pins** locate the seams. |
+| Sealed wet/dry wall | keyed (slot) into the floor + deck and screwed — a positive water/dry barrier, not just glued. |
+| Electronics (PCB, driver, PSU) | M3 heat-set standoffs on the dry-compartment floor. |
+| LED bar ↔ bridge | M3 bracket screws + a **secondary-retention tether** so it can't fall (§7.2). |
+| Reservoir, pump | **no fasteners** — drop-in / lift-out from the open rear service bay (§8.4). |
+| Cables | routed **inside the hollow side-frame arches** (no external channel); drip loop before the dry compartment (§8.5). |
+| Wood shelf | located by the recessed pot well + screwed/clipped to the base deck. |
+| Feet (×4) | screw-in rubber feet on the base underside. |
 
 The block model (`mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad`) shows
 the joint **screws** as a labelled part and the **hollow posts**; precise boss/insert
