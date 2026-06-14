@@ -9,10 +9,12 @@ no-whitelist geometry audit (`mechanical/cad/audit.py`).
 
 - One **low integrated base** (the product body, 135 mm) — a **single wet zone**: a passive
   **6 L reservoir** + an integrated **grow well**. There is **no electronics bay in the base**.
-- **Two vertical wooden pillars** (Ø28) rising from dry structural bosses in the base.
+- **Two vertical wooden pillars** (Ø28) rising from dry structural bosses, **centred on the
+  base depth**.
 - One horizontal **top LED block** spanning the pillars; the LED is centred over the grow
-  module, and the **small controller + driver board + USB-C** live here, under the bar,
-  wrapped around the right pillar foot.
+  module, and the **small 1.6 mm controller + driver PCB is encapsulated inside the block**
+  (an internal bay on standoff bosses, 4 mounting holes), with a **USB-C port through the
+  rear face** — no board is exposed. The block prints in two parts (body + bottom lid).
 - A **removable raised grow insert** (slotted/perforated, semi-hydro) for one pepper plant.
 - **Passive self-watering** (reservoir + wicking). **No pump, no fan, no screen/controls;
   4 status LEDs only.**
@@ -20,8 +22,8 @@ no-whitelist geometry audit (`mechanical/cad/audit.py`).
 **Wet/dry separation is now top (electronics) vs bottom (water)** — not an in-base wall. Only
 sealed low-voltage sensor leads + status-LED light pipes touch the base (entering through a
 grommet at the right pillar); power (USB-C) enters at the top. Pillars and the grow module
-share Y (= 190) so a thin block places the LED directly over the plant with no cantilever. The
-base stays low because the grow insert is a **raised planter** rising above the base top.
+share Y (= 160, base centre) so a thin block places the LED directly over the plant with no
+cantilever. The base stays low because the grow insert is a **raised planter** above the top.
 
 ## Product views
 
@@ -37,7 +39,7 @@ base stays low because the grow insert is a **raised planter** rising above the 
 ## Validation (debug colours)
 
 **LED centering** — the LED optical centreline and the grow module are both at X = 240,
-Y = 190; the script confirms numerically `LED<->grow offset dX=0.0 dY=0.0` (acceptance ≤ 5 mm).
+Y = 160; the script confirms numerically `LED<->grow offset dX=0.0 dY=0.0` (acceptance ≤ 5 mm).
 
 ![LED centering (top)](assets/renders/v-led-center.png)
 

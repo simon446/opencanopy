@@ -5,10 +5,11 @@
 //   - one low integrated BASE (the product body): a 6 L passive self-watering reservoir +
 //     an integrated grow well. The base is a SINGLE WET ZONE; there is NO electronics bay
 //     in the base (electronics moved to the top — see below).
-//   - TWO vertical wooden cylindrical PILLARS rising from dry structural bosses in the base.
-//   - one horizontal top LED BLOCK spanning the pillars; the LED is centered over the grow
-//     module, and the small controller + driver board + USB-C live HERE, under the bar,
-//     wrapped around the right pillar foot.
+//   - TWO vertical wooden cylindrical PILLARS, centred on the base depth, rising from dry
+//     structural bosses.
+//   - one horizontal top LED BLOCK spanning the pillars; the LED is centred over the grow
+//     module, and the small 1.6 mm controller+driver PCB is ENCAPSULATED inside the block
+//     (in an internal bay on standoff bosses), with a USB-C port through the rear face.
 //   - a removable RAISED GROW INSERT (slotted/perforated, semi-hydro) for ONE pepper plant.
 //   - passive self-watering: reservoir below + wicking. NO pump, NO fan, no screen/controls,
 //     4 status LEDs only.
@@ -16,8 +17,8 @@
 // Wet/dry separation is now TOP (electronics) vs BOTTOM (water) — not an in-base wall. Only
 // sealed low-voltage sensor leads + status-LED light pipes touch the base, entering through a
 // grommet at the right pillar; power (USB-C) enters at the TOP. Pillars and the grow module
-// share Y (=190) so a THIN block puts the LED directly over the plant with no cantilever. The
-// base stays low (135 mm) because the grow insert is a RAISED planter rising above the top.
+// share Y (=160, base centre) so a THIN block puts the LED directly over the plant. The base
+// stays low (135 mm) because the grow insert is a RAISED planter rising above the top.
 //
 // Per-part export:  openscad -D 'part="base"' --render -o base.stl this_file.scad
 // Origin = front-left-bottom. X=width(0..480) Y=depth(0..320) Z=height(0..680). mm
@@ -34,8 +35,8 @@ base_rv = 16; base_re = 4;     // selective radii: vertical corners R16, top/bot
 floor_z = foot_h + floor_t;    // 22  inner floor
 ceil_z  = base_h - top_t;      // 127 underside of base top
 
-// grow module / LED optical center
-gm_x = 240; gm_y = 190;
+// grow module / LED optical center (centred on the base)
+gm_x = 240; gm_y = 160;
 
 // grow well opening (top of base) — rounded rectangle
 well_w = 270; well_d = 190; well_r = 8;
@@ -46,9 +47,9 @@ ins_bot_z = 110;               // slotted bottom rests at the reservoir top (wic
 ins_top_z = 250;               // rises to 250 -> ~115 mm raised planter above base top
 
 // passive reservoir (wet) — sits on the inner floor BETWEEN the two pillar bosses
-res_x0 = 90; res_x1 = 390; res_y0 = 40; res_y1 = 290; res_z0 = floor_z; res_z1 = ins_bot_z - 0.5; // 0.5 mm wick gap below the insert
+res_x0 = 90; res_x1 = 390; res_y0 = 40; res_y1 = 290; res_z0 = floor_z; res_z1 = ins_bot_z - 0.5; // 0.5 mm wick gap
 
-// wooden pillars (rise from dry structural bosses in the base)
+// wooden pillars (rise from dry structural bosses in the base; centred on base depth)
 pil_d = 28; pil_r = 14; pil_x0 = 64; pil_x1 = env_w - 64; pil_y = gm_y;
 boss_d = 42;                   // dry structural boss around each pillar foot
 socket_d = 30;                 // pillar seats 30 mm into base and into block
@@ -59,15 +60,20 @@ pil_top_z = env_h - 48 + socket_d;  // 30 mm up into the block (= 662)
 blk_l = 440; blk_d = 60; blk_h = 48;
 blk_z = env_h - blk_h;         // 632
 blk_x0 = (env_w - blk_l)/2;    // 20
-blk_y0 = gm_y - blk_d/2;       // 160
+blk_y0 = gm_y - blk_d/2;       // 130
 blk_end_r = 16;                // end-cap radius (around pillar holes)
 blk_edge_r = 2;                // long edges
 
 // slim LED grow bar (emitter proud below the block)
 led_l = 280; led_w = 44; led_h = 16; led_z = blk_z - 10;
 
+// encapsulated PCB bay inside the block right end (around the right pillar)
+bay_x0 = 384; bay_x1 = 454; bay_z0 = 634; bay_z1 = 648;     // internal void (2 mm skin below)
+pcb_x0 = 388; pcb_x1 = 450; pcb_t = 1.6; pcb_z = 638;        // 1.6 mm board on standoff bosses
+pcb_my = [gm_y-16, gm_y+16]; pcb_mx = [394, 444];           // 4 mounting-hole / boss positions
+
 // joints / hardware
-m4 = 4.5; m4_head = 8; dowel_d = 4; setscrew = 4.5;
+m4 = 4.5; m4_head = 8; dowel_d = 4; setscrew = 4.5; m25 = 2.7;
 pil_clear = 0.6;               // pillar-to-socket diametral clearance
 
 // selective-radius box: vertical-corner radius rv, top/bottom edge radius re
@@ -97,7 +103,7 @@ module base_shell() {
                 translate([0,0,foot_h]) rcube([env_w, env_d, base_h-foot_h], base_rv, base_re);
                 translate([wall_t, wall_t, floor_z]) cube([env_w-2*wall_t, env_d-2*wall_t, ceil_z-floor_z]); // wet cavity
                 rrect(gm_x, gm_y, well_w, well_d, well_r, ceil_z-1, top_t+2);          // grow well opening
-                translate([gm_x, 64, ceil_z-1]) cylinder(h=top_t+2, d=30);             // fill port
+                translate([gm_x, 42, ceil_z-1]) cylinder(h=top_t+2, d=30);             // fill port (front apron)
                 translate([gm_x, -1, 70]) front_pill(54, 9, wall_t+2);                 // status slot
                 translate([gm_x, gm_y, ceil_z-1]) cylinder(h=top_t+2, d=20);           // deck drain (wet)
             }
@@ -131,16 +137,26 @@ module pillar_left()  { pillar(pil_x0); }
 module pillar_right() { pillar(pil_x1); }
 module pillars() { pillar_left(); pillar_right(); }
 
-// TOP LED BLOCK — mostly rectangular; rounded only at the pillar-hole ends. Pillar sockets
-// (blind), rear set-screw access, LED recess on the underside so the bar nests up into it.
+// TOP LED BLOCK — mostly rectangular; rounded only at the pillar-hole ends. Pillar sockets,
+// rear set screws, an underside LED recess, and an INTERNAL PCB bay (right end, around the
+// right pillar) with 4 standoff bosses + a USB-C port through the rear face. The block prints
+// in two parts (body + bottom lid) so the encapsulated board can be installed.
 module light_block() {
     difference() {
-        translate([blk_x0, blk_y0, blk_z]) rcube([blk_l, blk_d, blk_h], blk_end_r, blk_edge_r);
-        for (xc=[pil_x0, pil_x1]) {
-            translate([xc, pil_y, blk_z-1]) cylinder(h=socket_d+1, d=pil_d+pil_clear);          // pillar socket
-            translate([xc, blk_y0+blk_d+1, blk_z+blk_h/2]) rotate([90,0,0]) cylinder(h=blk_d/2+2, d=setscrew); // rear set screw
+        union() {
+            difference() {
+                translate([blk_x0, blk_y0, blk_z]) rcube([blk_l, blk_d, blk_h], blk_end_r, blk_edge_r);
+                for (xc=[pil_x0, pil_x1]) {
+                    translate([xc, pil_y, blk_z-1]) cylinder(h=socket_d+1, d=pil_d+pil_clear);                 // pillar socket
+                    translate([xc, blk_y0+blk_d+1, blk_z+blk_h/2]) rotate([90,0,0]) cylinder(h=blk_d/2+2, d=setscrew); // rear set screw
+                }
+                translate([gm_x, gm_y, blk_z-1]) rrect(0,0, led_l+8, led_w+8, 6, 0, 13);                       // LED recess
+                translate([bay_x0, gm_y-24, bay_z0]) cube([bay_x1-bay_x0, 48, bay_z1-bay_z0]);                 // PCB bay (internal void)
+                translate([430, blk_y0+blk_d-8, pcb_z+1]) cube([20, 10, 8]);                                   // USB-C port (rear face)
+            }
+            for (mx=pcb_mx) for (my=pcb_my) translate([mx, my, bay_z0]) cylinder(h=pcb_z-bay_z0, d=6);         // PCB standoff bosses
         }
-        translate([gm_x, gm_y, blk_z-1]) rrect(0,0, led_l+8, led_w+8, 6, 0, 13);                 // LED recess
+        for (mx=pcb_mx) for (my=pcb_my) translate([mx, my, bay_z0-1]) cylinder(h=pcb_z-bay_z0+2, d=m25-0.3);   // boss screw pilots
     }
 }
 
@@ -152,17 +168,16 @@ module led_bar() {
     }
 }
 
-// ---- top electronics (the only electronics; under the block, wrapped around the R pillar) ----
-// small controller + LED-driver board; the right pillar passes through a clearance hole so the
-// board sits around the pillar foot under the block. MUCH smaller than the old base board.
+// ---- encapsulated controller + driver PCB (1.6 mm) — inside the block bay, on the bosses ----
 module controller_pcb() {
     difference() {
-        translate([392, 162, blk_z-9]) cube([64, 56, 8]);
-        translate([pil_x1, pil_y, blk_z-10]) cylinder(h=10, d=pil_d+4);
+        translate([pcb_x0, gm_y-22, pcb_z]) cube([pcb_x1-pcb_x0, 44, pcb_t]);
+        translate([pil_x1, gm_y, pcb_z-1]) cylinder(h=pcb_t+2, d=pil_d+4);             // right pillar passes through
+        for (mx=pcb_mx) for (my=pcb_my) translate([mx, my, pcb_z-1]) cylinder(h=pcb_t+2, d=m25); // 4 mounting holes
     }
 }
-// USB-C input jack on the block underside, just inboard of the right pillar
-module usb_c() { translate([381, pil_y-7, blk_z-8.3]) cube([10, 14, 8]); }
+// USB-C input jack — on the PCB, poking out the rear port (the only thing visible from outside)
+module usb_c() { translate([432, gm_y+16, pcb_z+pcb_t]) cube([16, blk_y0+blk_d-(gm_y+16), 7]); }
 module top_electronics() { controller_pcb(); usb_c(); }
 
 // REMOVABLE GROW INSERT — raised rounded-rect basket; slotted lower walls + perforated floor
@@ -188,7 +203,7 @@ module status_diffuser() {
 }
 
 // fill-port plug/cap (sits in the port, proud lip)
-module fill_cap() { translate([gm_x, 64, ceil_z]) cylinder(h=base_h-ceil_z+3, d=29.4); }
+module fill_cap() { translate([gm_x, 42, ceil_z]) cylinder(h=base_h-ceil_z+3, d=29.4); }
 
 // joint hardware (validation/exploded views)
 module dowels() { for (xc=[pil_x0,pil_x1]) translate([xc, pil_y+10, pil_bot_z]) cylinder(h=socket_d-2, d=dowel_d-0.2); }
@@ -196,20 +211,20 @@ module screws() {
     for (xc=[pil_x0,pil_x1]) {                                          // pillar-to-base M4 from underside
         translate([xc, pil_y, 2]) cylinder(h=base_h-16, d=m4-0.6);
         translate([xc, pil_y, 1]) cylinder(h=5, d=m4_head-1);
-        translate([xc, blk_y0+blk_d-2, blk_z+blk_h/2]) rotate([90,0,0]) cylinder(h=14, d=setscrew-0.8); // block set screw (tip to pillar face)
+        translate([xc, blk_y0+blk_d-2, blk_z+blk_h/2]) rotate([90,0,0]) cylinder(h=14, d=setscrew-0.8); // block set screw
     }
     for (sx=[-1,1]) translate([gm_x+sx*(led_l/2-26), gm_y, led_z]) {    // LED-bar mount screws
         cylinder(h=blk_z-led_z+8, d=m4-0.8);
         translate([0,0,-5]) cylinder(h=5, d=m4_head-1.5);
     }
+    for (mx=pcb_mx) for (my=pcb_my) translate([mx, my, bay_z0]) cylinder(h=pcb_z-bay_z0+4, d=m25-0.6); // PCB mount screws
 }
-// cabling: sensor leads up the rear of the right pillar (base -> top board) + USB-C tail
+// cabling: sensor leads up the rear of the right pillar (base -> bay) + USB-C tail out the rear
 module cable_path() {
     cy = pil_y + pil_d/2 + 3.5;
-    translate([pil_x1, cy, base_h]) cylinder(h=blk_z-9-base_h, d=6);    // sensor bundle up rear of R pillar
+    translate([pil_x1, cy, base_h]) cylinder(h=bay_z0-base_h, d=6);     // sensor bundle up rear of R pillar to bay
     translate([pil_x1, cy, base_h+4]) sphere(d=6);                      // strain relief at base
-    translate([pil_x1, cy, blk_z-9]) sphere(d=6);                       // entry to controller board
-    translate([390, pil_y, blk_z-26]) cylinder(h=18, d=6);             // USB-C tail hanging from jack
+    translate([440, blk_y0+blk_d+2, pcb_z+4]) rotate([-90,0,0]) cylinder(h=16, d=6); // USB-C tail out the rear port
 }
 
 // ------------------------------- assembly ---------------------------------
