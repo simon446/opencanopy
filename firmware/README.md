@@ -13,8 +13,9 @@ rules (spec §9.1, §10.1). Only the on-target `controller` binary needs the Esp
 - `Cargo.toml` — workspace manifest (added by the Firmware track, [WI-FW-01](../plan/work-items/02-firmware/WI-FW-01-project-build.md)).
 - `rust-toolchain.toml` — pins the Espressif Rust channel (installed via `espup`).
 - `.cargo/config.toml` — default target `xtensa-esp32s3-none-elf` + `espflash` runner.
-- `control/` — **no_std, platform-agnostic** control logic: state machine, irrigation, light, climate,
-  LED status, plant profile, and the `hal.rs` sensor/actuator/clock **traits** (the hardware seam).
+- `control/` — **no_std, platform-agnostic** control logic: state machine, moisture monitor, light,
+  climate, LED status, plant profile, and the `hal.rs` sensor/actuator/clock **traits** (the hardware
+  seam). V1 is passive (no pump) and fan-less (ECO-003/ECO-001) — the grow LED is the only actuator.
   Builds and `cargo test`s on the host with stable Rust. Has **no** `esp-hal` dependency.
   - `src/`, `tests/`.
 - `controller/` — **no_std `esp-hal` binary** for the ESP32-S3; provides concrete trait
@@ -37,5 +38,5 @@ rules (spec §9.1, §10.1). Only the on-target `controller` binary needs the Esp
 
 Control rules are deterministic and offline-first, validated in simulation before any PCB exists, then
 re-validated on hardware via HIL. The state machine and fault priorities (§9.3) are encoded as
-compiler-checked Rust types. Pump output must fail safe (off) on reset/brownout. Optional Wi-Fi/MQTT
-telemetry (§9.11) lives behind a default-off Cargo feature and is never required for control.
+compiler-checked Rust types. The grow LED (the only actuator) must fail safe (off) on reset/brownout.
+Optional Wi-Fi/MQTT telemetry (§9.11) lives behind a default-off Cargo feature, never required for control.

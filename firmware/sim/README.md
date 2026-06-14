@@ -11,10 +11,11 @@ reservoir, and thermal behavior, then asserts the control logic reacts correctly
 ## Layout
 
 - `src/` — the simulation runner and host trait implementations that feed the `control` crate.
-- `scenarios/` — the scenarios exercised in CI, e.g.:
-  - soil dry-down → watering pulse → recovery,
-  - reservoir drain → low-level warning → pump lockout,
-  - leak detected → immediate pump lockout,
+- `scenarios/` — the scenarios exercised in CI (V1 is passive — monitor + warn, no pump), e.g.:
+  - passive wick holds moisture → normal grow,
+  - reservoir drain → LOW_WATER refill warning,
+  - wick failure → MOISTURE_LOW with a full reservoir,
+  - leak/overflow → LEAK_DETECTED warning (Water + System red),
   - canopy over-temperature → LED derate,
   - simultaneous faults → correct fault priority ordering.
 - `models/` — the plant/soil/thermal/reservoir models the scenarios drive.

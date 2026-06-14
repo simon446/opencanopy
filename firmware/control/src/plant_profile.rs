@@ -80,8 +80,12 @@ pub fn stage_for_age(age_days: u32) -> Stage {
     }
 }
 
-/// Per-stage setpoints consumed by the light, irrigation and climate controllers. All fields are
-/// `const`-table values from the plant-science docs.
+/// Per-stage setpoints consumed by the light, moisture-monitor and climate controllers. All fields
+/// are `const`-table values from the plant-science docs.
+///
+/// V1 is passive (no pump, ECO-003): the moisture thresholds no longer drive dosing — they classify
+/// the reading for the **Moisture status warning** (low / in-target / high). The pulse/daily-cap
+/// fields were removed with the pump.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Setpoints {
     pub stage: Stage,
@@ -94,25 +98,16 @@ pub struct Setpoints {
     pub rh_max_pct: f32,
     pub vpd_min_kpa: f32,
     pub vpd_max_kpa: f32,
-    // --- Irrigation (watering-model.md §3,§4) — normalized calibration %, NOT raw ADC ---
-    /// Below this: dry, dose during the watering window.
+    // --- Moisture warning bands (watering-model.md §3) — normalized calibration %, NOT raw ADC ---
+    /// Below this: too dry — warn (passive supply not keeping up; check reservoir/wick).
     pub moisture_dry_pct: f32,
-    /// Above this: too wet, block watering.
+    /// Above this: too wet — warn (waterlogged risk).
     pub moisture_wet_pct: f32,
-    /// Well below dry: emergency watering allowed any time (design ← watering-model §2).
+    /// Well below dry: critically dry — escalate the warning (design ← watering-model §2).
     pub moisture_critical_pct: f32,
-    /// Representative normal pulse, mL (mid of the doc's per-stage range).
-    pub normal_pulse_ml: u16,
-    /// Emergency pulse when critically dry, mL (conservative — bottom of the range).
-    pub emergency_pulse_ml: u16,
-    /// Daily safety cap, mL/day (watering-model §4) — a ceiling, not a target.
-    pub daily_max_ml: u16,
-    /// Minutes to wait after a pulse before remeasuring (watering-model §3, mid of range).
-    pub recheck_delay_min: u16,
 }
 
-// S0 has no automated watering row (kept warm/moist by hand until emergence, watering-model §3);
-// its moisture fields mirror the seedling row so a mis-set age can never *increase* dosing.
+// S0's moisture fields mirror the seedling row so a mis-set age can never *raise* a spurious warning.
 const GERMINATION: Setpoints = Setpoints {
     stage: Stage::Germination,
     photoperiod_h: 16,
@@ -125,10 +120,6 @@ const GERMINATION: Setpoints = Setpoints {
     moisture_dry_pct: 35.0,
     moisture_wet_pct: 55.0,
     moisture_critical_pct: 22.0,
-    normal_pulse_ml: 30,
-    emergency_pulse_ml: 20,
-    daily_max_ml: 250,
-    recheck_delay_min: 18,
 };
 
 const SEEDLING: Setpoints = Setpoints {
@@ -143,10 +134,6 @@ const SEEDLING: Setpoints = Setpoints {
     moisture_dry_pct: 35.0,
     moisture_wet_pct: 55.0,
     moisture_critical_pct: 22.0,
-    normal_pulse_ml: 35, // 20–50 mL range
-    emergency_pulse_ml: 20,
-    daily_max_ml: 250,
-    recheck_delay_min: 18, // 15–20 min
 };
 
 const VEGETATIVE: Setpoints = Setpoints {
@@ -161,10 +148,6 @@ const VEGETATIVE: Setpoints = Setpoints {
     moisture_dry_pct: 30.0,
     moisture_wet_pct: 55.0,
     moisture_critical_pct: 17.0,
-    normal_pulse_ml: 100, // 50–150 mL
-    emergency_pulse_ml: 50,
-    daily_max_ml: 800,
-    recheck_delay_min: 25, // 20–30 min
 };
 
 const FLOWERING: Setpoints = Setpoints {
@@ -179,10 +162,6 @@ const FLOWERING: Setpoints = Setpoints {
     moisture_dry_pct: 35.0,
     moisture_wet_pct: 60.0,
     moisture_critical_pct: 22.0,
-    normal_pulse_ml: 140, // 75–200 mL
-    emergency_pulse_ml: 75,
-    daily_max_ml: 1200,
-    recheck_delay_min: 25,
 };
 
 const FRUITING: Setpoints = Setpoints {
@@ -197,10 +176,6 @@ const FRUITING: Setpoints = Setpoints {
     moisture_dry_pct: 35.0,
     moisture_wet_pct: 60.0,
     moisture_critical_pct: 22.0,
-    normal_pulse_ml: 175, // 100–250 mL
-    emergency_pulse_ml: 100,
-    daily_max_ml: 1800,
-    recheck_delay_min: 25,
 };
 
 // S5 Maintenance: lower light/water survival mode (design ← R4). Conservative, low caps.
@@ -216,10 +191,6 @@ const MAINTENANCE: Setpoints = Setpoints {
     moisture_dry_pct: 28.0,
     moisture_wet_pct: 50.0,
     moisture_critical_pct: 15.0,
-    normal_pulse_ml: 60,
-    emergency_pulse_ml: 40,
-    daily_max_ml: 400,
-    recheck_delay_min: 30,
 };
 
 /// Look up the immutable setpoints for a stage.
@@ -285,20 +256,17 @@ mod tests {
 
     #[test]
     fn setpoints_match_plant_science_tables() {
-        // Spot-check the irrigation + light numbers against the docs (single source of truth).
+        // Spot-check the moisture + light numbers against the docs (single source of truth).
         let veg = setpoints(Stage::Vegetative);
         assert_eq!(veg.ppfd_min, 245);
         assert_eq!(veg.ppfd_max, 350);
-        assert_eq!(veg.daily_max_ml, 800);
         assert_eq!(veg.moisture_dry_pct, 30.0);
 
         let fruit = setpoints(Stage::Fruiting);
-        assert_eq!(fruit.daily_max_ml, 1800);
         assert_eq!(fruit.ppfd_max, 435);
         assert_eq!(fruit.photoperiod_h, 16);
 
         let seed = setpoints(Stage::Seedling);
-        assert_eq!(seed.daily_max_ml, 250);
         assert_eq!(seed.moisture_wet_pct, 55.0);
     }
 

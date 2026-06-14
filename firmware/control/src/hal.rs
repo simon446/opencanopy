@@ -102,15 +102,8 @@ pub trait LedHeatSensor {
 
 // ---- Actuators -----------------------------------------------------------------------------
 
-/// Water pump. MUST fail safe to OFF on reset/brownout — enforced in hardware by a gate pull-down
-/// (WI-EE-03); this trait is the firmware side (§9.6).
-pub trait Pump {
-    fn set(&mut self, on: bool);
-    /// Optional sense-resistor current in mA, for the "pump disconnected" fault path (§10.3).
-    fn current_ma(&self) -> Option<u16> {
-        None
-    }
-}
+// V1 has no pump (ECO-003: passive self-watering) and no fan (ECO-001). The grow LED is the only
+// actuator; watering is monitored and warned, never actuated.
 
 /// Dimmable grow LED. Percent is *commanded* power; the PPFD it yields comes from the
 /// `led_ppfd_map` calibration (§9.9).
@@ -118,13 +111,12 @@ pub trait GrowLed {
     fn set_power(&mut self, pct: u8);
 }
 
-/// Identity of each of the 5 front status LEDs (§3.5, §9.8).
+/// Identity of each of the 4 front status LEDs (§3.5, §9.8; ECO-003 dropped the Climate LED).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LedId {
     Water,
     Moisture,
     Light,
-    Climate,
     System,
 }
 

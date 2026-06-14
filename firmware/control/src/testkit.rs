@@ -7,7 +7,7 @@
 //! The simulator (`sim/`) builds its plant/environment models on top of these.
 
 use crate::hal::{
-    Clock, GrowLed, LeakSensor, LedHeatSensor, LedId, MoistureSensor, Pump, ReservoirSensor, Rtc,
+    Clock, GrowLed, LeakSensor, LedHeatSensor, LedId, MoistureSensor, ReservoirSensor, Rtc,
     SensorError, StatusLeds, TempRh, TempRhSensor, WallTime,
 };
 use crate::led_status::{LedColor, LedPattern};
@@ -76,7 +76,7 @@ impl TempRhSensor for MockTempRh {
 }
 
 /// Capacitive moisture probe returning an injectable raw count. Set `fault` to force an error, or
-/// hold `raw` constant to emulate a stuck probe (the [`crate::irrigation_controller::MoistureValidator`]
+/// hold `raw` constant to emulate a stuck probe (the [`crate::moisture_monitor::MoistureValidator`]
 /// detects the stuck condition over time).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct MockMoisture {
@@ -130,27 +130,6 @@ impl LedHeatSensor for MockLedHeat {
     }
 }
 
-/// Pump mock recording on/off transitions; optional injectable current for the disconnected-pump
-/// fault path.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct MockPump {
-    pub on: bool,
-    pub current_ma: Option<u16>,
-    /// Count of off→on transitions, for asserting pulse counts in tests.
-    pub turn_on_count: u32,
-}
-impl Pump for MockPump {
-    fn set(&mut self, on: bool) {
-        if on && !self.on {
-            self.turn_on_count += 1;
-        }
-        self.on = on;
-    }
-    fn current_ma(&self) -> Option<u16> {
-        self.current_ma
-    }
-}
-
 /// Grow-LED mock recording the last commanded power.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct MockLed {
@@ -162,15 +141,15 @@ impl GrowLed for MockLed {
     }
 }
 
-/// Status-LED mock storing the last (color, pattern) for each of the 5 LEDs.
+/// Status-LED mock storing the last (color, pattern) for each of the 4 LEDs.
 #[derive(Debug, Clone, Copy)]
 pub struct MockStatusLeds {
-    pub states: [(LedColor, LedPattern); 5],
+    pub states: [(LedColor, LedPattern); 4],
 }
 impl Default for MockStatusLeds {
     fn default() -> Self {
         MockStatusLeds {
-            states: [(LedColor::Off, LedPattern::Off); 5],
+            states: [(LedColor::Off, LedPattern::Off); 4],
         }
     }
 }
@@ -180,8 +159,7 @@ impl MockStatusLeds {
             LedId::Water => 0,
             LedId::Moisture => 1,
             LedId::Light => 2,
-            LedId::Climate => 3,
-            LedId::System => 4,
+            LedId::System => 3,
         }
     }
     pub fn get(&self, id: LedId) -> (LedColor, LedPattern) {
@@ -214,15 +192,6 @@ mod tests {
         assert_eq!(m.read_raw(), Ok(2000));
         m.fault = Some(SensorError::Stuck);
         assert_eq!(m.read_raw(), Err(SensorError::Stuck));
-    }
-
-    #[test]
-    fn pump_counts_pulses() {
-        let mut p = MockPump::default();
-        p.set(true);
-        p.set(false);
-        p.set(true);
-        assert_eq!(p.turn_on_count, 2);
     }
 
     #[test]

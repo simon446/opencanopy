@@ -1,6 +1,7 @@
-//! Status-LED mapping: system/subsystem state → (color, pattern) for the 5 front LEDs.
-//! Spec §9.8, §3.5, §7.11. Colorblind-safe: every warning/fault is distinguishable by
-//! **position + pattern**, never color alone (WI-FW-08 acceptance).
+//! Status-LED mapping: system/subsystem state → (color, pattern) for the 4 front LEDs.
+//! Spec §9.8, §3.5, §7.11; ECO-003 (5→4 LEDs — the Climate LED is dropped, climate warnings fold
+//! into System). Colorblind-safe: every warning/fault is distinguishable by **position + pattern**,
+//! never color alone (WI-FW-08 acceptance).
 
 use crate::hal::LedId;
 use crate::safety_controller::SystemState;
@@ -46,13 +47,14 @@ impl LedState {
     }
 }
 
-/// Per-subsystem health the LED panel renders. These are computed by the individual controllers
-/// and the safety machine, then mapped to LEDs here so the mapping has one home and one test.
+/// Per-subsystem health the LED panel renders. These are computed by the individual monitors and the
+/// safety machine, then mapped to LEDs here so the mapping has one home and one test.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WaterLevel {
     Ok,
     LowSoon,
-    EmptyLockout,
+    /// Reservoir empty, or a leak/flood — the water subsystem needs attention.
+    Empty,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MoistureHealth {
@@ -66,38 +68,33 @@ pub enum LightHealth {
     ThermalDimOrUncertain,
     FaultOrOverTemp,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ClimateHealth {
-    Ok,
-    OutsidePreferred,
-    CriticalTempOrHumidity,
-}
 
-/// Full panel input. The System LED is derived from the top-level [`SystemState`]; the four
-/// subsystem LEDs come from the controllers.
+/// Full panel input. The System LED is derived from the top-level [`SystemState`]; the three
+/// subsystem LEDs come from the monitors. Climate has no LED of its own (ECO-003) — a climate
+/// warning instead tints the System LED amber via [`PanelInputs::climate_warn`].
 #[derive(Debug, Clone, Copy)]
 pub struct PanelInputs {
     pub state: SystemState,
     pub water: WaterLevel,
     pub moisture: MoistureHealth,
     pub light: LightHealth,
-    pub climate: ClimateHealth,
     /// True between lights-off: dim non-critical LEDs, keep a System heartbeat (§9.8).
     pub night_mode: bool,
     /// Maintenance/calibration due → System amber (§9.8).
     pub maintenance_due: bool,
-    /// RTC invalid → running the safe-schedule fallback → System amber pulse (§9.4). Must NOT
-    /// block watering — only the System LED reflects it.
+    /// RTC invalid → running the safe-schedule fallback → System amber pulse (§9.4).
     pub rtc_fallback: bool,
+    /// Climate (temp/RH/VPD) outside the preferred band — there is no Climate LED, so it surfaces as
+    /// a System amber warning (ECO-003).
+    pub climate_warn: bool,
 }
 
-/// The five LEDs' commanded states.
+/// The four LEDs' commanded states.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Panel {
     pub water: LedState,
     pub moisture: LedState,
     pub light: LedState,
-    pub climate: LedState,
     pub system: LedState,
 }
 
@@ -108,7 +105,6 @@ impl Panel {
             LedId::Water => self.water,
             LedId::Moisture => self.moisture,
             LedId::Light => self.light,
-            LedId::Climate => self.climate,
             LedId::System => self.system,
         }
     }
@@ -121,28 +117,30 @@ fn system_led(
     maintenance_due: bool,
     night_mode: bool,
     rtc_fallback: bool,
+    climate_warn: bool,
 ) -> LedState {
     use SystemState::*;
     match state {
         Boot | SelfTest => LedState::new(LedColor::Red, LedPattern::FastBlink), // self-test / fatal
         SafeShutdown => LedState::new(LedColor::Red, LedPattern::Steady),
-        // Leak and critical over-temp are fatal-class faults: System red.
+        // Flood is a fatal-class fault: System red, fast blink (urgent).
         LeakDetected => LedState::new(LedColor::Red, LedPattern::FastBlink),
-        OverTemp => LedState::new(LedColor::Red, LedPattern::SlowPulse),
+        // Over-temp: LED is being cut — red slow pulse.
+        OverTempLed => LedState::new(LedColor::Red, LedPattern::SlowPulse),
         Maintenance => LedState::new(LedColor::Amber, LedPattern::SlowPulse),
-        // Heartbeat: dim slow pulse at night, steady green by day.
-        Normal | Watering => {
-            if maintenance_due || rtc_fallback {
+        // Warnings surface amber on System while the subsystem LED carries the detail.
+        LowWater | MoistureLow | MoistureHigh | SensorFault => {
+            LedState::new(LedColor::Amber, LedPattern::SlowPulse)
+        }
+        // Heartbeat: dim slow pulse at night, steady green by day; amber if anything wants attention.
+        Normal => {
+            if maintenance_due || rtc_fallback || climate_warn {
                 LedState::new(LedColor::Amber, LedPattern::SlowPulse)
             } else if night_mode {
                 LedState::new(LedColor::Green, LedPattern::SlowPulse) // dim heartbeat
             } else {
                 LedState::new(LedColor::Green, LedPattern::Steady)
             }
-        }
-        // Any other fault surfaced on System as amber/red warning while subsystem LED carries detail.
-        LowWater | SensorFault | PumpFault | LedFault => {
-            LedState::new(LedColor::Amber, LedPattern::SlowPulse)
         }
     }
 }
@@ -151,7 +149,7 @@ fn water_led(w: WaterLevel) -> LedState {
     match w {
         WaterLevel::Ok => LedState::new(LedColor::Green, LedPattern::Steady),
         WaterLevel::LowSoon => LedState::new(LedColor::Amber, LedPattern::SlowPulse),
-        WaterLevel::EmptyLockout => LedState::new(LedColor::Red, LedPattern::FastBlink),
+        WaterLevel::Empty => LedState::new(LedColor::Red, LedPattern::FastBlink),
     }
 }
 
@@ -174,16 +172,6 @@ fn light_led(l: LightHealth) -> LedState {
     }
 }
 
-fn climate_led(c: ClimateHealth) -> LedState {
-    match c {
-        ClimateHealth::Ok => LedState::new(LedColor::Green, LedPattern::Steady),
-        ClimateHealth::OutsidePreferred => LedState::new(LedColor::Amber, LedPattern::SlowPulse),
-        ClimateHealth::CriticalTempOrHumidity => {
-            LedState::new(LedColor::Red, LedPattern::FastBlink)
-        }
-    }
-}
-
 /// Build the full panel. At night, non-critical (green) subsystem LEDs are turned off to avoid a
 /// glowing appliance, but **warnings/faults (amber/red) stay visible** and the System heartbeat is
 /// preserved (§9.8).
@@ -199,13 +187,13 @@ pub fn render(inp: &PanelInputs) -> Panel {
         water: dim_if_night(water_led(inp.water)),
         moisture: dim_if_night(moisture_led(inp.moisture)),
         light: dim_if_night(light_led(inp.light)),
-        climate: dim_if_night(climate_led(inp.climate)),
         // System LED is never fully dark in normal operation — heartbeat preserved.
         system: system_led(
             inp.state,
             inp.maintenance_due,
             inp.night_mode,
             inp.rtc_fallback,
+            inp.climate_warn,
         ),
     }
 }
@@ -219,7 +207,6 @@ pub fn drive<L: crate::hal::StatusLeds>(leds: &mut L, panel: &Panel) {
         panel.moisture.pattern,
     );
     leds.set(LedId::Light, panel.light.color, panel.light.pattern);
-    leds.set(LedId::Climate, panel.climate.color, panel.climate.pattern);
     leds.set(LedId::System, panel.system.color, panel.system.pattern);
 }
 
@@ -233,17 +220,17 @@ mod tests {
             water: WaterLevel::Ok,
             moisture: MoistureHealth::InTarget,
             light: LightHealth::Normal,
-            climate: ClimateHealth::Ok,
             night_mode: false,
             maintenance_due: false,
             rtc_fallback: false,
+            climate_warn: false,
         }
     }
 
     #[test]
     fn all_ok_is_all_green_steady() {
         let p = render(&base());
-        for s in [p.water, p.moisture, p.light, p.climate, p.system] {
+        for s in [p.water, p.moisture, p.light, p.system] {
             assert_eq!(s.color, LedColor::Green);
             assert_eq!(s.pattern, LedPattern::Steady);
         }
@@ -253,7 +240,7 @@ mod tests {
     fn leak_lights_water_red_and_system_red() {
         let mut i = base();
         i.state = SystemState::LeakDetected;
-        i.water = WaterLevel::EmptyLockout; // leak path also locks water out
+        i.water = WaterLevel::Empty; // flood path also reds the water LED
         let p = render(&i);
         assert_eq!(p.system.color, LedColor::Red);
         assert_eq!(p.water.color, LedColor::Red);
@@ -285,10 +272,20 @@ mod tests {
     fn night_mode_keeps_warnings_visible() {
         let mut i = base();
         i.night_mode = true;
-        i.climate = ClimateHealth::CriticalTempOrHumidity;
+        i.light = LightHealth::FaultOrOverTemp;
         let p = render(&i);
         // A red fault must NOT be dimmed away at night.
-        assert_eq!(p.climate.color, LedColor::Red);
+        assert_eq!(p.light.color, LedColor::Red);
+    }
+
+    #[test]
+    fn climate_warning_tints_system_amber() {
+        // No Climate LED (ECO-003): a climate warning surfaces on System instead.
+        let mut i = base();
+        i.climate_warn = true;
+        let p = render(&i);
+        assert_eq!(p.system.color, LedColor::Amber);
+        assert_eq!(p.system.pattern, LedPattern::SlowPulse);
     }
 
     #[test]
@@ -298,13 +295,10 @@ mod tests {
         i.water = WaterLevel::LowSoon;
         i.moisture = MoistureHealth::FaultOrCriticalOrWaterlogged;
         i.light = LightHealth::ThermalDimOrUncertain;
-        i.climate = ClimateHealth::CriticalTempOrHumidity;
         let p = render(&i);
-        // Each LED carries a non-OK pattern; moisture's is the unique double-blink.
         assert_ne!(p.water.pattern, LedPattern::Steady);
         assert_eq!(p.moisture.pattern, LedPattern::DoubleBlink);
         assert_ne!(p.light.pattern, LedPattern::Steady);
-        assert_ne!(p.climate.pattern, LedPattern::Steady);
     }
 
     #[test]
@@ -317,7 +311,7 @@ mod tests {
 
     #[test]
     fn rtc_fallback_shows_amber_system_pulse() {
-        // §9.4: RTC invalid → System amber pulse. Watering is unaffected (not modeled here).
+        // §9.4: RTC invalid → System amber pulse.
         let mut i = base();
         i.rtc_fallback = true;
         let p = render(&i);

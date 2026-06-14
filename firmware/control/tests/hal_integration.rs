@@ -3,25 +3,26 @@
 //! run the real `App`, then push the results out through the actuator + status-LED traits. It
 //! proves the control stack depends only on the traits and that the mocks can inject the faults the
 //! §10.3 scenarios need (leak, stuck sensor) — all on the host with no hardware.
+//!
+//! V1 is passive (no pump) and fan-less: the grow LED is the only actuator. The seam carries the
+//! LED command + 4 status LEDs; watering is monitored and warned, never actuated.
 
 use control::app_state::{App, AppConfig, Commands, SensorFrame};
 use control::calibration::Calibration;
 use control::hal::{
-    Clock, GrowLed, LeakSensor, MoistureSensor, Pump, ReservoirSensor, Rtc, TempRhSensor, WallTime,
+    Clock, GrowLed, LeakSensor, MoistureSensor, ReservoirSensor, Rtc, TempRhSensor, WallTime,
 };
 use control::led_status::{self, LedColor};
 use control::safety_controller::SystemState;
 use control::testkit::{
-    MockClock, MockLeak, MockLed, MockMoisture, MockPump, MockReservoir, MockRtc, MockStatusLeds,
-    MockTempRh,
+    MockClock, MockLeak, MockLed, MockMoisture, MockReservoir, MockRtc, MockStatusLeds, MockTempRh,
 };
 
 fn cal() -> Calibration {
     Calibration {
-        version: 7,
+        version: 4,
         moisture_raw_dry: 1000,
         moisture_raw_wet: 3000,
-        pump_ml_per_sec: 3.8,
         led_ppfd_25: 120,
         led_ppfd_50: 240,
         led_ppfd_75: 360,
@@ -41,7 +42,6 @@ struct Bench {
     moist: MockMoisture,
     res: MockReservoir,
     leak: MockLeak,
-    pump: MockPump,
     led: MockLed,
     leds: MockStatusLeds,
 }
@@ -78,7 +78,6 @@ impl Bench {
                 fault: None,
             },
             leak: MockLeak::default(),
-            pump: MockPump::default(),
             led: MockLed::default(),
             leds: MockStatusLeds::default(),
         }
@@ -96,8 +95,7 @@ impl Bench {
             led_heat_c: None,
         };
         let cmd = self.app.step(&frame);
-        // Drive actuators *through the traits*.
-        self.pump.set(cmd.pump_on);
+        // Drive the only actuator + the status LEDs *through the traits*.
         self.led.set_power(cmd.led_pct);
         led_status::drive(&mut self.leds, &cmd.panel);
         // Advance the simulated clock and RTC.
@@ -110,48 +108,44 @@ impl Bench {
 #[test]
 fn full_stack_runs_through_trait_seam() {
     let mut b = Bench::new();
-    // Drive the moisture probe dry so the loop has to decide to water.
-    b.moist.raw = 1400; // ~20%
-    let mut watered = false;
+    // Drive the moisture probe dry so the monitor has to warn.
+    b.moist.raw = 1400; // ~20% — below the vegetative dry band
+    let mut warned = false;
     for _ in 0..12 {
         let cmd = b.tick();
         assert_eq!(cmd.stage, control::plant_profile::Stage::Vegetative);
-        if b.pump.on {
-            watered = true;
+        if cmd.state == SystemState::MoistureLow {
+            warned = true;
         }
+        // Passive: a dry warning must never cut the grow light driven through the GrowLed trait.
+        assert!(
+            b.led.power_pct > 0,
+            "light must stay on under a moisture warning"
+        );
     }
-    assert!(
-        watered,
-        "a dry pot in-window should be watered via the Pump trait"
-    );
+    assert!(warned, "a dry pot should surface MOISTURE_LOW via the seam");
     // Status LEDs were populated through the StatusLeds trait.
     assert_ne!(b.leds.get(control::hal::LedId::System).0, LedColor::Off);
 }
 
 #[test]
-fn injected_leak_keeps_pump_trait_deenergized() {
+fn injected_leak_warns_and_reds_water_system() {
     let mut b = Bench::new();
-    b.moist.raw = 1300; // dry → would otherwise water
     b.leak.wet = true; // inject leak via the mock
     for _ in 0..6 {
         let cmd = b.tick();
         assert_eq!(cmd.state, SystemState::LeakDetected);
-        assert!(!b.pump.on, "pump must never energize under leak");
     }
-    // The pump trait recorded zero energizations.
-    assert_eq!(b.pump.turn_on_count, 0);
-    // Water + System LEDs are red.
+    // Water + System LEDs are red (flood warning).
     assert_eq!(b.leds.get(control::hal::LedId::Water).0, LedColor::Red);
     assert_eq!(b.leds.get(control::hal::LedId::System).0, LedColor::Red);
 }
 
 #[test]
-fn injected_moisture_fault_disables_watering() {
+fn injected_moisture_fault_raises_sensor_fault() {
     let mut b = Bench::new();
-    b.moist.raw = 1300; // dry
     b.moist.fault = Some(control::hal::SensorError::Bus); // inject sensor failure
     let cmd = b.tick();
     assert_eq!(cmd.state, SystemState::SensorFault);
-    assert!(!b.pump.on);
     assert!(cmd.moisture_pct.is_none());
 }

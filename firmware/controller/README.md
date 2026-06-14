@@ -32,6 +32,6 @@ to resolve or build them — it stays offline-clean on stable Rust (WI-FW-01 acc
 The module structure and control-loop sequencing are fixed here (`main.rs`, `sensors/`,
 `actuators/`, `drivers/`). The esp-hal peripheral construction and the **pin map** are finalized
 during electronics bring-up ([WI-EE-08](../../plan/work-items/03-electronics/WI-EE-08-bringup-hil.md));
-binding method bodies marked `TODO(WI-EE-08)` are completed against real hardware there. Pump-off on
-reset is guaranteed by a hardware gate pull-down ([WI-EE-03](../../plan/work-items/03-electronics/WI-EE-03-schematic.md))
-plus the RWDT/brownout detector armed in `drivers::Platform`.
+binding method bodies marked `TODO(WI-EE-08)` are completed against real hardware there. V1 is passive
+(no pump, ECO-003): the grow LED is the only actuator and is forced off on reset by the RWDT/brownout
+detector armed in `drivers::Platform` (and the LED driver's own enable default).

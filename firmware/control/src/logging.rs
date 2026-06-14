@@ -29,17 +29,11 @@ pub enum LogKind {
         reservoir_low: bool,
         light_pct: u8,
     },
-    /// A watering pulse completed.
-    Watering {
-        dose_ml: u16,
-        run_seconds_x10: u16,
-        daily_total_ml: u16,
-    },
-    /// A fault was entered.
+    /// A fault/warning state was entered.
     Fault { state: SystemState },
     /// LED thermal derating applied.
     LedDerate { factor_pct: u8, air_temp_c: f32 },
-    /// Reservoir-low edge.
+    /// Reservoir-low edge (refill prompt — V1 is passive, ECO-003).
     ReservoirLow,
     /// Versions stamped at boot and on calibration change (§9.10).
     Versions { firmware: u16, calibration: u16 },
@@ -182,19 +176,10 @@ mod tests {
             kind: sensors(),
         });
         log.push(LogEntry {
-            ts_unix_s: 3,
-            ts_valid: true,
-            kind: LogKind::Watering {
-                dose_ml: 100,
-                run_seconds_x10: 263,
-                daily_total_ml: 100,
-            },
-        });
-        log.push(LogEntry {
             ts_unix_s: 4,
             ts_valid: true,
             kind: LogKind::Fault {
-                state: SystemState::PumpFault,
+                state: SystemState::SensorFault,
             },
         });
         log.push(LogEntry {
@@ -210,7 +195,7 @@ mod tests {
             ts_valid: true,
             kind: LogKind::ReservoirLow,
         });
-        assert_eq!(log.len(), 6);
+        assert_eq!(log.len(), 5);
     }
 
     #[test]

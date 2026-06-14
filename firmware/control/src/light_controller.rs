@@ -26,8 +26,8 @@ pub struct Phase {
 }
 
 impl Phase {
-    /// Fraction of the light period elapsed, 0.0 at lights-on → 1.0 at lights-off. Used by the
-    /// irrigation watering-window logic (watering-model §5).
+    /// Fraction of the light period elapsed, 0.0 at lights-on → 1.0 at lights-off. (A schedule-phase
+    /// accessor; it fed the watering window in the earlier pumped design, retained as observability.)
     pub fn fraction(&self) -> f32 {
         if !self.on || self.on_secs == 0 {
             0.0
@@ -228,10 +228,9 @@ mod tests {
 
     fn cal() -> Calibration {
         Calibration {
-            version: 1,
+            version: 4,
             moisture_raw_dry: 1234,
             moisture_raw_wet: 2870,
-            pump_ml_per_sec: 3.8,
             led_ppfd_25: 120,
             led_ppfd_50: 240,
             led_ppfd_75: 360,
@@ -368,8 +367,8 @@ mod tests {
     }
 
     #[test]
-    fn fallback_does_not_block_watering_window_data() {
-        // RTC fallback still yields a usable fraction/hours-to-off for the irrigation window.
+    fn fallback_still_yields_usable_phase_data() {
+        // RTC fallback still yields a usable fraction/hours-to-off schedule phase.
         let sp = setpoints(Stage::Vegetative);
         let ph = phase(&sp, WallTime::INVALID, 0, 0, 8 * 3_600_000); // 8h into fallback on-period
         assert!(ph.on);

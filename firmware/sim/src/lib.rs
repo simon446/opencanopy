@@ -1,10 +1,12 @@
-//! Host plant/environment simulator (§10.3). Drives the **real** `control` crate through its
-//! `app_state::App` orchestrator (which itself sits on the `hal.rs` seam), feeding it a simulated
-//! environment and applying its actuator commands back into that environment. The 11 required
+//! Host plant/environment simulator (§10.3), **passive watering** (ECO-003). Drives the **real**
+//! `control` crate through its `app_state::App` orchestrator (which sits on the `hal.rs` seam),
+//! feeding it a simulated environment and reading back its LED command + warnings. The required
 //! scenarios live in `tests/scenarios.rs`.
 //!
-//! Nothing here re-implements control policy — assertions are made against the genuine controller
-//! outputs (WI-FW-09 acceptance).
+//! V1 has no pump: the harness models a base reservoir + a capillary wick that holds the substrate
+//! near an equilibrium while the reservoir has water, and lets it dry out once the reservoir empties
+//! or the wick fails. Nothing here re-implements control policy — assertions are made against the
+//! genuine controller outputs (WI-FW-09 acceptance).
 
 pub mod models;
 
@@ -33,23 +35,21 @@ pub struct Env {
 /// Fault/condition injections (§10.3 "leak/sensor failure can be injected").
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Inject {
+    /// Catch-tray wet — flood/overflow.
     pub leak: bool,
     /// Hold the moisture probe at a fixed reported % (stuck sensor), regardless of true moisture.
     pub moisture_stuck_pct: Option<f32>,
     /// Force a moisture-sensor read error.
     pub moisture_error: Option<SensorError>,
-    /// Pump motor runs but moves no water (disconnected/clogged) → no moisture rise, no drawdown.
-    pub pump_disconnected: bool,
+    /// Wick failed (clogged / poor contact): the substrate dries out **even with a full reservoir**
+    /// — the passive-watering failure mode that replaces the pump's "disconnected" fault.
+    pub wick_failure: bool,
 }
 
 /// Aggregate metrics collected across a run, for scenario assertions.
 #[derive(Debug, Clone)]
 pub struct Metrics {
     pub ticks: u32,
-    pub pump_runs: u32,
-    pub total_watered_ml: u32,
-    pub pump_ran_while_leak: bool,
-    pub pump_ran_while_reservoir_low: bool,
     pub max_moisture_pct: f32,
     /// Lowest moisture seen after the first simulated day (warm-up excluded).
     pub min_moisture_after_warmup_pct: f32,
@@ -58,7 +58,7 @@ pub struct Metrics {
     /// True iff every lights-off tick had the LED fully off.
     pub led_off_at_night_ok: bool,
     pub saw_led_derate: bool,
-    pub saw_climate_red: bool,
+    pub saw_climate_warn: bool,
     pub saw_rtc_fallback: bool,
     pub states: Vec<SystemState>,
 }
@@ -72,13 +72,6 @@ impl Metrics {
     }
 }
 
-/// Pending water deliveries that have not yet reached the probe (soak delay).
-#[derive(Debug, Clone, Copy)]
-struct Pending {
-    apply_at_ms: u64,
-    pct: f32,
-}
-
 /// The simulator harness.
 pub struct Sim {
     pub app: App,
@@ -89,7 +82,6 @@ pub struct Sim {
     led_heat_present: bool,
     start_unix_s: u64,
     now_ms: u64,
-    pending: Vec<Pending>,
     pub metrics: Metrics,
     pub last: Option<Commands>,
 }
@@ -112,8 +104,8 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             age_days: 60, // vegetative
-            start_moisture_pct: 50.0,
-            start_reservoir_ml: 5000.0,
+            start_moisture_pct: 45.0,
+            start_reservoir_ml: 6000.0, // 6 L passive reservoir (ECO-003)
             room_temp_c: 23.0,
             room_rh_pct: 60.0,
             rtc_valid: true,
@@ -125,10 +117,9 @@ impl Default for Config {
 
 fn default_cal() -> Calibration {
     Calibration {
-        version: 3,
+        version: 4,
         moisture_raw_dry: 1000,
         moisture_raw_wet: 3000,
-        pump_ml_per_sec: 3.8,
         led_ppfd_25: 120,
         led_ppfd_50: 240,
         led_ppfd_75: 360,
@@ -177,20 +168,15 @@ impl Sim {
             led_heat_present: cfg.led_heat_present,
             start_unix_s: cfg.start_unix_s,
             now_ms: 0,
-            pending: Vec::new(),
             metrics: Metrics {
                 ticks: 0,
-                pump_runs: 0,
-                total_watered_ml: 0,
-                pump_ran_while_leak: false,
-                pump_ran_while_reservoir_low: false,
                 max_moisture_pct: cfg.start_moisture_pct,
                 min_moisture_after_warmup_pct: 100.0,
                 min_reservoir_ml: cfg.start_reservoir_ml,
                 led_on_ticks: 0,
                 led_off_at_night_ok: true,
                 saw_led_derate: false,
-                saw_climate_red: false,
+                saw_climate_warn: false,
                 saw_rtc_fallback: false,
                 states: Vec::new(),
             },
@@ -226,19 +212,7 @@ impl Sim {
     pub fn step(&mut self) -> Commands {
         let now = self.now_ms;
 
-        // 1) Apply matured water (soaked in) before the controller reads the probe.
-        let matured: f32 = self
-            .pending
-            .iter()
-            .filter(|p| p.apply_at_ms <= now)
-            .map(|p| p.pct)
-            .sum();
-        if matured != 0.0 {
-            self.env.moisture_pct = (self.env.moisture_pct + matured).clamp(0.0, 100.0);
-        }
-        self.pending.retain(|p| p.apply_at_ms > now);
-
-        // 2) Build the sensor frame from the environment.
+        // 1) Build the sensor frame from the environment.
         let temp_c = models::air_temp(self.env.room_temp_c, self.env.last_led_pct);
         let rh = models::air_rh(self.env.room_rh_pct);
         let led_heat = if self.led_heat_present {
@@ -257,34 +231,33 @@ impl Sim {
             led_heat_c: led_heat,
         };
 
-        // 3) Run the real controller.
+        // 2) Run the real controller.
         let cmd = self.app.step(&frame);
 
-        // 4) Apply actuator effects back into the environment.
-        if cmd.pump_on {
-            self.metrics.pump_runs += 1;
-            self.metrics.pump_ran_while_leak |= self.inject.leak;
-            self.metrics.pump_ran_while_reservoir_low |= reservoir_low;
-            if !self.inject.pump_disconnected {
-                let delivered_ml = cmd.pump_run_seconds * self.cal.pump_ml_per_sec;
-                self.env.reservoir_ml = (self.env.reservoir_ml - delivered_ml).max(0.0);
-                self.metrics.total_watered_ml += delivered_ml as u32;
-                self.pending.push(Pending {
-                    apply_at_ms: now + models::SOAK_MS,
-                    pct: delivered_ml / models::POT_ML_PER_PCT,
-                });
+        // 3) Apply passive water dynamics. Transpiration draws from the reservoir through the wick.
+        //    A working wick with water gives a gentle diurnal sawtooth (dries by day, rehydrates at
+        //    night); a failed wick or empty reservoir dries the substrate out steadily.
+        let dt_min = TICK_MS as f32 / 60_000.0;
+        let et = models::transpiration_ml(dt_min, cmd.light_on, cmd.vpd_kpa);
+        let wick_ok = !self.inject.wick_failure && self.env.reservoir_ml > et;
+        if wick_ok {
+            self.env.reservoir_ml -= et;
+            if cmd.light_on {
+                self.env.moisture_pct -= models::DAY_DRY_PCT_PER_TICK;
+            } else {
+                self.env.moisture_pct += models::NIGHT_WET_PCT_PER_TICK;
             }
+        } else {
+            // No replenishment (wick failed or reservoir empty): transpiration pulls from the
+            // substrate and it dries out.
+            self.env.moisture_pct -= models::NOWATER_DROP_PCT_PER_TICK;
         }
+        self.env.moisture_pct = self.env.moisture_pct.clamp(0.0, 100.0);
 
-        // 5) Moisture decline over the tick (faster under light + high VPD).
-        let decline =
-            models::moisture_decline(TICK_MS as f32 / 60_000.0, cmd.light_on, cmd.vpd_kpa);
-        self.env.moisture_pct = (self.env.moisture_pct - decline).clamp(0.0, 100.0);
-
-        // 6) Record metrics.
+        // 4) Record metrics.
         self.record(&cmd);
 
-        // 7) Persist actuator state for next tick's environment model + advance time.
+        // 5) Persist actuator state for next tick's environment model + advance time.
         self.env.last_led_pct = cmd.led_pct;
         self.now_ms += TICK_MS;
         self.last = Some(cmd);
@@ -303,7 +276,7 @@ impl Sim {
         }
         m.min_reservoir_ml = m.min_reservoir_ml.min(self.env.reservoir_ml);
         m.saw_led_derate |= cmd.led_derated;
-        m.saw_climate_red |= cmd.climate_red;
+        m.saw_climate_warn |= cmd.climate_warn;
         m.saw_rtc_fallback |= cmd.rtc_fallback;
         if cmd.light_on {
             m.led_on_ticks += 1;

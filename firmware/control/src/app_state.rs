@@ -1,29 +1,29 @@
-//! Top-level orchestrator: wires the plant profile, light/irrigation/climate controllers, safety
-//! state machine, LED panel, calibration and logging into one deterministic per-tick `step`.
+//! Top-level orchestrator: wires the plant profile, light/moisture/climate monitors, safety state
+//! machine, LED panel, calibration and logging into one deterministic per-tick `step`.
 //!
 //! This is the integration seam the simulator (`sim/`) and the on-target `controller/` both drive:
 //! they supply a [`SensorFrame`] from real or simulated peripherals, and apply the returned
-//! [`Commands`] back to the actuators. All the policy lives in the individual controller modules;
-//! this just sequences them and enforces the safety gates on top.
+//! [`Commands`] back to the actuator. **V1 is passive (no pump) and fan-less (ECO-003/ECO-001): the
+//! grow LED is the only actuator.** Watering is monitored and warned, never actuated. All policy
+//! lives in the individual modules; this sequences them and enforces the LED gate on top.
 
 use crate::calibration::{self, LoadedCalibration};
 use crate::climate_controller::{self, ClimateInputs};
 use crate::hal::{SensorError, TempRh, WallTime};
-use crate::irrigation_controller::{self as irr, IrrigationController, MoistureValidator};
-use crate::led_status::{
-    self, ClimateHealth, LightHealth, MoistureHealth, Panel, PanelInputs, WaterLevel,
-};
+use crate::led_status::{self, LightHealth, MoistureHealth, Panel, PanelInputs, WaterLevel};
 use crate::light_controller::{self, LightInputs};
 use crate::logging::{LogEntry, LogKind, OnboardLog};
+use crate::moisture_monitor::{self, MoistureStatus, MoistureValidator};
 use crate::plant_profile::{self, Setpoints, Stage};
 use crate::safety_controller::{BootReport, Gates, SafetyController, SafetyInputs, SystemState};
-use crate::scheduler;
 
 const DAY_MS: u64 = 86_400_000;
 /// Firmware version stamped into logs (§9.10).
 pub const FIRMWARE_VERSION: u16 = 1;
 /// Log a periodic sensor snapshot at most this often (§9.10: every 5–15 min). 10 min here.
 const SENSOR_LOG_INTERVAL_MS: u64 = 10 * 60_000;
+/// Critical over-temp air threshold (§9.5): above this the LED is cut.
+const OVER_TEMP_C: f32 = 35.0;
 
 /// One frame of sensor data + environment for a control tick.
 #[derive(Debug, Clone, Copy)]
@@ -32,29 +32,30 @@ pub struct SensorFrame {
     pub rtc: WallTime,
     pub temp_rh: Result<TempRh, SensorError>,
     pub moisture_raw: Result<u16, SensorError>,
+    /// Reservoir at/below the low-level mark — refill prompt (V1 passive, ECO-003).
     pub reservoir_low: bool,
+    /// Catch-tray wet — flood/overflow warning.
     pub leak: bool,
     pub led_heat_c: Option<f32>,
 }
 
-/// Commanded actuator outputs + observability for one tick.
+/// Commanded actuator output + observability for one tick. The LED is the only actuator.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Commands {
-    pub pump_on: bool,
-    pub pump_run_seconds: f32,
-    pub pump_dose_ml: u16,
     pub led_pct: u8,
     pub state: SystemState,
     pub panel: Panel,
     pub stage: Stage,
     pub light_on: bool,
     pub vpd_kpa: f32,
-    /// `None` when the moisture sensor is invalid (auto-watering disabled).
+    /// `None` when the moisture sensor is invalid/untrusted (§7.6).
     pub moisture_pct: Option<f32>,
+    /// Observability: moisture warning classification this tick (passive monitor, ECO-003).
+    pub moisture_status: MoistureStatus,
     /// Observability: LED power was reduced by thermal/heat-sink derating this tick (§9.5).
     pub led_derated: bool,
-    /// Observability: climate flagged a critical temp/humidity condition this tick (§9.7).
-    pub climate_red: bool,
+    /// Observability: climate (temp/RH/VPD) outside the preferred band — folds into the System LED.
+    pub climate_warn: bool,
     /// Observability: running the RTC-invalid safe-schedule fallback (§9.4).
     pub rtc_fallback: bool,
 }
@@ -71,7 +72,6 @@ pub struct App {
     cfg: AppConfig,
     cal: LoadedCalibration,
     safety: SafetyController,
-    irrigation: IrrigationController,
     moisture: MoistureValidator,
     log: OnboardLog,
     boot_ms: u64,
@@ -79,6 +79,7 @@ pub struct App {
     maintenance: bool,
     last_sensor_log_ms: Option<u64>,
     last_logged_state: Option<SystemState>,
+    last_reservoir_low: bool,
 }
 
 impl App {
@@ -100,14 +101,13 @@ impl App {
             sensors_in_range: true,
             restored_age_days,
             rtc_valid: rtc.valid,
-            // §9.4 step 7: pump forced off before anything — the HAL pump defaults off; this asserts it.
-            pump_forced_off: true,
+            // §9.4 step 7: the LED (only actuator) is forced off before anything else.
+            led_forced_off: true,
         });
         let mut app = App {
             cfg,
             cal,
             safety,
-            irrigation: IrrigationController::new(),
             moisture: MoistureValidator::default(),
             log: OnboardLog::new(),
             boot_ms,
@@ -115,6 +115,7 @@ impl App {
             maintenance: false,
             last_sensor_log_ms: None,
             last_logged_state: None,
+            last_reservoir_low: false,
         };
         // Stamp versions at boot (§9.10).
         app.log.push(LogEntry {
@@ -172,7 +173,7 @@ impl App {
             ),
         };
 
-        // --- Light controller. ---
+        // --- Light controller (only actuator). ---
         let light = light_controller::evaluate(&LightInputs {
             sp: &sp,
             cal: &self.cal.cal,
@@ -184,74 +185,57 @@ impl App {
             led_heat_c: frame.led_heat_c,
         });
 
-        // --- Climate monitor (no fan in V1 — VPD/health flags + LED-derate request only). ---
+        // --- Climate monitor (no actuator — VPD/health flags + LED-derate request). ---
         let climate = climate_controller::evaluate(&ClimateInputs {
             air,
             sp: &sp,
             lights_on: light.on,
         });
 
-        // --- Moisture validation (drives auto-watering enable + sensor fault). ---
+        // --- Moisture monitor: validate, then classify into a warning (passive, no dosing). ---
         let moisture = self.moisture.validate(
             now,
             frame.moisture_raw,
             &self.cal.cal,
-            self.cal.auto_watering_enabled,
+            self.cal.moisture_trusted,
         );
+        let moisture_status = moisture_monitor::classify(moisture, &sp);
 
-        // --- Irrigation decision. ---
-        let day_index = scheduler::day_index(frame.rtc, self.cfg.utc_offset_s, self.boot_ms, now);
-        let decision = self.irrigation.tick(&irr::Inputs {
-            sp: &sp,
-            now_ms: now,
-            moisture,
-            ml_per_sec: self.cal.cal.pump_ml_per_sec,
-            reservoir_low: frame.reservoir_low,
-            leak: frame.leak,
-            light_on: light.on,
-            light_fraction: light.phase.fraction(),
-            hours_to_off: light.phase.hours_to_off(),
-            day_index,
-        });
-
-        // --- Safety arbitration. ---
-        let over_temp_critical = air_ok && air.temp_c > 35.0;
-        let pump_fault = self.irrigation.pump_fault_latched()
-            || decision.fault == Some(irr::IrrigationFault::PumpFault);
-        let sensor_invalid = moisture.is_none();
+        // --- Safety arbitration (monitor + warn). ---
+        // Over-temp on the LED: critical air temp, or the LED heat-sink ladder tripped its fault.
+        let over_temp_led = (air_ok && air.temp_c > OVER_TEMP_C) || light.derate.led_fault;
         let safety_inputs = SafetyInputs {
             leak: frame.leak,
-            over_temp_critical,
-            pump_fault,
-            moisture_sensor_invalid: sensor_invalid,
+            over_temp_led,
+            sensor_invalid: moisture_status == MoistureStatus::Fault,
             reservoir_low: frame.reservoir_low,
-            led_fault: light.derate.led_fault,
+            moisture_high: moisture_status == MoistureStatus::High,
+            moisture_low: matches!(
+                moisture_status,
+                MoistureStatus::Low | MoistureStatus::CriticalLow
+            ),
             maintenance: self.maintenance,
-            watering_active: decision.watering_active,
         };
         let state = self.safety.arbitrate(&safety_inputs);
         let gates: Gates = self.safety.gates();
 
-        // --- Apply safety gates on top of controller outputs (safety always wins). ---
-        let pump_on = decision.pump_on && gates.pump_allowed;
+        // --- Apply the LED gate on top of the commanded power (safety always wins). ---
         let led_pct = (light.commanded_pct as f32 * gates.led_max_factor) as u8;
+        let climate_warn = climate.climate_amber || climate.climate_red;
 
-        // --- LED status panel. ---
+        // --- LED status panel (4 LEDs). ---
         let panel = self.render_panel(
             state,
             frame.reservoir_low,
-            moisture,
-            &sp,
+            moisture_status,
             &light,
-            &climate,
-            air_ok,
+            climate_warn,
             light.on,
         );
 
         // --- Logging (§9.10). ---
         self.log_events(
             frame,
-            &decision,
             state,
             &light,
             air,
@@ -261,9 +245,6 @@ impl App {
         );
 
         Commands {
-            pump_on,
-            pump_run_seconds: if pump_on { decision.run_seconds } else { 0.0 },
-            pump_dose_ml: if pump_on { decision.dose_ml } else { 0 },
             led_pct,
             state,
             panel,
@@ -271,8 +252,9 @@ impl App {
             light_on: light.on,
             vpd_kpa: climate.vpd_kpa,
             moisture_pct: moisture,
+            moisture_status,
             led_derated: light.derate.derated,
-            climate_red: climate.climate_red,
+            climate_warn,
             rtc_fallback: light.rtc_fallback,
         }
     }
@@ -282,51 +264,45 @@ impl App {
         &self,
         state: SystemState,
         reservoir_low: bool,
-        moisture: Option<f32>,
-        sp: &Setpoints,
+        moisture_status: MoistureStatus,
         light: &light_controller::LightOutput,
-        climate: &climate_controller::ClimateOutput,
-        air_ok: bool,
+        climate_warn: bool,
         light_on: bool,
     ) -> Panel {
-        // Leak is a water-subsystem fault that locks out watering, so it reds the Water LED too
-        // (spec §10.3 "leak → red water/system"), alongside the reservoir-low lockout.
-        let water = if reservoir_low || state == SystemState::LeakDetected {
-            WaterLevel::EmptyLockout
+        // Leak reds the Water LED (flood = water-subsystem fault); reservoir-low is an amber refill
+        // prompt below it.
+        let water = if state == SystemState::LeakDetected {
+            WaterLevel::Empty
+        } else if reservoir_low {
+            WaterLevel::LowSoon
         } else {
             WaterLevel::Ok
         };
-        let moisture_h = match moisture {
-            None => MoistureHealth::FaultOrCriticalOrWaterlogged,
-            Some(m) if m < sp.moisture_critical_pct => MoistureHealth::FaultOrCriticalOrWaterlogged,
-            Some(m) if m < sp.moisture_dry_pct || m > sp.moisture_wet_pct => {
-                MoistureHealth::DrySoonOrWetHigh
+        let moisture_h = match moisture_status {
+            MoistureStatus::Fault | MoistureStatus::CriticalLow => {
+                MoistureHealth::FaultOrCriticalOrWaterlogged
             }
-            Some(_) => MoistureHealth::InTarget,
+            MoistureStatus::Low | MoistureStatus::High => MoistureHealth::DrySoonOrWetHigh,
+            MoistureStatus::Ok => MoistureHealth::InTarget,
         };
-        let light_h = if light.derate.led_fault || light.derate.critical {
-            LightHealth::FaultOrOverTemp
-        } else if light.derate.derated || light.rtc_fallback {
-            LightHealth::ThermalDimOrUncertain
-        } else {
-            LightHealth::Normal
-        };
-        let climate_h = if climate.climate_red || !air_ok {
-            ClimateHealth::CriticalTempOrHumidity
-        } else if climate.climate_amber {
-            ClimateHealth::OutsidePreferred
-        } else {
-            ClimateHealth::Ok
-        };
+        let light_h =
+            if state == SystemState::OverTempLed || light.derate.led_fault || light.derate.critical
+            {
+                LightHealth::FaultOrOverTemp
+            } else if light.derate.derated || light.rtc_fallback {
+                LightHealth::ThermalDimOrUncertain
+            } else {
+                LightHealth::Normal
+            };
         led_status::render(&PanelInputs {
             state,
             water,
             moisture: moisture_h,
             light: light_h,
-            climate: climate_h,
             night_mode: !light_on,
             maintenance_due: self.maintenance,
             rtc_fallback: light.rtc_fallback,
+            climate_warn,
         })
     }
 
@@ -334,7 +310,6 @@ impl App {
     fn log_events(
         &mut self,
         frame: &SensorFrame,
-        decision: &irr::Decision,
         state: SystemState,
         light: &light_controller::LightOutput,
         air: TempRh,
@@ -345,23 +320,8 @@ impl App {
         let ts = frame.rtc.unix_s;
         let tv = frame.rtc.valid;
 
-        // Watering events.
-        if decision.watering_active {
-            self.log.push(LogEntry {
-                ts_unix_s: ts,
-                ts_valid: tv,
-                kind: LogKind::Watering {
-                    dose_ml: decision.dose_ml,
-                    run_seconds_x10: (decision.run_seconds * 10.0) as u16,
-                    daily_total_ml: self.irrigation.daily_watered_ml() as u16,
-                },
-            });
-        }
-
-        // Fault/state transitions.
-        if self.last_logged_state != Some(state)
-            && !matches!(state, SystemState::Normal | SystemState::Watering)
-        {
+        // Fault/warning state transitions.
+        if self.last_logged_state != Some(state) && state != SystemState::Normal {
             self.log.push(LogEntry {
                 ts_unix_s: ts,
                 ts_valid: tv,
@@ -369,6 +329,16 @@ impl App {
             });
         }
         self.last_logged_state = Some(state);
+
+        // Reservoir-low rising edge (refill event).
+        if frame.reservoir_low && !self.last_reservoir_low {
+            self.log.push(LogEntry {
+                ts_unix_s: ts,
+                ts_valid: tv,
+                kind: LogKind::ReservoirLow,
+            });
+        }
+        self.last_reservoir_low = frame.reservoir_low;
 
         // LED derating events.
         if light.derate.derated {
@@ -412,10 +382,9 @@ mod tests {
 
     fn valid_cal_bytes() -> [u8; calibration::RECORD_LEN] {
         Calibration {
-            version: 3,
+            version: 4,
             moisture_raw_dry: 1000,
             moisture_raw_wet: 3000,
-            pump_ml_per_sec: 3.8,
             led_ppfd_25: 120,
             led_ppfd_50: 240,
             led_ppfd_75: 360,
@@ -464,13 +433,31 @@ mod tests {
     fn boots_to_normal_with_valid_calibration() {
         let app = booted_app();
         assert_eq!(app.state(), SystemState::Normal);
-        assert!(app.calibration().auto_watering_enabled);
+        assert!(app.calibration().moisture_trusted);
     }
 
     #[test]
-    fn full_tick_waters_when_dry_midday() {
+    fn full_tick_in_band_is_normal_no_warning() {
         let mut app = booted_app();
-        // 12:00, lights on, dry → should dose.
+        // 08:00, lights on, moisture in band (45 %) → NORMAL, light on, no warning.
+        let cmd = app.step(&frame(
+            0,
+            WallTime {
+                valid: true,
+                unix_s: 8 * 3600,
+            },
+            45.0,
+        ));
+        assert_eq!(cmd.stage, Stage::Vegetative);
+        assert!(cmd.light_on);
+        assert_eq!(cmd.state, SystemState::Normal);
+        assert_eq!(cmd.moisture_status, MoistureStatus::Ok);
+    }
+
+    #[test]
+    fn dry_substrate_warns_moisture_low_but_keeps_the_light() {
+        let mut app = booted_app();
+        // 20 % is below the vegetative dry threshold (30) but above critical (17).
         let cmd = app.step(&frame(
             0,
             WallTime {
@@ -479,14 +466,29 @@ mod tests {
             },
             20.0,
         ));
-        assert_eq!(cmd.stage, Stage::Vegetative);
-        assert!(cmd.light_on);
-        assert!(cmd.pump_on);
-        assert_eq!(cmd.state, SystemState::Watering);
+        assert_eq!(cmd.state, SystemState::MoistureLow);
+        assert_eq!(cmd.moisture_status, MoistureStatus::Low);
+        // A moisture warning must NOT cut the grow light (only over-temp does).
+        assert!(cmd.led_pct > 0);
     }
 
     #[test]
-    fn leak_gate_overrides_everything() {
+    fn too_wet_warns_moisture_high() {
+        let mut app = booted_app();
+        // 70 % is above the wet threshold (55).
+        let cmd = app.step(&frame(
+            0,
+            WallTime {
+                valid: true,
+                unix_s: 8 * 3600,
+            },
+            70.0,
+        ));
+        assert_eq!(cmd.state, SystemState::MoistureHigh);
+    }
+
+    #[test]
+    fn reservoir_low_warns_low_water() {
         let mut app = booted_app();
         let mut f = frame(
             0,
@@ -494,20 +496,38 @@ mod tests {
                 valid: true,
                 unix_s: 8 * 3600,
             },
-            10.0,
+            45.0,
+        );
+        f.reservoir_low = true;
+        let cmd = app.step(&f);
+        assert_eq!(cmd.state, SystemState::LowWater);
+        assert_eq!(cmd.panel.water.color, led_status::LedColor::Amber);
+    }
+
+    #[test]
+    fn leak_warns_and_latches_red_water_and_system() {
+        let mut app = booted_app();
+        let mut f = frame(
+            0,
+            WallTime {
+                valid: true,
+                unix_s: 8 * 3600,
+            },
+            45.0,
         );
         f.leak = true;
         let cmd = app.step(&f);
-        assert!(!cmd.pump_on);
         assert_eq!(cmd.state, SystemState::LeakDetected);
-        // latched: even after leak clears the state holds until manual clear.
+        assert_eq!(cmd.panel.water.color, led_status::LedColor::Red);
+        assert_eq!(cmd.panel.system.color, led_status::LedColor::Red);
+        // Latches: even after the leak clears the state holds until manual clear.
         let cmd2 = app.step(&frame(
             60_000,
             WallTime {
                 valid: true,
                 unix_s: 8 * 3600,
             },
-            10.0,
+            45.0,
         ));
         assert_eq!(cmd2.state, SystemState::LeakDetected);
         app.clear_leak();
@@ -517,13 +537,13 @@ mod tests {
                 valid: true,
                 unix_s: 8 * 3600,
             },
-            50.0,
+            45.0,
         ));
         assert_ne!(cmd3.state, SystemState::LeakDetected);
     }
 
     #[test]
-    fn missing_calibration_disables_watering_and_faults() {
+    fn missing_calibration_distrusts_moisture_and_faults() {
         let mut app = App::boot(
             AppConfig::default(),
             None, // no calibration
@@ -535,22 +555,21 @@ mod tests {
             },
             true,
         );
-        assert!(!app.calibration().auto_watering_enabled);
+        assert!(!app.calibration().moisture_trusted);
         let cmd = app.step(&frame(
             0,
             WallTime {
                 valid: true,
                 unix_s: 8 * 3600,
             },
-            10.0,
+            45.0,
         ));
-        assert!(!cmd.pump_on);
         assert_eq!(cmd.state, SystemState::SensorFault);
         assert!(cmd.moisture_pct.is_none());
     }
 
     #[test]
-    fn over_temp_cuts_led_and_pump() {
+    fn over_temp_cuts_the_led() {
         let mut app = booted_app();
         let mut f = frame(
             0,
@@ -558,16 +577,15 @@ mod tests {
                 valid: true,
                 unix_s: 8 * 3600,
             },
-            10.0,
+            45.0,
         );
         f.temp_rh = Ok(TempRh {
             temp_c: 36.0,
             rh_pct: 40.0,
         });
         let cmd = app.step(&f);
-        assert_eq!(cmd.state, SystemState::OverTemp);
-        assert_eq!(cmd.led_pct, 0); // LED off/min — the only thermal lever now (no fan)
-        assert!(!cmd.pump_on); // no watering on temperature alone
+        assert_eq!(cmd.state, SystemState::OverTempLed);
+        assert_eq!(cmd.led_pct, 0); // LED off/min — the only thermal lever (no fan/pump)
     }
 
     #[test]
@@ -578,7 +596,7 @@ mod tests {
                 e.kind,
                 LogKind::Versions {
                     firmware: 1,
-                    calibration: 3
+                    calibration: 4
                 }
             )
         });

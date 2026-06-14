@@ -1,23 +1,29 @@
-//! Top-level state machine and fault-priority arbitration. Spec §9.3, §9.4, §11.4.
+//! Top-level state machine and fault-priority arbitration. Spec §9.3, §9.4, §11.4; ECO-003.
 //!
-//! This module is the authority: when a safety state is active it **overrides** the individual
-//! controllers (pump off, LED off/min) regardless of what light/irrigation/climate proposed. The
-//! priority order is a total ordering, so the highest-priority active condition always wins
-//! (WI-FW-07 acceptance).
+//! V1 is **passive** (no pump) and **fan-less**: the grow LED is the only actuator. This machine no
+//! longer gates a pump — its only enforced output is the LED power factor. It is a **monitor + warn**
+//! arbiter: it picks the single highest-priority condition to surface on the System LED, and forces
+//! the LED off only for over-temp / boot / shutdown.
 
-/// The required firmware states (§9.3).
+/// The required firmware states (§9.3, as revised by ECO-003 — pump/fan states removed).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemState {
     Boot,
     SelfTest,
     Normal,
-    Watering,
+    /// Reservoir low/empty — refill prompt (passive supply will dry out).
     LowWater,
+    /// Catch-tray wet — flood/overflow warning. Latches until manually cleared (§11.4). With no pump
+    /// there is nothing to lock out; this is purely a warning.
     LeakDetected,
+    /// Substrate above the wet band — water-logging risk.
+    MoistureHigh,
+    /// Substrate below the dry band — the passive supply is not keeping up (check reservoir/wick).
+    MoistureLow,
+    /// Moisture (or air) sensor invalid/stuck/uncalibrated — reading not trustworthy (§7.6).
     SensorFault,
-    PumpFault,
-    LedFault,
-    OverTemp,
+    /// Air or LED-heatsink over-temperature — the LED is cut back to shed heat (the only lever).
+    OverTempLed,
     Maintenance,
     SafeShutdown,
 }
@@ -28,13 +34,12 @@ impl SystemState {
             SystemState::Boot => "BOOT",
             SystemState::SelfTest => "SELF_TEST",
             SystemState::Normal => "NORMAL",
-            SystemState::Watering => "WATERING",
             SystemState::LowWater => "LOW_WATER",
             SystemState::LeakDetected => "LEAK_DETECTED",
+            SystemState::MoistureHigh => "MOISTURE_HIGH",
+            SystemState::MoistureLow => "MOISTURE_LOW",
             SystemState::SensorFault => "SENSOR_FAULT",
-            SystemState::PumpFault => "PUMP_FAULT",
-            SystemState::LedFault => "LED_FAULT",
-            SystemState::OverTemp => "OVER_TEMP",
+            SystemState::OverTempLed => "OVER_TEMP_LED",
             SystemState::Maintenance => "MAINTENANCE",
             SystemState::SafeShutdown => "SAFE_SHUTDOWN",
         }
@@ -42,33 +47,28 @@ impl SystemState {
 }
 
 /// Raw fault/condition signals feeding arbitration each control tick. Booleans are produced by the
-/// sensors and the individual controllers; arbitration decides which one is in charge.
+/// sensors and the individual monitors; arbitration decides which one is surfaced.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SafetyInputs {
-    /// Leak sensor wet (§11.4). Highest priority; latches until manual clear.
+    /// Catch-tray wet (§11.4). Highest priority; latches until manual clear.
     pub leak: bool,
-    /// Critical over-temp (>35 °C sustained, §9.5) — LED off/min, system fault.
-    pub over_temp_critical: bool,
-    /// Pump fault (no-rise after N pulses, over-current, or watering-limit, §9.6).
-    pub pump_fault: bool,
-    /// Moisture sensor invalid/implausible — disables auto-watering (§7.6, §9.6).
-    pub moisture_sensor_invalid: bool,
-    /// Reservoir low/empty — watering lockout (§9.6).
+    /// Air or LED-heatsink over-temp (>35 °C air / heatsink fault, §9.5) — cut the LED.
+    pub over_temp_led: bool,
+    /// Moisture (or air) sensor invalid/implausible (§7.6).
+    pub sensor_invalid: bool,
+    /// Reservoir low/empty — refill prompt (§9.6).
     pub reservoir_low: bool,
-    /// LED driver/heat-sink fault (§9.5 >80 °C ladder). Does not stop watering.
-    pub led_fault: bool,
+    /// Substrate above the wet band — water-logging warning.
+    pub moisture_high: bool,
+    /// Substrate below the dry band — drying-out warning.
+    pub moisture_low: bool,
     /// Dev/overwinter maintenance mode is engaged.
     pub maintenance: bool,
-    /// The irrigation controller is mid-pulse this tick.
-    pub watering_active: bool,
 }
 
-/// Actuator permissions derived from the active state. The individual controllers compute desired
-/// outputs; these gates are applied on top, so a safety state can never be out-voted.
+/// Actuator permission derived from the active state. The only actuator in V1 is the LED.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Gates {
-    /// May the pump be energized at all this tick?
-    pub pump_allowed: bool,
     /// Multiplier applied to the commanded LED power (0.0 = forced off/min).
     pub led_max_factor: f32,
 }
@@ -84,8 +84,8 @@ pub struct BootReport {
     pub restored_age_days: u32,
     /// Was RTC wall time valid? (Drives safe-schedule fallback, §9.4.)
     pub rtc_valid: bool,
-    /// Pump was commanded off before anything else (§9.4 step 7). Always true on a clean boot.
-    pub pump_forced_off: bool,
+    /// LED was commanded off before anything else (§9.4 step 7). Always true on a clean boot.
+    pub led_forced_off: bool,
 }
 
 /// The top-level controller. Owns the latched leak state and the current lifecycle phase.
@@ -120,16 +120,16 @@ impl SafetyController {
         self.leak_latched
     }
 
-    /// Run the §9.4 boot sequence. Pump is forced off first; on a failed self-test or invalid
-    /// calibration we land in SELF_TEST/SafeShutdown rather than NORMAL (fail-safe, §7.6).
+    /// Run the §9.4 boot sequence. LED is forced off first; on a failed self-test or invalid
+    /// calibration we land in SELF_TEST/SENSOR_FAULT rather than NORMAL (fail-safe, §7.6).
     pub fn boot(&mut self, report: BootReport) -> SystemState {
         self.booted = true;
-        // Step 7 of §9.4 is non-negotiable: pump off before anything else.
-        debug_assert!(report.pump_forced_off, "boot must force pump off (§9.4)");
+        // Step 7 of §9.4: actuators off before anything else (the LED is the only one now).
+        debug_assert!(report.led_forced_off, "boot must force the LED off (§9.4)");
         self.state = if !report.self_test_passed {
             SystemState::SelfTest // stay in self-test / surface fatal fault
         } else if !report.calibration_valid {
-            // Missing/corrupt calibration must not act on bad data — fault, don't run (§7.6).
+            // Missing/corrupt calibration must not act on bad data — fault, don't trust (§7.6).
             SystemState::SensorFault
         } else {
             SystemState::Normal
@@ -143,8 +143,8 @@ impl SafetyController {
     }
 
     /// Arbitrate the active state from the current inputs. Total ordering, highest first:
-    /// LEAK > OVER_TEMP(critical) > PUMP_FAULT > SENSOR_FAULT(watering) > LOW_WATER >
-    /// LED_FAULT > MAINTENANCE > WATERING > NORMAL.
+    /// LEAK > OVER_TEMP_LED > SENSOR_FAULT > LOW_WATER > MOISTURE_HIGH > MOISTURE_LOW >
+    /// MAINTENANCE > NORMAL.
     ///
     /// Leak latches: once seen, it stays the active state until [`clear_leak`](Self::clear_leak).
     pub fn arbitrate(&mut self, inp: &SafetyInputs) -> SystemState {
@@ -153,58 +153,35 @@ impl SafetyController {
         }
         self.state = if self.leak_latched {
             SystemState::LeakDetected
-        } else if inp.over_temp_critical {
-            SystemState::OverTemp
-        } else if inp.pump_fault {
-            SystemState::PumpFault
-        } else if inp.moisture_sensor_invalid {
+        } else if inp.over_temp_led {
+            SystemState::OverTempLed
+        } else if inp.sensor_invalid {
             SystemState::SensorFault
         } else if inp.reservoir_low {
             SystemState::LowWater
-        } else if inp.led_fault {
-            SystemState::LedFault
+        } else if inp.moisture_high {
+            SystemState::MoistureHigh
+        } else if inp.moisture_low {
+            SystemState::MoistureLow
         } else if inp.maintenance {
             SystemState::Maintenance
-        } else if inp.watering_active {
-            SystemState::Watering
         } else {
             SystemState::Normal
         };
         self.state
     }
 
-    /// Derive actuator gates from the current state. This is where "leak/over-temp override the
-    /// controllers" is *enforced* (WI-FW-07 acceptance): pump off, LED off/min.
+    /// Derive the LED gate from the current state. Over-temp / boot / shutdown force the LED off;
+    /// every other state trusts the light controller's commanded power.
     pub fn gates(&self) -> Gates {
         match self.state {
-            // Leak: everything water-related is dead until cleared.
-            SystemState::LeakDetected => Gates {
-                pump_allowed: false,
-                led_max_factor: 1.0,
-            },
-            // Critical over-temp: cut the LED to off/min and stop watering on temperature alone.
-            // With no fan, killing the LED is the *only* way to shed heat — there is no circulation
-            // actuator to disperse it, so the derate/cut is the entire thermal defense (§9.5, §9.7).
-            SystemState::OverTemp => Gates {
-                pump_allowed: false,
+            SystemState::OverTempLed
+            | SystemState::Boot
+            | SystemState::SelfTest
+            | SystemState::SafeShutdown => Gates {
                 led_max_factor: 0.0,
             },
-            SystemState::PumpFault | SystemState::SensorFault | SystemState::LowWater => Gates {
-                pump_allowed: false,
-                led_max_factor: 1.0,
-            },
-            SystemState::LedFault => Gates {
-                pump_allowed: true,
-                led_max_factor: 0.0,
-            },
-            // Boot/self-test/shutdown: hold actuators safe.
-            SystemState::Boot | SystemState::SelfTest | SystemState::SafeShutdown => Gates {
-                pump_allowed: false,
-                led_max_factor: 0.0,
-            },
-            // Normal operating states: controllers are trusted.
-            SystemState::Normal | SystemState::Watering | SystemState::Maintenance => Gates {
-                pump_allowed: true,
+            _ => Gates {
                 led_max_factor: 1.0,
             },
         }
@@ -223,7 +200,7 @@ mod tests {
             sensors_in_range: true,
             restored_age_days: 60,
             rtc_valid: true,
-            pump_forced_off: true,
+            led_forced_off: true,
         });
         c
     }
@@ -234,30 +211,26 @@ mod tests {
         let mut c = ctrl();
         let inp = SafetyInputs {
             leak: true,
-            over_temp_critical: true,
-            pump_fault: true,
-            moisture_sensor_invalid: true,
+            over_temp_led: true,
+            sensor_invalid: true,
             reservoir_low: true,
+            moisture_low: true,
             ..Default::default()
         };
         assert_eq!(c.arbitrate(&inp), SystemState::LeakDetected);
-        assert!(!c.gates().pump_allowed);
     }
 
     #[test]
-    fn over_temp_beats_pump_and_below() {
+    fn over_temp_cuts_the_led() {
         let mut c = ctrl();
         let inp = SafetyInputs {
-            over_temp_critical: true,
-            pump_fault: true,
-            moisture_sensor_invalid: true,
+            over_temp_led: true,
+            sensor_invalid: true,
             reservoir_low: true,
             ..Default::default()
         };
-        assert_eq!(c.arbitrate(&inp), SystemState::OverTemp);
-        let g = c.gates();
-        assert!(!g.pump_allowed);
-        assert_eq!(g.led_max_factor, 0.0); // LED off/min — the only heat lever without a fan
+        assert_eq!(c.arbitrate(&inp), SystemState::OverTempLed);
+        assert_eq!(c.gates().led_max_factor, 0.0); // LED off/min — only thermal lever
     }
 
     #[test]
@@ -265,17 +238,9 @@ mod tests {
         let cases = [
             (
                 SafetyInputs {
-                    pump_fault: true,
-                    moisture_sensor_invalid: true,
+                    sensor_invalid: true,
                     reservoir_low: true,
-                    ..Default::default()
-                },
-                SystemState::PumpFault,
-            ),
-            (
-                SafetyInputs {
-                    moisture_sensor_invalid: true,
-                    reservoir_low: true,
+                    moisture_low: true,
                     ..Default::default()
                 },
                 SystemState::SensorFault,
@@ -283,25 +248,33 @@ mod tests {
             (
                 SafetyInputs {
                     reservoir_low: true,
-                    led_fault: true,
+                    moisture_high: true,
+                    moisture_low: true,
                     ..Default::default()
                 },
                 SystemState::LowWater,
             ),
             (
                 SafetyInputs {
-                    led_fault: true,
-                    maintenance: true,
+                    moisture_high: true,
+                    moisture_low: true,
                     ..Default::default()
                 },
-                SystemState::LedFault,
+                SystemState::MoistureHigh,
             ),
             (
                 SafetyInputs {
-                    watering_active: true,
+                    moisture_low: true,
                     ..Default::default()
                 },
-                SystemState::Watering,
+                SystemState::MoistureLow,
+            ),
+            (
+                SafetyInputs {
+                    maintenance: true,
+                    ..Default::default()
+                },
+                SystemState::Maintenance,
             ),
             (SafetyInputs::default(), SystemState::Normal),
         ];
@@ -327,37 +300,21 @@ mod tests {
             c.arbitrate(&SafetyInputs::default()),
             SystemState::LeakDetected
         );
-        assert!(!c.gates().pump_allowed);
         // Manual clear releases it.
         c.clear_leak();
         assert_eq!(c.arbitrate(&SafetyInputs::default()), SystemState::Normal);
-        assert!(c.gates().pump_allowed);
     }
 
     #[test]
-    fn sensor_fault_and_low_water_block_pump() {
+    fn warnings_do_not_cut_the_led() {
+        // A moisture/low-water warning must not dim the grow light — only over-temp does.
         let mut c = ctrl();
-        c.arbitrate(&SafetyInputs {
-            moisture_sensor_invalid: true,
-            ..Default::default()
-        });
-        assert!(!c.gates().pump_allowed);
         c.arbitrate(&SafetyInputs {
             reservoir_low: true,
+            moisture_low: true,
             ..Default::default()
         });
-        assert!(!c.gates().pump_allowed);
-    }
-
-    #[test]
-    fn led_fault_does_not_stop_watering() {
-        let mut c = ctrl();
-        c.arbitrate(&SafetyInputs {
-            led_fault: true,
-            ..Default::default()
-        });
-        assert!(c.gates().pump_allowed);
-        assert_eq!(c.gates().led_max_factor, 0.0); // but LED is cut
+        assert_eq!(c.gates().led_max_factor, 1.0);
     }
 
     #[test]
@@ -369,9 +326,8 @@ mod tests {
             sensors_in_range: true,
             restored_age_days: 0,
             rtc_valid: false,
-            pump_forced_off: true,
+            led_forced_off: true,
         });
         assert_eq!(s, SystemState::SensorFault);
-        assert!(!c.gates().pump_allowed); // fail-safe: no auto-watering on bad calibration
     }
 }

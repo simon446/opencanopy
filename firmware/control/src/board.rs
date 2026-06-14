@@ -93,19 +93,20 @@ mod tests {
     }
 
     // End-to-end: a leak pin high, assembled into the frame and run through the App, must drive the
-    // LEAK_DETECTED state and gate the pump off — proving the whole controller-side path (board
-    // reading -> frame -> control) on the host, not just the App in isolation.
+    // LEAK_DETECTED warning state — proving the whole controller-side path (board reading -> frame
+    // -> control) on the host, not just the App in isolation. (V1 is passive: leak is a warning, not
+    // a pump lockout — there is no pump.)
     #[test]
     fn assembled_leak_frame_drives_leak_state() {
         use crate::app_state::{App, AppConfig};
         use crate::calibration::Calibration;
+        use crate::led_status::LedColor;
         use crate::safety_controller::SystemState;
 
         let cal = Calibration {
-            version: 1,
+            version: 4,
             moisture_raw_dry: 1000,
             moisture_raw_wet: 3000,
-            pump_ml_per_sec: 3.8,
             led_ppfd_25: 120,
             led_ppfd_50: 240,
             led_ppfd_75: 360,
@@ -134,13 +135,15 @@ mod tests {
                 temp_c: 24.0,
                 rh_pct: 60.0,
             }),
-            Ok(1400), // dry-ish — would otherwise water
+            Ok(1400), // dry-ish substrate
             ReservoirFloatLow(false),
             LeakPinHigh(true), // LEAK
             None,
         );
         let cmd = app.step(&frame);
         assert_eq!(cmd.state, SystemState::LeakDetected);
-        assert!(!cmd.pump_on);
+        // Flood warning reds the Water + System LEDs.
+        assert_eq!(cmd.panel.water.color, LedColor::Red);
+        assert_eq!(cmd.panel.system.color, LedColor::Red);
     }
 }

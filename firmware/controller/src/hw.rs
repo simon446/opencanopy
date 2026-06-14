@@ -6,9 +6,14 @@
 //! with fast simulated timing + serial telemetry so the Wokwi smoke test exercises this exact code
 //! (with mock I2C chips on the bus); without it, it runs the production 5-minute cadence.
 //!
+//! V1 is passive (no pump, ECO-003) and fan-less (ECO-001): the grow LED is the only actuator. The
+//! pump PWM/driver and the INA219 pump-current monitor are gone; the loop reads the sensors, runs
+//! the monitor + warn control logic, and drives only the grow LED.
+//!
 //! WS2812 status LEDs (RMT) are intentionally not driven here yet: esp-hal-smartled has no release
 //! for esp-hal 0.23 (0.14→0.22, 0.15→1.0-beta). The status-LED *logic* is host-tested in
 //! `control::led_status`; wiring the RMT driver is a follow-up (tracked for WI-EE-08 / esp-hal bump).
+//! The new top-block pin map (electronics-to-top, ECO-003) is reconciled with electronics at WI-EE-08.
 
 use esp_hal::analog::adc::{Adc, AdcConfig, Attenuation};
 use esp_hal::delay::Delay;
@@ -27,9 +32,6 @@ use control::hal::SensorError;
 use control::i2c_devices::{self as dev, DeviceError};
 
 const UTC_OFFSET_S: i32 = 0;
-/// INA219 current LSB (µA/bit) and shunt — chosen so a ~1 A pump reads with headroom.
-const INA219_CURRENT_LSB_UA: u32 = 100;
-const INA219_SHUNT_MOHM: u32 = 100;
 
 // Thin adapters binding esp-hal's concrete types to control's host-tested driver traits. All the
 // I2C transaction *logic* lives in `control::i2c_devices` (host-tested); these only forward calls.
@@ -63,14 +65,13 @@ fn map_dev_err(e: DeviceError) -> SensorError {
     }
 }
 
-/// Demo calibration used so the loop exercises the full watering path (real dev values come from
-/// WI-EE-08 bring-up; without a valid calibration the firmware fails safe and won't auto-water).
+/// Demo calibration used so the loop exercises the full monitor path (real dev values come from
+/// WI-EE-08 bring-up; without a valid calibration the firmware fails safe and distrusts moisture).
 fn demo_calibration() -> Calibration {
     Calibration {
-        version: 1,
+        version: 4,
         moisture_raw_dry: 1200,
         moisture_raw_wet: 2600,
-        pump_ml_per_sec: 3.8,
         led_ppfd_25: 120,
         led_ppfd_50: 240,
         led_ppfd_75: 360,
@@ -84,14 +85,13 @@ pub fn run(peripherals: Peripherals) -> ! {
     let delay = Delay::new();
     let mut delayer = DelayAdapter(delay);
 
-    // ---- I2C0: SHT40 (0x44) + DS3231 (0x68) + INA219 (0x40), GPIO8=SDA, GPIO9=SCL ----
+    // ---- I2C0: SHT40 (0x44) + DS3231 (0x68), GPIO8=SDA, GPIO9=SCL ----
     let mut i2c = I2cAdapter(
         I2c::new(peripherals.I2C0, I2cConfig::default())
             .expect("i2c init")
             .with_sda(peripherals.GPIO8)
             .with_scl(peripherals.GPIO9),
     );
-    let _ = dev::init_ina219(&mut i2c, INA219_CURRENT_LSB_UA, INA219_SHUNT_MOHM);
 
     // ---- ADC1: capacitive moisture probe on GPIO4 (CH3) ----
     let mut adc_cfg = AdcConfig::new();
@@ -106,8 +106,8 @@ pub fn run(peripherals: Peripherals) -> ! {
     // ASSUMPTION to confirm at WI-EE-08 bring-up: the float's NO/NC orientation matches this.
     let res_float_in = Input::new(peripherals.GPIO5, Pull::Up);
 
-    // ---- LEDC PWM: pump (GPIO10, 25 kHz), grow LED (GPIO14) ----
-    // (V1 has no circulation fan — the GPIO12 fan channel was removed with it.)
+    // ---- LEDC PWM: grow LED (GPIO14, 25 kHz) — the only actuator ----
+    // (V1 has no pump (ECO-003) and no fan (ECO-001), so their PWM channels were removed.)
     let mut ledc = Ledc::new(peripherals.LEDC);
     ledc.set_global_slow_clock(LSGlobalClkSource::APBClk);
     let mut pwm_timer = ledc.timer::<LowSpeed>(timer::Number::Timer0);
@@ -118,22 +118,35 @@ pub fn run(peripherals: Peripherals) -> ! {
             frequency: 25_000u32.Hz(),
         })
         .expect("ledc timer");
-    let mut pump_pwm = ledc.channel(channel::Number::Channel0, peripherals.GPIO10);
-    pump_pwm
-        .configure(channel::config::Config { timer: &pwm_timer, duty_pct: 0, pin_config: channel::config::PinConfig::PushPull })
-        .expect("pump ch");
-    let mut grow_pwm = ledc.channel(channel::Number::Channel2, peripherals.GPIO14);
+    let mut grow_pwm = ledc.channel(channel::Number::Channel0, peripherals.GPIO14);
     grow_pwm
-        .configure(channel::config::Config { timer: &pwm_timer, duty_pct: 0, pin_config: channel::config::PinConfig::PushPull })
+        .configure(channel::config::Config {
+            timer: &pwm_timer,
+            duty_pct: 0,
+            pin_config: channel::config::PinConfig::PushPull,
+        })
         .expect("grow ch");
 
     // ---- Boot the controller ----
     let cal = demo_calibration();
     let cal_bytes = cal.encode();
     let boot_rtc = dev::read_ds3231(&mut i2c);
-    let mut app = App::boot(AppConfig { utc_offset_s: UTC_OFFSET_S }, Some(&cal_bytes), 60, 0, boot_rtc, true);
-    println!("=== OpenCanopy real-driver loop (ESP32-S3) ===");
-    println!("boot: state={} rtc_valid={}", app.state().name(), boot_rtc.valid);
+    let mut app = App::boot(
+        AppConfig {
+            utc_offset_s: UTC_OFFSET_S,
+        },
+        Some(&cal_bytes),
+        60,
+        0,
+        boot_rtc,
+        true,
+    );
+    println!("=== OpenCanopy real-driver loop (ESP32-S3, passive) ===");
+    println!(
+        "boot: state={} rtc_valid={}",
+        app.state().name(),
+        boot_rtc.valid
+    );
 
     // Timing: a short fast run under `emulator` (for the Wokwi/CI smoke test — absent-device I2C
     // NAKs are slow under emulation, so a full simulated day won't finish in the CI timeout; a
@@ -151,7 +164,6 @@ pub fn run(peripherals: Peripherals) -> ! {
         let rtc = dev::read_ds3231(&mut i2c);
         let moisture_raw: Result<u16, SensorError> =
             nb::block!(adc1.read_oneshot(&mut moisture_pin)).map_err(|_| SensorError::Bus);
-        let pump_ma = dev::read_ina219_ma(&mut i2c, INA219_CURRENT_LSB_UA);
 
         // Frame assembly + GPIO polarity live in the host-tested control::board helper; the newtype
         // wrappers make the reservoir/leak booleans impossible to transpose here.
@@ -166,22 +178,19 @@ pub fn run(peripherals: Peripherals) -> ! {
         );
         let cmd = app.step(&frame);
 
-        // --- Drive actuators through the REAL PWM channels ---
-        let _ = pump_pwm.set_duty(if cmd.pump_on { 100 } else { 0 });
+        // --- Drive the only actuator through the REAL PWM channel ---
         let _ = grow_pwm.set_duty(cmd.led_pct);
 
         {
             println!(
-                "[t={}m] stage={} state={} light={} led={}% pump={} moist={} temp={} pump_mA={}",
+                "[t={}m] stage={} state={} light={} led={}% moist={} temp={}",
                 now_ms / 60_000,
                 cmd.stage.code(),
                 cmd.state.name(),
                 cmd.light_on as u8,
                 cmd.led_pct,
-                cmd.pump_on as u8,
                 cmd.moisture_pct.map(|m| m as i32).unwrap_or(-1),
                 temp_rh.map(|t| t.temp_c as i32).unwrap_or(-99),
-                pump_ma.unwrap_or(-1),
             );
         }
 
@@ -193,7 +202,11 @@ pub fn run(peripherals: Peripherals) -> ! {
         delay.delay_millis(real_delay_ms as u32);
     }
 
-    println!("REAL-DRIVER SMOKE TEST COMPLETE: ran {} ticks, final state={}", tick, app.state().name());
+    println!(
+        "REAL-DRIVER SMOKE TEST COMPLETE: ran {} ticks, final state={}",
+        tick,
+        app.state().name()
+    );
     loop {
         delay.delay_millis(1000);
     }

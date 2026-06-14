@@ -1,6 +1,6 @@
-//! Pure I2C device protocol logic for the bus peripherals (§7.5, §16.1): SHT40 (temp/RH),
-//! DS3231 (RTC), INA219 (pump current). Spec/pin map: `electronics/analysis/pin-map.csv` (I2C0 on
-//! GPIO8/9, shared by all three).
+//! Pure I2C device protocol logic for the bus peripherals (§7.5, §16.1): SHT40 (temp/RH) and
+//! DS3231 (RTC). Spec/pin map: `electronics/analysis/pin-map.csv` (I2C0 on GPIO8/9, shared by both).
+//! The INA219 pump-current monitor was removed with the pump (ECO-003, passive watering).
 //!
 //! This is the part of "the I2C driver" that's actually error-prone — register addresses, command
 //! bytes, CRC, BCD decoding, and raw→engineering conversions — and it's kept **pure and
@@ -112,40 +112,6 @@ pub fn ds3231_parse(time_regs: &[u8; 7], status_reg: u8) -> WallTime {
     }
 }
 
-// ==================================================================================== INA219 ====
-
-/// INA219 pump-current monitor I2C address (BOM U4, §7.5/DR-04). A0=A1=GND → 0x40.
-pub const INA219_ADDR: u8 = 0x40;
-pub const INA219_REG_CONFIG: u8 = 0x00;
-pub const INA219_REG_SHUNT_V: u8 = 0x01;
-pub const INA219_REG_BUS_V: u8 = 0x02;
-pub const INA219_REG_POWER: u8 = 0x03;
-pub const INA219_REG_CURRENT: u8 = 0x04;
-pub const INA219_REG_CALIBRATION: u8 = 0x05;
-
-/// Convert the raw signed CURRENT register value to milliamps, given the configured current LSB
-/// (in microamps/bit, set when programming the calibration register). The pump-fault logic uses
-/// this to detect a disconnected/dry pump (near-zero current while driven) or a clog (over-current).
-pub fn ina219_current_ma(raw_current: i16, current_lsb_ua: u32) -> i32 {
-    (raw_current as i32 * current_lsb_ua as i32) / 1000
-}
-
-/// Bus voltage register → millivolts. The INA219 bus-voltage field is bits 15..3, LSB = 4 mV.
-pub fn ina219_bus_mv(raw_bus_reg: u16) -> u32 {
-    ((raw_bus_reg >> 3) as u32) * 4
-}
-
-/// Compute the calibration register value for a desired current LSB and shunt resistance.
-/// `cal = trunc(0.04096 / (current_lsb_A * R_shunt_ohms))` (datasheet eq.). Returned as the u16 to
-/// write to [`INA219_REG_CALIBRATION`].
-pub fn ina219_calibration(current_lsb_ua: u32, r_shunt_milliohm: u32) -> u16 {
-    // 0.04096 / (lsb_A * R) = 40960 / (lsb_uA * R_mOhm / 1000) ... keep integer:
-    // cal = 0.04096 / (lsb_A * R_ohm) = 40_960_000 / (lsb_uA * R_mOhm). checked_div → 0 on a zero
-    // denominator (avoids a panic and the manual zero-check clippy flags).
-    let denom = current_lsb_ua as u64 * r_shunt_milliohm as u64;
-    40_960_000u64.checked_div(denom).unwrap_or(0).min(0xFFFF) as u16
-}
-
 // ============================================================================ BUS DRIVERS =======
 //
 // The full I2C *driving* logic (transaction sequences: address, write command, read registers,
@@ -210,25 +176,6 @@ pub fn read_ds3231<I: I2cBus>(i2c: &mut I) -> WallTime {
         return WallTime::INVALID;
     }
     ds3231_parse(&t, status[0])
-}
-
-/// Program the INA219 calibration register (required before current reads are meaningful, §7.5).
-pub fn init_ina219<I: I2cBus>(
-    i2c: &mut I,
-    current_lsb_ua: u32,
-    r_shunt_milliohm: u32,
-) -> Result<(), DeviceError> {
-    let cal = ina219_calibration(current_lsb_ua, r_shunt_milliohm).to_be_bytes();
-    i2c.write(INA219_ADDR, &[INA219_REG_CALIBRATION, cal[0], cal[1]])
-        .map_err(|_| DeviceError::Bus)
-}
-
-/// Read the INA219 CURRENT register → mA (pump dry-run / clog detection). `None` on bus error.
-pub fn read_ina219_ma<I: I2cBus>(i2c: &mut I, current_lsb_ua: u32) -> Option<i32> {
-    let mut buf = [0u8; 2];
-    i2c.write_read(INA219_ADDR, &[INA219_REG_CURRENT], &mut buf)
-        .ok()?;
-    Some(ina219_current_ma(i16::from_be_bytes(buf), current_lsb_ua))
 }
 
 #[cfg(test)]
@@ -312,38 +259,15 @@ mod tests {
         assert_eq!(days_from_civil(2000, 1, 1), 10957);
     }
 
-    // ---- INA219 ----
-    #[test]
-    fn ina219_current_conversion() {
-        // current_lsb = 100 µA/bit, raw 1000 → 100 mA.
-        assert_eq!(ina219_current_ma(1000, 100), 100);
-        // negative (reverse) current.
-        assert_eq!(ina219_current_ma(-500, 100), -50);
-    }
-
-    #[test]
-    fn ina219_bus_voltage_conversion() {
-        // bus reg with value field 1500 (<<3) → 1500*4 = 6000 mV.
-        assert_eq!(ina219_bus_mv(1500 << 3), 6000);
-    }
-
-    #[test]
-    fn ina219_calibration_value() {
-        // 100 µA LSB, 100 mΩ shunt → cal = 40_960_000 / (100*100) = 4096.
-        assert_eq!(ina219_calibration(100, 100), 4096);
-    }
-
     // ====================================================== BUS-DRIVER INTEGRATION TESTS =========
     //
-    // A mock I2C bus that simulates the three real devices on the shared bus, so the full driver
+    // A mock I2C bus that simulates the two real devices on the shared bus, so the full driver
     // transaction sequences (address, command, register read, parse, NAK) run in `cargo` — no
     // hardware, no Wokwi.
 
     struct MockBus {
         sht40: Option<[u8; 6]>,        // None = device absent (NAK)
         ds3231: Option<([u8; 7], u8)>, // (time regs, status reg)
-        ina219_current: Option<i16>,   // None = absent
-        ina219_cal: Option<u16>,       // last calibration written
         writes: Vec<(u8, Vec<u8>)>,    // recorded writes
     }
     impl MockBus {
@@ -351,8 +275,6 @@ mod tests {
             MockBus {
                 sht40: None,
                 ds3231: None,
-                ina219_current: None,
-                ina219_cal: None,
                 writes: Vec::new(),
             }
         }
@@ -364,13 +286,6 @@ mod tests {
             match addr {
                 SHT40_ADDR => self.sht40.map(|_| ()).ok_or(()),
                 DS3231_ADDR => self.ds3231.map(|_| ()).ok_or(()),
-                INA219_ADDR => {
-                    self.ina219_current.ok_or(())?;
-                    if bytes.len() == 3 && bytes[0] == INA219_REG_CALIBRATION {
-                        self.ina219_cal = Some(u16::from_be_bytes([bytes[1], bytes[2]]));
-                    }
-                    Ok(())
-                }
                 _ => Err(()),
             }
         }
@@ -394,11 +309,6 @@ mod tests {
                 (DS3231_ADDR, Some(DS3231_REG_STATUS)) => {
                     let (_, s) = self.ds3231.ok_or(())?;
                     buf[0] = s;
-                    Ok(())
-                }
-                (INA219_ADDR, Some(INA219_REG_CURRENT)) => {
-                    let c = self.ina219_current.ok_or(())?;
-                    buf[..2].copy_from_slice(&c.to_be_bytes());
                     Ok(())
                 }
                 _ => Err(()),
@@ -468,21 +378,5 @@ mod tests {
         let mut bus = MockBus::new();
         bus.ds3231 = Some(([0x00, 0x00, 0x08, 0x01, 0x14, 0x06, 0x26], DS3231_OSF_MASK));
         assert!(!read_ds3231(&mut bus).valid);
-    }
-
-    #[test]
-    fn ina219_driver_init_then_read() {
-        let mut bus = MockBus::new();
-        bus.ina219_current = Some(1000); // raw
-        init_ina219(&mut bus, 100, 100).unwrap();
-        assert_eq!(bus.ina219_cal, Some(4096)); // calibration actually written to the device
-        assert_eq!(read_ina219_ma(&mut bus, 100), Some(100)); // 1000 * 100 µA = 100 mA
-    }
-
-    #[test]
-    fn ina219_driver_absent() {
-        let mut bus = MockBus::new();
-        assert_eq!(init_ina219(&mut bus, 100, 100), Err(DeviceError::Bus));
-        assert_eq!(read_ina219_ma(&mut bus, 100), None);
     }
 }

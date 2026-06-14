@@ -26,14 +26,15 @@ boot: state=NORMAL rtc_valid=true            <- I2C bus + RTC driver work on sil
 REAL-DRIVER SMOKE TEST COMPLETE: ran 8 ticks
 ```
 
-`temp`/`pump_mA` read `-99`/`-1` because the SHT40 and INA219 are absent (no native Wokwi parts),
-and the firmware correctly **fail-safes to SENSOR_FAULT** — the §7.6 behavior, shown on silicon.
+`temp` reads `-99` because the SHT40 is absent (no native Wokwi part), and the firmware correctly
+**fail-safes to SENSOR_FAULT** — the §7.6 behavior, shown on silicon. (V1 is passive — no pump, no
+INA219 current-sense, ECO-003.)
 
 Known limitation: Wokwi's ESP32-S3 **ADC** simulation does not return the divider voltage, so
 `moist` reads invalid (`-1`). The ADC read + moisture-calibration logic is already host-tested
-(`control::calibration`, `irrigation_controller::MoistureValidator`); validating the analog probe
-itself is an HIL task. SHT40/INA219 could be added as Wokwi **custom chips** (Rust→WASM, I2C device
-API) for fuller bus coverage — deferred since the driver logic is host-tested with mocks.
+(`control::calibration`, `moisture_monitor::MoistureValidator`); validating the analog probe itself
+is an HIL task. The SHT40 could be added as a Wokwi **custom chip** (Rust→WASM, I2C device API) for
+fuller bus coverage — deferred since the driver logic is host-tested with mocks.
 
 ## Run
 

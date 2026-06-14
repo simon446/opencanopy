@@ -11,7 +11,7 @@
 //! Module map (mirrors spec §9.2):
 //! - [`plant_profile`] — age → stage → setpoints (§5.1, §5.2)
 //! - [`light_controller`] — photoperiod, ramp, RTC fallback, thermal derate (§9.5)
-//! - [`irrigation_controller`] — pulse-dosing decision loop, caps, windows, lockouts (§9.6)
+//! - [`moisture_monitor`] — passive-watering moisture validation + warning classification (§9.6)
 //! - [`climate_controller`] — VPD + temp/humidity health monitor, LED-derate request (§9.7)
 //! - [`safety_controller`] — state machine + fault-priority arbitration (§9.3, §9.4)
 //! - [`led_status`] — colorblind-safe status-LED mapping (§9.8)
@@ -31,10 +31,10 @@ pub mod board;
 pub mod calibration;
 pub mod climate_controller;
 pub mod i2c_devices;
-pub mod irrigation_controller;
 pub mod led_status;
 pub mod light_controller;
 pub mod logging;
+pub mod moisture_monitor;
 pub mod plant_profile;
 pub mod safety_controller;
 pub mod scheduler;

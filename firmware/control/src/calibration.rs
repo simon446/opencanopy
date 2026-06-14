@@ -18,7 +18,6 @@ pub struct Calibration {
     pub version: u16,
     pub moisture_raw_dry: u16,
     pub moisture_raw_wet: u16,
-    pub pump_ml_per_sec: f32,
     /// Measured canopy PPFD at 25/50/75/100 % LED power (§9.9 `led_ppfd_map`).
     pub led_ppfd_25: u16,
     pub led_ppfd_50: u16,
@@ -34,11 +33,12 @@ pub enum CalError {
     Corrupt,
     /// No calibration record present (first boot / erased flash).
     Missing,
-    /// Decoded cleanly but values are implausible (e.g. dry≈wet, zero flow).
+    /// Decoded cleanly but values are implausible (e.g. dry≈wet).
     Implausible,
 }
 
-/// Where a loaded calibration came from. Only [`CalSource::Valid`] permits auto-watering (§7.6).
+/// Where a loaded calibration came from. Only [`CalSource::Valid`] lets the firmware trust the
+/// moisture reading (§7.6).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CalSource {
     Valid,
@@ -47,32 +47,35 @@ pub enum CalSource {
     Implausible,
 }
 
-/// Result of loading from storage: the calibration to use plus whether auto-watering is permitted.
+/// Result of loading from storage: the calibration to use plus whether the moisture reading may be
+/// trusted. V1 is passive (no pump) — this no longer gates any actuation, only whether the moisture
+/// monitor reports a value or raises SENSOR_FAULT.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LoadedCalibration {
     pub cal: Calibration,
     pub source: CalSource,
-    /// False whenever calibration is missing/corrupt/implausible — controller must withhold the
-    /// pump and raise SENSOR_FAULT (§7.6). Only a fully valid record enables auto-watering.
-    pub auto_watering_enabled: bool,
+    /// False whenever calibration is missing/corrupt/implausible — the moisture monitor must then
+    /// treat moisture as untrustworthy and raise SENSOR_FAULT rather than report a bogus value
+    /// (§7.6). Only a fully valid record trusts the moisture reading.
+    pub moisture_trusted: bool,
 }
 
 const MAGIC: u32 = 0x4F43_414C; // "OCAL"
-/// Encoded record length in bytes. Layout: magic(4) version(2) dry(2) wet(2) flow(4)
-/// ppfd25/50/75/100(2×4) reservoir(2) crc(4). The fan-min byte was removed when the circulation
-/// fan was dropped from V1; an old 30-byte record now fails the length check below → fail-safe.
-pub const RECORD_LEN: usize = 4 + 2 + 2 + 2 + 4 + 2 + 2 + 2 + 2 + 2 + 4;
+/// Encoded record length in bytes. Layout: magic(4) version(2) dry(2) wet(2)
+/// ppfd25/50/75/100(2×4) reservoir(2) crc(4). The `pump_ml_per_sec` field was removed when the pump
+/// was dropped from V1 (ECO-003, passive watering); an old 28/30-byte record now fails the length
+/// check below → fail-safe.
+pub const RECORD_LEN: usize = 4 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 4;
 
 impl Calibration {
     /// Conservative engineering defaults. NOTE: these are *placeholders for non-moisture fields*;
-    /// they are NOT a valid moisture calibration, so loading defaults still disables auto-watering.
+    /// they are NOT a valid moisture calibration, so loading defaults still distrusts moisture.
     pub const DEFAULTS: Calibration = Calibration {
-        version: 1,
-        // Deliberately equal so `validate()` reports Implausible if defaults are ever used as-is
-        // for watering — forces a real dev calibration before auto-watering can run (§7.6).
+        version: 4, // schema v4: pump_ml_per_sec removed (ECO-003, passive watering)
+        // Deliberately equal so `validate()` reports Implausible if defaults are ever used as-is —
+        // forces a real dev calibration before the moisture monitor will trust a reading (§7.6).
         moisture_raw_dry: 0,
         moisture_raw_wet: 0,
-        pump_ml_per_sec: 3.8, // §9.9 example
         led_ppfd_25: 120,
         led_ppfd_50: 240,
         led_ppfd_75: 360,
@@ -86,10 +89,6 @@ impl Calibration {
         if self.moisture_raw_wet <= self.moisture_raw_dry
             || self.moisture_raw_wet - self.moisture_raw_dry < 100
         {
-            return Err(CalError::Implausible);
-        }
-        // Pump flow must be positive and physically sane.
-        if !(self.pump_ml_per_sec > 0.1 && self.pump_ml_per_sec < 50.0) {
             return Err(CalError::Implausible);
         }
         // LED map must be monotonic non-decreasing and non-trivial.
@@ -158,8 +157,6 @@ impl Calibration {
         i += 2;
         b[i..i + 2].copy_from_slice(&self.moisture_raw_wet.to_le_bytes());
         i += 2;
-        b[i..i + 4].copy_from_slice(&self.pump_ml_per_sec.to_le_bytes());
-        i += 4;
         b[i..i + 2].copy_from_slice(&self.led_ppfd_25.to_le_bytes());
         i += 2;
         b[i..i + 2].copy_from_slice(&self.led_ppfd_50.to_le_bytes());
@@ -199,12 +196,11 @@ impl Calibration {
             version: u16a(4),
             moisture_raw_dry: u16a(6),
             moisture_raw_wet: u16a(8),
-            pump_ml_per_sec: f32::from_le_bytes([bytes[10], bytes[11], bytes[12], bytes[13]]),
-            led_ppfd_25: u16a(14),
-            led_ppfd_50: u16a(16),
-            led_ppfd_75: u16a(18),
-            led_ppfd_100: u16a(20),
-            reservoir_low_adc: u16a(22),
+            led_ppfd_25: u16a(10),
+            led_ppfd_50: u16a(12),
+            led_ppfd_75: u16a(14),
+            led_ppfd_100: u16a(16),
+            reservoir_low_adc: u16a(18),
         };
         cal.validate()?;
         Ok(cal)
@@ -212,29 +208,29 @@ impl Calibration {
 }
 
 /// Load calibration from a stored byte slice (`None` = no record present). Applies the §7.6
-/// fail-safe policy and returns whether auto-watering may run.
+/// fail-safe policy and returns whether the moisture reading may be trusted.
 pub fn load(stored: Option<&[u8]>) -> LoadedCalibration {
     match stored {
         None => LoadedCalibration {
             cal: Calibration::DEFAULTS,
             source: CalSource::Missing,
-            auto_watering_enabled: false,
+            moisture_trusted: false,
         },
         Some(bytes) => match Calibration::decode(bytes) {
             Ok(cal) => LoadedCalibration {
                 cal,
                 source: CalSource::Valid,
-                auto_watering_enabled: true,
+                moisture_trusted: true,
             },
             Err(CalError::Corrupt) => LoadedCalibration {
                 cal: Calibration::DEFAULTS,
                 source: CalSource::Corrupt,
-                auto_watering_enabled: false,
+                moisture_trusted: false,
             },
             Err(_) => LoadedCalibration {
                 cal: Calibration::DEFAULTS,
                 source: CalSource::Implausible,
-                auto_watering_enabled: false,
+                moisture_trusted: false,
             },
         },
     }
@@ -259,10 +255,9 @@ mod tests {
 
     fn good() -> Calibration {
         Calibration {
-            version: 3,
+            version: 4,
             moisture_raw_dry: 1234,
             moisture_raw_wet: 2870,
-            pump_ml_per_sec: 3.8,
             led_ppfd_25: 120,
             led_ppfd_50: 240,
             led_ppfd_75: 360,
@@ -281,21 +276,21 @@ mod tests {
     }
 
     #[test]
-    fn missing_disables_auto_watering() {
+    fn missing_distrusts_moisture() {
         let l = load(None);
         assert_eq!(l.source, CalSource::Missing);
-        assert!(!l.auto_watering_enabled);
+        assert!(!l.moisture_trusted);
     }
 
     #[test]
-    fn corrupt_crc_disables_auto_watering() {
+    fn corrupt_crc_distrusts_moisture() {
         let mut bytes = good().encode();
         let n = bytes.len();
         bytes[n - 1] ^= 0xFF; // flip a CRC byte
         assert_eq!(Calibration::decode(&bytes), Err(CalError::Corrupt));
         let l = load(Some(&bytes));
         assert_eq!(l.source, CalSource::Corrupt);
-        assert!(!l.auto_watering_enabled);
+        assert!(!l.moisture_trusted);
     }
 
     #[test]
@@ -312,12 +307,12 @@ mod tests {
         // and through the codec it surfaces as implausible, not corrupt
         let bytes = c.encode();
         assert_eq!(Calibration::decode(&bytes), Err(CalError::Implausible));
-        assert!(!load(Some(&bytes)).auto_watering_enabled);
+        assert!(!load(Some(&bytes)).moisture_trusted);
     }
 
     #[test]
-    fn defaults_alone_do_not_enable_watering() {
-        // §7.6: defaults are not a real moisture calibration; must not auto-water.
+    fn defaults_alone_do_not_trust_moisture() {
+        // §7.6: defaults are not a real moisture calibration; the reading must not be trusted.
         assert_eq!(Calibration::DEFAULTS.validate(), Err(CalError::Implausible));
     }
 

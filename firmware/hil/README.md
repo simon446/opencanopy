@@ -8,11 +8,12 @@ cannot fully guarantee. Owned by the **Firmware** track, coordinated with **Elec
 
 - `fixtures/` — bench fixtures, harness adapters, signal injectors, and instrumentation configs that
   connect a board under test to controlled stimuli (e.g. forced leak signal, reservoir-low signal,
-  over-temperature injection).
+  abnormal-moisture signal, over-temperature injection).
 
 ## Purpose
 
-HIL proves the safety-critical paths on real silicon: pump fail-off on reset/brownout, leak-triggered
-pump lockout, over-temperature LED cut-back (V1 has no fan, so the grow LED is the only thermal
-lever), and LED-status correctness under injected faults. HIL pass is a V1 release gate
-(spec §21 *Electronics*/*Firmware*).
+V1 is passive (no pump, ECO-003) and fan-less (ECO-001): the grow LED is the only actuator and the
+firmware **monitors and warns**. HIL proves the safety-critical paths on real silicon: the LED forced
+off on reset/brownout, over-temperature LED cut-back (the grow LED is the only thermal lever), and the
+warning/LED-status correctness for leak/overflow, reservoir-low, abnormal-moisture, and sensor-fault
+under injected faults. HIL pass is a V1 release gate (spec §21 *Electronics*/*Firmware*).

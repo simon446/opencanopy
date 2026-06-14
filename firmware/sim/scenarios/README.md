@@ -1,25 +1,28 @@
 # sim/scenarios/ — the 11 required scenarios
 
-The §10.3 simulation scenarios, implemented as automated `cargo test` cases in
-[`../tests/scenarios.rs`](../tests/scenarios.rs). Each drives the **real** `control` crate via
-`sim::Sim` and asserts on genuine controller outputs (WI-FW-09 acceptance) — none re-implements
-control policy.
+The §10.3 simulation scenarios (**ECO-003 passive-watering** revision), implemented as automated
+`cargo test` cases in [`../tests/scenarios.rs`](../tests/scenarios.rs). Each drives the **real**
+`control` crate via `sim::Sim` and asserts on genuine controller outputs (WI-FW-09 acceptance) — none
+re-implements control policy.
+
+V1 is passive (no pump) and fan-less: the firmware **monitors and warns**; the only actuator is the
+grow LED. The scenarios exercise the warning/fault paths, not watering actuation.
 
 Run them: `cargo test -p sim` (host, stable Rust, no hardware).
 
 | # | Scenario | Setup (`sim::Config` / `Inject`) | Asserted result (§10.3) |
 |---|---|---|---|
-| 1 | Normal 7-day seedling | S1, 50% start, 7 days | No overwatering (`max_moisture < 58`), lights ~16/24 & off at night, no faults |
-| 2 | Normal 7-day fruiting | S4, 6 L reservoir, 7 days | Reservoir consumed, moisture stays above critical, no pump fault |
-| 3 | Reservoir empty | reservoir 250 mL (<300), dry | Pump locked out (0 runs), `LOW_WATER`, Water LED **red** |
-| 4 | Moisture sensor stuck wet | `moisture_stuck_pct = 70` | No watering, `SENSOR_FAULT` after the plausibility window |
-| 5 | Moisture sensor stuck dry | `moisture_stuck_pct = 20` | Tries then `PUMP_FAULT` (no-rise), capped well below daily max |
-| 6 | Pump disconnected | `pump_disconnected`, dry | `PUMP_FAULT` (no rise), zero water moved, reservoir untouched |
-| 7 | Leak detected | `leak = true`, dry | Pump never on, `LEAK_DETECTED`, Water + System LEDs **red** |
-| 8 | Hot room | room 31 °C (+LED self-heat) | LED **derate** (the only heat lever — no fan), climate **red**, no runaway |
-| 9 | Humid night | 23:00 start, RH 92%, not dry | Climate flags **red** (RH>90; no fan to act), **no watering** (not dry, night) |
-| 10 | RTC invalid | `rtc_valid = false`, dry | Safe-schedule fallback, **watering still works**, System LED **amber pulse** |
-| 11 | Power loss mid-watering | run to a pulse, then reboot | Watering event logged, reboot comes up **NORMAL** (pump off, not resumed) |
+| 1 | Normal grow (passive) | S2, 45 % start, 7 days | Wick holds moisture in-band, no dry/wet/sensor warning, reservoir consumed but not low, lights ~16/24 & off at night |
+| 2 | Reservoir drains to low | reservoir 600 mL | Crosses the 500 mL mark → `LOW_WATER`, Water LED **amber** (refill prompt), moisture still held |
+| 3 | Wick failure | `wick_failure`, full tank | Substrate dries → `MOISTURE_LOW` **with a full reservoir** (not mistaken for `LOW_WATER`) |
+| 4 | Over-wet substrate | 70 % start | `MOISTURE_HIGH` warning |
+| 5 | Moisture sensor stuck | `moisture_stuck_pct = 45` | `SENSOR_FAULT` after the plausibility window |
+| 6 | Moisture sensor bus error | `moisture_error = Bus` | `SENSOR_FAULT`, moisture reads `None` |
+| 7 | Leak / overflow | `leak = true` | `LEAK_DETECTED`, Water + System LEDs **red**, latches until manual clear |
+| 8 | Hot room | room 31 °C (+LED self-heat) | LED **derate** (only heat lever — no fan/pump), climate **warn**, no runaway |
+| 9 | Humid night | 23:00 start, RH 92 % | Climate flags **System amber** (no fan to act), nothing actuated at night |
+| 10 | RTC invalid | `rtc_valid = false` | Safe-schedule fallback, **light still cycles**, System LED **amber** |
+| 11 | Power loss / reboot | run 2 days, then reboot | Sensor events logged; reboot comes up **NORMAL** (LED off, no resumed warning) |
 
 The simulator runs entirely on stable Rust in CI (no Xtensa toolchain), per WI-FW-09 / WI-PS-06.
 Scenario parameters live in the test file; the environment model they exercise is documented in
