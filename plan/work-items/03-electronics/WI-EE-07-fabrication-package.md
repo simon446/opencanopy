@@ -6,7 +6,7 @@
 | Milestone | M4-07 |
 | Depends on | WI-EE-04, WI-EE-06 |
 | Spec refs | §14.1 (electronics/), §16.1 |
-| Status | BOM **complete** — every populated part incl. all passives is in [bom.csv](../../../electronics/bom/bom.csv) (netlist↔BOM coverage enforced in CI); alternates + fab notes done; passes bom_check `--strict`. **Residual:** Gerber/PNP/iBOM export, which `kicad-cli` generates from the routed `.kicad_pcb` (GUI step). [fab-notes](../../../electronics/pcb/fabrication/fab-notes.md) |
+| Status | BOM **complete** — every populated part incl. all passives is in [bom.csv](../../../electronics/bom/bom.csv) (netlist↔BOM coverage enforced in CI); alternates + fab notes done; passes bom_check `--strict`. A **headless programmatic draft** fab package (Gerbers/PnP/BOM) is generated from the netlist via tscircuit ([programmatic/](../../../electronics/pcb/programmatic/)). **Residual:** a *fab-ready* package needs real footprints + a reviewed layout (then `kicad-cli`, or refined tscircuit export). [fab-notes](../../../electronics/pcb/fabrication/fab-notes.md) |
 
 ## Objective
 

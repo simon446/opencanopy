@@ -56,5 +56,8 @@ This netlist is the bridge, not a replacement for layout:
    `../ibom/` per [`fab-notes.md`](../fabrication/fab-notes.md). The `eda` CI job then runs ERC/DRC on
    the real source.
 
-Steps 2–3 (placement, routing, Gerber export) require the **KiCad GUI** and are the documented
-residual; this netlist makes step 1 mechanical rather than a re-capture from prose.
+Steps 2–3 (placement, routing, Gerber export) can be done **in the KiCad GUI** — or **headlessly**
+via the [`../programmatic/`](../programmatic/) tscircuit flow, which auto-routes this netlist and
+exports a Gerber/PnP/BOM **draft** with no GUI. Either way the residual is the same: real footprints
+and a reviewed power/analog/thermal placement (the autorouter doesn't remove that review). This
+netlist makes the schematic-entry step mechanical rather than a re-capture from prose.
