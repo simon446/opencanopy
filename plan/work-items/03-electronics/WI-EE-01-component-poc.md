@@ -21,7 +21,7 @@ to a custom PCB. De-risk the parts, not the layout.
 - [ ] Reservoir low-level sensor: reliable detection logged (§7.7). *(Float switch selected; fill/drain protocol ready.)*
 - [ ] Leak sensor: pump-lockout signal reliable. *(Conductive-trace pad selected; latched-lockout test defined.)*
 - [ ] Pump (brushless DC submersible): flow (ml/s) + noise (dBA @1 m) measured (§7.3). *(24 V centrifugal selected; 30 s-cylinder + SPL protocol ready.)*
-- [ ] Fan (80/92 mm PWM): min reliable duty + noise measured (§7.4). *(92 mm 4-pin selected; PWM/tach sweep protocol ready.)*
+- [x] ~~Fan (80/92 mm PWM)~~ **Removed — no fan in V1** ([ECO-001](../../../electronics/analysis/ECO-001-fan-removal.md)). *(Was a plant-circulation fan; LED is passively cooled per WI-EE-10. Deliverable struck.)*
 - [ ] LED dimming: PPFD map at 25/50/75/100% recorded (§7.2) using [WI-PL-02](../01-plant-science/WI-PL-02-light-dli-targets.md) calculator. *(Pending grow-light part + PAR meter + WI-PL-06.)*
 - [x] Grow-light candidate meets §16.3 gating (real PPF/PPFD, dimming, spectrum, thermal data). *(DR-01 now PASS — thermal ✔ WI-EE-10, photometric ✔ WI-PL-06; panel candidate passes bom_check; bar needs ≥200 mm clearance.)*
 - [x] Grow-light BOM entry **not finalized** until the §23 DR-01 modeling gate passes

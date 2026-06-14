@@ -18,7 +18,7 @@ the 24 V/LED paths are realised as **filled copper pours** ≥ `used_w` (see [WI
 | 24 V input → regulators/LED | 4.20 A | 2.17 mm | 3.3 mm / pour | 37.8 mV |
 | LED driver feed (24 V) | 4.20 A | 2.17 mm | 3.3 mm / pour | 25.2 mV |
 | Pump MOSFET drain/source | 0.63 A | 0.16 mm | 0.3 mm + pour | 31.2 mV |
-| 12 V rail (fan + pump option) | 1.70 A | 0.62 mm | 0.9 mm | 46.8 mV |
+| 12 V rail (optional 12 V pump only; no fan — ECO-001) | 1.70 A | 0.62 mm | 0.9 mm | 46.8 mV |
 | 5 V rail | 0.60 A | 0.15 mm | 0.3 mm | 49.6 mV |
 | 3V3 rail (MCU) | 0.60 A | 0.15 mm | 0.3 mm | 39.6 mV |
 
@@ -30,7 +30,7 @@ near 4 A; the pour keeps its rise and drop low.
 | Component | Loss (computed) | Prediction | Basis |
 |---|---:|---|---|
 | Pump MOSFET @ peak | ~12–30 mW (I²R, logic-level FET R_DS(on)≈30 mΩ, ≤1 A) | <5 °C rise — effectively ambient | low current + copper pour |
-| 24→12 V buck @ 1.7 A | ~2.2 W (η≈0.90) | ~30–40 °C rise with pour → confirm <125 °C | **only at full load if 12 V pump option fitted**; ~0.6 W with fan alone |
+| 24→12 V buck @ 1.7 A *(optional/DNP)* | ~2.2 W (η≈0.90) | ~30–40 °C rise with pour → confirm <125 °C | **only if the 12 V pump option is fitted**; default 24 V-pump build omits this buck entirely (no fan — ECO-001) |
 | 24→5 V buck @ 0.6 A | ~0.4 W | small rise | — |
 | 5→3.3 V reg @ 0.6 A | ~0.3 W | small rise | — |
 
@@ -47,7 +47,7 @@ Carried from [WI-EE-02 §4](../analysis/power-budget.md):
 | J_PWR (24 V in) | 6.25 A | XT30 / 2-pos screw | ≥10 A |
 | J_LED (24 V) | 4.2 A | JST VH | ≥6 A |
 | J_PUMP (24 V) | 0.63 A | JST VH | ≥3 A |
-| J_FAN (12 V) | 0.42 A | 4-pin / JST XH | ≥1 A |
+| ~~J_FAN (12 V)~~ | — | **DNP — no fan in V1 (ECO-001)** | — |
 | Sensor buses | <0.1 A | JST PH/XH | ≥1 A |
 
 ## 4. Measurement templates — fill at bring-up (WI-EE-08)
@@ -57,11 +57,11 @@ Carried from [WI-EE-02 §4](../analysis/power-budget.md):
 | ID | Measurement | Method | Pass criterion | Measured |
 |---|---|---|---|---|
 | T1 | 24 V feed V-drop @ 4.2 A | DMM across input→LED connector at max load | within prediction; <100 mV | `pending` |
-| T2 | 12 V V-drop @ full load | DMM across buck out→fan/pump | <100 mV | `pending` |
+| T2 | 12 V V-drop @ full load | DMM across buck out→12 V pump | <100 mV | `pending` *(only if 12 V pump option fitted; no fan)* |
 | T3 | Pump MOSFET temp @ 100 % | thermocouple / IR on FET, real pump in water | < FET rating, < 60 °C case | `pending` |
-| T4 | Fan-drive temp @ 100 % | IR on fan low-side / driver | within rating | `pending` |
+| ~~T4~~ | ~~Fan-drive temp @ 100 %~~ | **N/A — no fan in V1 (ECO-001)** | — | `n/a` |
 | T5 | Regulator temps @ worst-case ambient | IR on each DC/DC at 25–40 °C bay | junction < rating | `pending` |
-| T6 | Thermal-camera image @ max pump/fan/LED-control load | thermal cam, full-load steady state | no hotspot over rating | `pending` (save to `validation/thermal/`) |
+| T6 | Thermal-camera image @ max pump/LED-control load | thermal cam, full-load steady state | no hotspot over rating | `pending` (save to `validation/thermal/`) |
 
 ## 5. Deliverable status
 
@@ -69,6 +69,6 @@ Carried from [WI-EE-02 §4](../analysis/power-budget.md):
 |---|---|
 | Trace-width calc + max-current table | ✔ computed |
 | Voltage-drop measurement under max load | predicted ✔ / **measured ⏳** (T1–T2) |
-| MOSFET temp @100 % pump+fan; regulator temp worst-case | predicted ✔ / **measured ⏳** (T3–T5) |
+| MOSFET temp @100 % pump; regulator temp worst-case (no fan — ECO-001) | predicted ✔ / **measured ⏳** (T3, T5) |
 | Thermal-camera image at max load | template ✔ / **image ⏳** (T6) |
 | Connector current-rating table | ✔ computed |

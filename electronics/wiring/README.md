@@ -12,12 +12,13 @@
 Every removable wet-zone module gets a **drip loop** so water runs off the cable below the connector,
 not into it: pump (`J_PUMP`), moisture probe (`J_MOIST`), reservoir level (`J_RES`), leak sensor
 (`J_LEAK`). Each is also clamped/grommeted at the case wall or module so the wire cannot transmit
-strain to the connector or PCB pad. Dry-zone runs (LED, fan, SHT40, status board) get a service loop
-and a clamp at the module end.
+strain to the connector or PCB pad. Dry-zone runs (LED, SHT40, status board) get a service loop and a
+clamp at the module end. *(No fan in V1 — [ECO-001](../analysis/ECO-001-fan-removal.md); the `J_FAN`
+header is DNP and carries no harness.)*
 
 ## Labelling & routing rules
 
-- Harness labels (`pump`, `fan`, `LED`, `moisture`, `reservoir`, `leak`) match the mechanical cable
+- Harness labels (`pump`, `LED`, `moisture`, `reservoir`, `leak`) match the mechanical cable
   channel in [WI-ME-07 cable/tube routing](../../plan/work-items/04-mechanical/WI-ME-07-cable-tube-routing.md)
   (§8.5).
 - **DR-08 routing rule:** the pump **supply tube** must never cross over the electronics bay; the

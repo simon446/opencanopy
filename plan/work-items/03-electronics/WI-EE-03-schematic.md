@@ -15,11 +15,12 @@ fail-safe pump drive.
 
 ## Deliverables
 
-- [x] KiCad schematic covering MCU, all sensor buses, fan PWM/tach, pump driver, LED dim interface,
-      status LED board connector, and expansion headers (camera/PAR/load-cell/pH/EC, unpopulated).
+- [x] KiCad schematic covering MCU, all sensor buses, pump driver, LED dim interface, status LED
+      board connector, and expansion headers (camera/PAR/load-cell/pH/EC, unpopulated); fan PWM/tach
+      kept as a **DNP** option (no fan in V1, [ECO-001](../../../electronics/analysis/ECO-001-fan-removal.md)).
       *(Captured as 5-sheet design + full pin map; KiCad entry from capture pending.)*
 - [x] Protection: input fuse, reverse-polarity protection, TVS, flyback on inductive loads (§17.1).
-      *(F1 6.3/8 A, P-FET reverse-polarity, SMBJ28A TVS, flyback on pump & fan.)*
+      *(F1 6.3/8 A, P-FET reverse-polarity, SMBJ28A TVS, flyback on pump; fan flyback DNP — no fan, ECO-001.)*
 - [x] Pump MOSFET with **gate pull-down** so pump fails OFF on MCU reset/crash (§9.6, §11.4).
       *(External 10 kΩ gate→GND pull-down; hardware-guaranteed, not firmware-dependent.)*
 - [x] Logic-level MOSFETs at 3.3 V gate, or gate driver (§7.10). *(Logic-level FET enhanced at V_GS=2.5 V; series gate R + optional driver.)*

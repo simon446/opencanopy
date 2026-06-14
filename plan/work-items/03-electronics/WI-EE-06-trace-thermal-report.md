@@ -16,8 +16,8 @@ Prove every high-current path and heat-dissipating component is within rating, w
 
 - [x] Trace-width calculation for each power path; maximum-current table (§11.3). *(IPC-2221; trace_width.py.)*
 - [ ] Voltage-drop measurement under max load. *(Predicted <50 mV/path; measured rows T1–T2 pending board.)*
-- [ ] MOSFET temperature at 100% pump and fan; regulator temp at worst-case ambient. *(Predicted; measured rows T3–T5 pending board.)*
-- [ ] Thermal camera image at max pump/fan/LED-control load. *(Template ready; image T6 pending board → validation/thermal/.)*
+- [ ] MOSFET temperature at 100% pump; regulator temp at worst-case ambient. *(Predicted; measured rows T3, T5 pending board. Fan-drive temp N/A — no fan in V1, [ECO-001](../../../electronics/analysis/ECO-001-fan-removal.md).)*
+- [ ] Thermal camera image at max pump/LED-control load. *(Template ready; image T6 pending board → validation/thermal/.)*
 - [x] Connector current-rating table. *(Carried from WI-EE-02 §4.)*
 
 ## Acceptance criteria

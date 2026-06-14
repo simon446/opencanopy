@@ -7,8 +7,8 @@ RES_LEVEL_ADC,GPIO6,in,ADC1_CH5,J_RES,optional analog level (eTape); ADC1
 LEAK_DET,GPIO7,in,GPIO,J_LEAK,from leak comparator; active-high = leak; latched in FW
 LED_HS_NTC,GPIO2,in,ADC1_CH1,J_LED,optional LED-heatsink NTC (DR-09 secondary); ADC1
 PUMP_PWM,GPIO10,out,LEDC,J_PUMP_DRV,pump MOSFET gate (via 100R + driver); EXTERNAL 10k pulldown = fail-OFF
-FAN_PWM,GPIO12,out,LEDC,J_FAN,25 kHz fan PWM
-FAN_TACH,GPIO13,in,PCNT,J_FAN,open-collector tach; pullup to 3V3
+FAN_PWM,GPIO12,out,LEDC,J_FAN,RESERVED/DNP - no fan in V1 (ECO-001); fan-drive provision unpopulated, pin left unused
+FAN_TACH,GPIO13,in,PCNT,J_FAN,RESERVED/DNP - no fan in V1 (ECO-001); tach input unpopulated
 LED_DIM_PWM,GPIO14,out,LEDC,J_LED,LED dim; PWM direct or PWM->RC->opamp for 0-10V
 STATUS_LED_DATA,GPIO21,out,RMT,J_STATUS,WS2812 data to front-panel board (single wire)
 UART0_TX,GPIO43,out,UART0,J_DBG,debug UART header

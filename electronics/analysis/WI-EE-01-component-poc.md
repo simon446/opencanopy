@@ -26,7 +26,7 @@ BOM (§16) needs. Alternates live in [alternates.csv](../bom/alternates.csv).
 | 5 | **Leak sensor** | Conductive trace pad / rope sensor on bottom tray | Open/closed via comparator | §7.5; drives pump lockout (latched, §11.4) |
 | 6 | **Pump** | 24 V brushless DC submersible centrifugal, ≥1.0 m head, 80–240 L/h | <5 W typ, removable filter, 6/8 mm tubing | §7.3 preferred; quiet, continuous-rated |
 | 7 | **Pump current sense** | INA219 (I²C) or shunt + amp on pump rail | mA resolution on 24 V/12 V rail | §7.5 **required** in V1 (DR-04 — clog/dry-run detection) |
-| 8 | **Fan** | 92×92×25 mm 12 V PWM, fluid-dynamic bearing, 4-pin (PWM+tach) | 5–20 CFM, ≤20 dBA nominal | §7.4; dual-duty canopy + bay (per WI-EE-10) |
+| ~~8~~ | ~~**Fan**~~ | **REMOVED — no fan in V1** ([ECO-001](ECO-001-fan-removal.md)) | — | was §7.4 plant-circulation fan; LED is passively cooled (WI-EE-10), bay by open-frame convection |
 | 9 | **Grow light** | Full-spectrum white hort LED **panel** (preferred at 150 mm clearance per PL-06), 50–80 W, PWM/0–10 V dim, remote driver | PPF 140–220 µmol/s, PPE ≥2.5 | §7.2/§16.3 — DR-01 now PASS; finalize per §4 |
 | 10 | **RTC** | DS3231SN (battery-backed, I²C) + CR2032 | ±2 ppm TCXO | §16.1 / DR-05; placed away from driver heat (WI-EE-10 §6) |
 | 11 | **Status LEDs** | 5 × WS2812B-2020 **or** 5 × discrete RGB + drivers | Dimmable, PWM night mode | §7.11; detailed in [WI-EE-09](WI-EE-09-status-led-board.md) |
@@ -44,7 +44,7 @@ Each test maps to a §15.3 M2 acceptance row.
 | M2-04 | Reservoir low | Fill/drain cycle; log switch transition vs water level | Reliable low-level edge; no chatter at threshold |
 | M2-05 | Leak | Drip water across the trace pad; log signal + verify firmware pump-lockout hook | Detects within seconds; pump-enable line forced low; latches until manual clear |
 | M2-06 | Pump | Run into a graduated cylinder for 30 s ×3; SPL meter @1 m | ml/s logged (±25 % repeatable, §7.3); ≤30 dBA @1 m |
-| M2-07 | Fan | Sweep PWM 0–100 %; log tach RPM; SPL @1 m | Lowest reliable spinning duty found; ≤20 dBA nominal / ≤30 dBA max |
+| ~~M2-07~~ | ~~Fan~~ | **N/A — no fan in V1** ([ECO-001](ECO-001-fan-removal.md)) | — |
 | M2-08 | LED dim | Drive dim input 25/50/75/100 %; measure PPFD grid with PAR meter at canopy plane | Monotonic PPFD map; values usable by [WI-PL-02 DLI calc](../../plan/work-items/01-plant-science/WI-PL-02-light-dli-targets.md) |
 | — | Pump current | Log INA219 mA at idle / normal / blocked-intake / dry-run | Distinguishable current signatures for clog & dry-run (DR-04) |
 
@@ -61,8 +61,10 @@ M2-06,pump,PMP-24-1m,,,30s_run_1,,ml,,,
 
 ## 4. Grow-light gate (§23 DR-01) — both halves now PASS
 
-- **Thermal half — DONE:** [WI-EE-10](WI-EE-10-thermal-budget-model.md) confirms 50–80 W is a clean
-  GO and bounds the heatsink/fan the fixture must use; 100 W is full-yield-variant only.
+- **Thermal half — DONE (passive, no fan):** [WI-EE-10](WI-EE-10-thermal-budget-model.md) confirms
+  the committed 60 W light is a clean **fan-less** GO on a `≤0.8 °C/W` passive heatsink (the bound the
+  fixture must use); the passive ceiling is ~80 W and 100 W is full-yield-variant only (needs active
+  cooling — [ECO-001](ECO-001-fan-removal.md)).
 - **Photometric half — DONE (PASS):** [WI-PL-06](../../plan/work-items/01-plant-science/WI-PL-06-photometric-model.md)
   shows ≥0.6 uniformity and the §7.2 PPFD across the canopy. **Form-factor constraint:** a **panel**
   meets uniformity at the 150 mm clearance target, while a single **bar** only reaches ≥0.6 at
@@ -88,7 +90,7 @@ BOM carries a compliant **panel candidate** (`LIGHT-CANDIDATE-60W`) referencing 
 | Reservoir-level selection + protocol | ✔ selection / ⏳ bench log |
 | Leak selection + protocol | ✔ selection / ⏳ bench log |
 | Pump selection + protocol | ✔ selection / ⏳ flow+noise log |
-| Fan selection + protocol | ✔ selection / ⏳ duty+noise log |
+| ~~Fan selection + protocol~~ | **N/A — removed, no fan in V1 (ECO-001)** |
 | LED dim selection + protocol | ✔ selection / ⏳ PPFD map |
 | Grow-light §16.3 gating | ✔ DR-01 PASS (thermal ✔ EE-10 / photometric ✔ PL-06); panel form preferred |
 | Grow-light BOM finalization | gate clear — panel candidate in BOM; final procurement pick outstanding |

@@ -36,7 +36,7 @@ with the **analog sensor domain**:
  ├──────────────────────────────┤   (quiet, star-tied GND)   │
  │  HIGH-CURRENT OUTPUTS         │                            │
  │  pump MOSFET + pour, LED dim, ├───────────────────────────┤
- │  fan driver, flybacks         │   MCU + USB/UART + status  │
+ │  flybacks (fan-drive DNP)     │   MCU + USB/UART + status  │
  │  (LED current loop kept tight)│   LED connector            │
  └──────────────────────────────┴───────────────────────────┘
    field/power connectors along this edge   sensor connectors along this edge
@@ -62,7 +62,7 @@ with the **analog sensor domain**:
 | 24 V input → regulators / LED | 4.2 A (100 W) | ≥2.5 mm @ 2 oz, or filled pour | proven in [WI-EE-06](../test/pcb-verification.md) |
 | LED driver feed | 4.2 A | pour / wide trace | tight loop, power side only |
 | Pump MOSFET drain/source | 0.63 A peak | ≥0.6 mm + **copper pour around FET** | pour doubles as heatsink (§7.10) |
-| Fan 12 V | 0.42 A | ≥0.4 mm | — |
+| ~~Fan 12 V~~ | — | DNP (no fan in V1, ECO-001) | header footprint only |
 | Logic/sensor | <0.1 A | default 0.2 mm | — |
 
 **Copper pours for MOSFET heat dissipation** on the pump FET and the regulators (§7.10); thermal
@@ -73,8 +73,8 @@ relief on these pads is minimized so it does not choke the current-carrying path
 Accessible probe points (loop or pad), labeled on silkscreen:
 
 - **Rails:** 24 V, 12 V, 5 V, 3V3, GND (several GND points).
-- **Buses/control:** I²C SDA/SCL, UART TX/RX, pump drive (gate + drain), fan PWM + tach, LED dim,
-  moisture ADC, reservoir, leak.
+- **Buses/control:** I²C SDA/SCL, UART TX/RX, pump drive (gate + drain), LED dim, moisture ADC,
+  reservoir, leak. *(Fan PWM/tach test points are on the DNP fan-drive footprint only — no fan in V1.)*
 
 This set satisfies M4-05 ("all rails and control signals have accessible test points") and is what the
 [bring-up procedure (WI-EE-08)](../test/bringup.md) probes.

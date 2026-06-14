@@ -38,7 +38,7 @@ PATHS = [
     Path("24V input -> regulators/LED", 4.20, 60.0),
     Path("LED driver feed (24V)", 4.20, 40.0),
     Path("Pump MOSFET drain/source (24V)", 0.63, 30.0),
-    Path("12V rail (fan + pump option)", 1.70, 50.0),
+    Path("12V rail (optional 12V pump only; no fan, ECO-001)", 1.70, 50.0),
     Path("5V rail (sensors/status/3V3)", 0.60, 50.0),
     Path("3V3 rail (MCU)", 0.60, 40.0),
 ]

@@ -16,10 +16,10 @@ serviceability.
 ## Deliverables
 
 - [x] KiCad PCB (2-layer acceptable, 4-layer preferred for power/ground). *(4-layer stackup designed; board entry from capture pending.)*
-- [x] High-current LED/pump/fan paths sized per trace-width calc; not routed through control traces. *(Targets set; proven in WI-EE-06.)*
+- [x] High-current LED/pump paths sized per trace-width calc; not routed through control traces. *(Targets set; proven in WI-EE-06. Fan path DNP — no fan in V1, [ECO-001](../../../electronics/analysis/ECO-001-fan-removal.md).)*
 - [x] LED current loop kept away from moisture/ADC analog lines; partitioned/star grounds. *(Floorplan partitions power vs analog; star ground specified.)*
 - [x] Copper pours for MOSFET heat dissipation. *(Pump FET + regulators pours specified.)*
-- [x] Test points on every rail, I2C, UART, pump drive, fan PWM/tach, LED dim, sensor inputs (§7.9). *(Enumerated.)*
+- [x] Test points on every rail, I2C, UART, pump drive, LED dim, sensor inputs (§7.9). *(Enumerated; fan PWM/tach TPs on the DNP fan footprint only — no fan in V1, ECO-001.)*
 - [x] Locking/keyed connectors (no loose Dupont); silkscreen labels with polarity/voltage/warnings. *(Specified per domain.)*
 - [ ] DRC clean. *(Runs against KiCad source via kicad-cli in CI; pending source files.)*
 

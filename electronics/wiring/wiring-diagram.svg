@@ -61,13 +61,10 @@
   <line x1="270" y1="175" x2="360" y2="175" class="sig"/>
   <text x="276" y="169" class="pin">J_STATUS 5V/GND/DATA</text>
 
-  <!-- Fan (dry, left) -->
-  <rect x="70" y="230" width="200" height="50" class="box"/>
-  <text x="170" y="250" text-anchor="middle" class="lbl">92 mm PWM fan</text>
-  <text x="170" y="266" text-anchor="middle" class="pin">canopy + bay airflow</text>
-  <line x1="270" y1="252" x2="360" y2="252" class="v12"/>
-  <line x1="270" y1="264" x2="360" y2="264" class="sig"/>
-  <text x="276" y="246" class="pin">J_FAN 12V/GND/PWM/TACH</text>
+  <!-- Fan: REMOVED in V1 (ECO-001). Header kept DNP; no fan, no harness. -->
+  <rect x="70" y="230" width="200" height="50" class="box" stroke-dasharray="4 3" opacity="0.5"/>
+  <text x="170" y="250" text-anchor="middle" class="lbl" opacity="0.5">fan — NOT FITTED (V1)</text>
+  <text x="170" y="266" text-anchor="middle" class="pin" opacity="0.5">removed, ECO-001 · J_FAN DNP</text>
 
   <!-- USB/UART (dry) -->
   <rect x="360" y="320" width="200" height="40" class="box"/>

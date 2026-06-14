@@ -17,7 +17,7 @@ automated CLI ERC run, are pending the KiCad source files** (`electronics/pcb/ki
 | **1 Power** | 24 V input, fuse, reverse-polarity, TVS, bulk caps; 24→12 V, 24→5 V, 5→3.3 V regulators; per-rail test points |
 | **2 MCU** | ESP32-S3-WROOM-1 (N8R8), decoupling, EN/BOOT, USB-CDC, UART header, strapping |
 | **3 Sensors** | I²C bus (SHT40, DS3231 RTC, INA219), moisture ADC front end, reservoir, leak comparator, optional LED NTC |
-| **4 Outputs** | Pump MOSFET + fail-off, fan PWM/tach, LED dim interface, flyback/snubbers |
+| **4 Outputs** | Pump MOSFET + fail-off, LED dim interface, flyback/snubbers; fan PWM/tach **DNP** (no fan in V1, ECO-001) |
 | **5 Connectors/Expansion** | Locking/keyed field connectors; status-LED connector; camera/PAR/load-cell/pH/EC headers (unpopulated) |
 
 ## 2. Power & protection (sheet 1) — §17.1, §11.4
@@ -25,8 +25,8 @@ automated CLI ERC run, are pending the KiCad source files** (`electronics/pcb/ki
 Input chain, in order from the 24 V barrel/locking jack:
 
 1. **F1 input fuse** — slow-blow, in the 24 V line. 6.3 A for the 120 W build, 8 A for the 150 W
-   (100 W LED) build. Sized above continuous worst-case (95 W→4.0 A / 115 W→4.8 A) and below
-   connector/trace ratings.
+   (100 W LED) build. Sized above continuous worst-case (90 W→3.8 A / 110 W→4.6 A, no fan — ECO-001)
+   and below connector/trace ratings.
 2. **Reverse-polarity protection** — P-channel MOSFET in the high side (low forward drop, preferred
    over a series Schottky at these currents). Gate clamped with a Zener so V_GS stays in spec.
 3. **TVS** — `SMBJ28A` (28 V stand-off, ~45 V clamp) across 24 V→GND after the fuse, to clamp PSU
@@ -37,7 +37,7 @@ Regulators (each with input/output ceramics and a **test point** on the output, 
 
 | Rail | Topology | Rating | Feeds |
 |---|---|---:|---|
-| 12 V | 24→12 V synchronous buck | ≥2 A | fan, optional 12 V pump |
+| 12 V *(optional/DNP)* | 24→12 V synchronous buck | ≥2 A | optional 12 V pump only (no fan — ECO-001) |
 | 5 V | 24→5 V synchronous buck | ≥2 A | sensors, status LEDs, 3.3 V |
 | 3.3 V | 5→3.3 V buck/LDO | ≥1 A | MCU, RTC, logic |
 
@@ -78,10 +78,12 @@ so they keep working while Wi-Fi is active (ADC2 is unusable with the radio on).
 - **Flyback Schottky** across the pump (cathode to +V) for the inductive motor; TVS/snubber across
   the FET drain as a second clamp.
 
-### 5.2 Fan
+### 5.2 Fan — **DNP (no fan in V1, [ECO-001](ECO-001-fan-removal.md))**
 
-- 12 V PWM (GPIO12, 25 kHz) into the fan's 4-pin PWM input (low-side or dedicated fan-driver); tach
-  (GPIO13) pulled up to 3V3, counted by PCNT. Flyback across the fan motor.
+- The fan-drive provision is kept on the board as an **unpopulated (DNP) option** so a future fan can
+  be driven without a respin, but **V1 fits no fan**: 12 V PWM (GPIO12, 25 kHz) into a 4-pin header,
+  tach (GPIO13) pulled up to 3V3 / PCNT, flyback `D3` across the motor — **all DNP**. GPIO12/13 are
+  left unused (pin-map: RESERVED). The LED is **passively cooled** (WI-EE-10), so no fan is required.
 
 ### 5.3 LED dim interface
 
@@ -126,7 +128,7 @@ the KiCad source exists and can be wired into CI (`kicad-cli sch erc`, spec §10
 
 | Deliverable | State |
 |---|---|
-| Full schematic capture (MCU, buses, fan, pump, LED dim, status connector, expansion) | ✔ specified; KiCad entry pending |
+| Full schematic capture (MCU, buses, pump, LED dim, status connector, expansion; fan-drive DNP) | ✔ specified; KiCad entry pending |
 | Protection (fuse, reverse-polarity, TVS, flyback) | ✔ specified |
 | Pump MOSFET gate pull-down → fails OFF | ✔ specified (10 kΩ pull-down, hardware-guaranteed) |
 | Logic-level MOSFETs at 3.3 V / gate driver | ✔ specified |

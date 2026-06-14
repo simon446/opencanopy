@@ -7,10 +7,10 @@ J_LED,Grow light,JST VH 4-pos keyed,3,LED_DIM,signal,0-10/PWM,24,white,LED drive
 J_LED,Grow light,JST VH 4-pos keyed,4,LED_NTC,signal,0-3.3,26,grey,LED heatsink NTC (optional),,DR-09 secondary thermal; ADC1
 J_PUMP,Pump,JST VH 2-pos keyed,1,PUMP_+24V,+,24,20,red,Submersible pump,drip loop below electronics; clamp,low-side switched; flyback on board
 J_PUMP,Pump,JST VH 2-pos keyed,2,PUMP_RET,switched-,0,20,black,Submersible pump,drip loop,returns to pump MOSFET drain
-J_FAN,Fan,4-pin fan / JST XH,1,GND,-,0,26,black,92mm PWM fan,grommet at fan mount,
-J_FAN,Fan,4-pin fan / JST XH,2,+12V,+,12,24,yellow,92mm PWM fan,grommet at fan mount,
-J_FAN,Fan,4-pin fan / JST XH,3,FAN_PWM,signal,3.3,28,blue,92mm PWM fan,,25 kHz
-J_FAN,Fan,4-pin fan / JST XH,4,FAN_TACH,signal,3.3,28,green,92mm PWM fan,,open-collector; pullup on board
+J_FAN,Fan (DNP - not fitted V1),4-pin fan / JST XH,1,GND,-,0,26,black,NOT FITTED - no fan in V1 (ECO-001),n/a,fan-drive header DNP; no harness in V1
+J_FAN,Fan (DNP - not fitted V1),4-pin fan / JST XH,2,+12V,+,12,24,yellow,NOT FITTED - no fan in V1 (ECO-001),n/a,DNP
+J_FAN,Fan (DNP - not fitted V1),4-pin fan / JST XH,3,FAN_PWM,signal,3.3,28,blue,NOT FITTED - no fan in V1 (ECO-001),n/a,DNP; GPIO12 left unused
+J_FAN,Fan (DNP - not fitted V1),4-pin fan / JST XH,4,FAN_TACH,signal,3.3,28,green,NOT FITTED - no fan in V1 (ECO-001),n/a,DNP; GPIO13 left unused
 J_MOIST,Moisture probe,JST PH 3-pos keyed,1,+3V3,+,3.3,26,red,Capacitive soil probe,drip loop at pot; replaceable conn,corrosion-resistant probe
 J_MOIST,Moisture probe,JST PH 3-pos keyed,2,GND,-,0,26,black,Capacitive soil probe,drip loop,
 J_MOIST,Moisture probe,JST PH 3-pos keyed,3,MOIST_SIG,signal,0-3.0,26,white,Capacitive soil probe,,ADC1; analog

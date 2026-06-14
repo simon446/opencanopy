@@ -12,9 +12,6 @@ M2-06,pump,PMP-24-1m,,,30s_run_1,,ml,,,into graduated cylinder
 M2-06,pump,PMP-24-1m,,,30s_run_2,,ml,,,
 M2-06,pump,PMP-24-1m,,,30s_run_3,,ml,,,
 M2-06,pump,PMP-24-1m,,,noise_1m,,dBA,,,SPL meter @1 m
-M2-07,fan,FAN-92-12V-PWM,,,min_spin_duty,,pct,,,lowest reliable spinning duty
-M2-07,fan,FAN-92-12V-PWM,,,tach_at_50pct,,rpm,,,
-M2-07,fan,FAN-92-12V-PWM,,,noise_1m,,dBA,,,
 M2-08,grow-light,LIGHT-TBD-DR01,,,ppfd_25pct,,umol/m2/s,,,PAR meter at canopy plane
 M2-08,grow-light,LIGHT-TBD-DR01,,,ppfd_50pct,,umol/m2/s,,,
 M2-08,grow-light,LIGHT-TBD-DR01,,,ppfd_75pct,,umol/m2/s,,,

@@ -12,15 +12,15 @@ F1,Input fuse + holder,protection,power,1,6.3A slow,fuse-6p3A,generic,5x20mm,§7
 Q2,Reverse-polarity P-FET,protection,power,1,P-FET 40V,DMP3056L,Diodes Inc,SOT23,§17.1,,,,,,,committed,high-side; Zener-clamped gate
 D1,Input TVS,protection,power,1,SMBJ28A,SMBJ28A,Littelfuse,SMB,§17.1,,,,,,,committed,28V standoff
 D2,Pump flyback,protection,irrigation,1,Schottky 3A,SS34,generic,SMC,§17.1,,,,,,,committed,
-D3,Fan flyback,protection,climate,1,Schottky 1A,SS14,generic,SMA,§17.1,,,,,,,committed,
-U6,24->12V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,committed,fan + 12V pump option
+D3,Fan flyback,protection,climate,1,Schottky 1A,SS14,generic,SMA,§17.1,,,,,,,optional-dnp,no fan in V1 (ECO-001); footprint kept DNP for future fan-drive option
+U6,24->12V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,optional,12V pump option only (no fan in V1, ECO-001); omit if 24V pump used
 U7,24->5V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,committed,sensors/status/3V3 feed
 U8,5->3.3V reg,power,power,1,1A,AP2112K-3.3,Diodes Inc,SOT23-5,§7.8,,,,,,,committed,MCU rail
 U9,LED dim buffer,interface,light,1,opamp,MCP6001,Microchip,SOT23-5,§7.2,,,,,,,optional,only if 0-10V dim needed
 CN_PWR,Power input connector,connector,power,1,XT30,XT30PW,generic,TH,§7.10,,,,,,,committed,>=10A
 CN_LED,LED connector,connector,light,1,JST VH 4,B4PS-VH,JST,TH,§7.9,,,,,,,committed,+24V/GND/DIM/NTC
 CN_PUMP,Pump connector,connector,irrigation,1,JST VH 2,B2PS-VH,JST,TH,§7.9,,,,,,,committed,
-CN_FAN,Fan connector,connector,climate,1,4-pin fan,47053-1000,Molex,TH,§7.9,,,,,,,committed,PWM+tach
+CN_FAN,Fan connector,connector,climate,1,4-pin fan,47053-1000,Molex,TH,§7.9,,,,,,,optional-dnp,no fan in V1 (ECO-001); PWM+tach header kept DNP for future fan-drive option
 CN_MOIST,Moisture connector,connector,irrigation,1,JST PH 3,B3B-PH,JST,TH,§7.9,,,,,,,committed,replaceable probe
 CN_RES,Reservoir connector,connector,irrigation,1,JST PH 3,B3B-PH,JST,TH,§7.9,,,,,,,committed,
 CN_LEAK,Leak connector,connector,irrigation,1,JST PH 2,B2B-PH,JST,TH,§7.9,,,,,,,committed,
@@ -30,7 +30,6 @@ CN_DBG,Debug UART header,connector,control,1,2.54 4-pin,header-4,generic,TH,§7.
 CN_USB,USB-C receptacle,connector,control,1,USB-C,USB4105,GCT,SMD,§7.9,,,,,,,committed,USB-CDC flash/log
 PCB1,Controller PCB,pcb,control,1,4-layer,opencanopy-ctrl,inhouse,board,§7.9,,,,,,,pending-cad,fab from KiCad source
 M1,Pump (24V submersible),actuator,irrigation,1,>=1.0m head,PMP-24-1m,generic,module,§7.3,,,,,,,committed,brushless centrifugal; <5W
-M2,Fan 92mm PWM,actuator,climate,1,92x92x25,FAN-92-12V-PWM,generic,module,§7.4,,,,,,,committed,fluid-dynamic bearing
 SEN1,Capacitive moisture probe,sensor,irrigation,1,v2 coated,SEN-CAP-V2,generic,module,§7.6,,,,,,,committed,corrosion-resistant; replaceable
 SEN2,Reservoir float switch,sensor,irrigation,1,low-level,SEN-FLOAT-LOW,generic,module,§7.7,,,,,,,committed,
 SEN3,Leak trace/rope,sensor,irrigation,1,tray,SEN-LEAK-TRACE,generic,module,§7.5,,,,,,,committed,

@@ -48,9 +48,10 @@ These slot into CI alongside the existing `bom_check.py` gate (spec §10.5).
 
 ## 4. BOM compliance (§16.1, §16.3)
 
-- All §16.1 core-electronics rows present: MCU, temp/RH, moisture, reservoir, leak, fan driver, pump
-  driver (logic-level + flyback + current sense), LED-driver interface, status LEDs, **battery-backed
-  RTC** (DR-05), certified 24 V PSU, locking/keyed connectors.
+- All §16.1 core-electronics rows present: MCU, temp/RH, moisture, reservoir, leak, pump driver
+  (logic-level + flyback + current sense), LED-driver interface, status LEDs, **battery-backed RTC**
+  (DR-05), certified 24 V PSU, locking/keyed connectors. *(Fan driver `D3`/`CN_FAN` kept **DNP** —
+  no fan in V1, [ECO-001](../../analysis/ECO-001-fan-removal.md).)*
 - **Grow light** carried as `LIGHT-CANDIDATE-60W` (panel) with full §16.3 data (power, PPFD/PPF,
   dimming, horticultural spectrum, thermal mounting, cert) so the gate runs — **status
   `CANDIDATE-DR01-PASS`**: both halves of DR-01 now pass
