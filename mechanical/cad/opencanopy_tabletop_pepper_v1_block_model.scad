@@ -32,6 +32,8 @@ arch_h   = env_h - base_h;
 
 bridge_h = 52; bridge_y0 = 116; bridge_d = 88;   // centered on Y=160
 led_cx = 240; led_cy = 160;                       // LED optical centerline (= pot center)
+led_l = 300; led_w = 64; led_h = 18;
+led_z = env_h - bridge_h - 10;   // LED nests 8 mm UP into the bridge recess; emitter 10 mm proud
 
 iso_x = 340; iso_t = 14;
 floor_top = foot_h + wall_t; deck_bot = base_h - 12;
@@ -87,17 +89,19 @@ module left_arch()  { side_arch(0); arch_tenons(0); }
 module right_arch() { side_arch(env_w-side_t); arch_tenons(env_w-side_t); }
 module side_frames() { left_arch(); right_arch(); }
 
-// slim top light bridge, CENTERED on Y=160; with bridge tongues into arch-top sockets
+// slim top light bridge, CENTERED on Y=160; carries a LED recess in its underside so
+// the LED bar nests up into it (captured, not floating) + bridge tongues into arches
 module light_bridge() {
-    rcube([env_w - 2*side_t + 16, bridge_d, bridge_h], 10, 5)
-        ; // placed in assembly via translate
+    difference() {
+        translate([side_t-8, bridge_y0, env_h-bridge_h]) rcube([env_w-2*side_t+16, bridge_d, bridge_h], 10, 5);
+        translate([led_cx-(led_l+8)/2, led_cy-(led_w+8)/2, env_h-bridge_h-1]) cube([led_l+8, led_w+8, 13]); // LED recess
+    }
 }
-module bridge_placed() { translate([side_t-8, bridge_y0, env_h-bridge_h]) light_bridge(); }
+module bridge_placed() { light_bridge(); }
 
-// LED grow bar — optical centerline at (led_cx, led_cy), under the bridge
+// LED grow bar — optical centerline at (led_cx, led_cy); top nests into the bridge recess
 module led_bar() {
-    led_l=300; led_w=64; led_h=18;
-    translate([led_cx-led_l/2, led_cy-led_w/2, env_h-bridge_h-led_h]) rcube([led_l, led_w, led_h], 6, 3);
+    translate([led_cx-led_l/2, led_cy-led_w/2, led_z]) rcube([led_l, led_w, led_h], 6, 3);
 }
 
 // base shell: selective radii, OPEN back + rear service bay, arch foot sockets, M4 access
@@ -159,8 +163,13 @@ module dowels() {
 }
 module screws() {
     for (x0=[0,env_w-side_t]) for (yc=[arch_y0+arch_fw/2, arch_y1-arch_fw/2]) {
-        translate([x0+side_t/2, yc, 2]) cylinder(h=base_h-socket_depth-2, d=m4-0.6);   // M4 shank
+        translate([x0+side_t/2, yc, 2]) cylinder(h=base_h-socket_depth-2, d=m4-0.6);   // M4 shank (foot)
         translate([x0+side_t/2, yc, 1]) cylinder(h=5, d=m4_head-1);                     // head
+    }
+    // LED-bar mount screws (up into the bridge) — holds the LED, not floating
+    for (sx=[-1,1]) translate([led_cx+sx*(led_l/2-26), led_cy, led_z+4]) {
+        cylinder(h=env_h-bridge_h-led_z+10, d=m4-0.8);
+        translate([0,0,-4]) cylinder(h=5, d=m4_head-1.5);
     }
 }
 // cable path (debug): base dry bay -> drip loop -> right-rear arch -> bridge -> LED

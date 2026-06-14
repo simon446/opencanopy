@@ -53,7 +53,8 @@ EXPECTED_CONTACT = {frozenset(p) for p in [
  ("shelf","base"),("pot","shelf"),("led_bar","bridge"),("feet","base"),("iso_wall","base"),
  ("status","base"),("dowels","base"),("dowels","left_arch"),("dowels","right_arch"),
  ("screws","base"),("screws","left_arch"),("screws","right_arch"),("cable","right_arch"),
- ("cable","base"),("led_bar","cable"),("bridge","cable")]}
+ ("cable","base"),("led_bar","cable"),("bridge","cable"),
+ ("screws","led_bar"),("screws","bridge"),("led_bar","bridge")]}
 
 SHELL_CANOPY = ("left_arch","right_arch","bridge","led_bar","pot","shelf","status")
 # name, dir, up, hide, debug, explode, clip_x, focus, scale, overlay
