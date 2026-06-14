@@ -24,7 +24,7 @@ It also surfaces two integration findings that need firmware + a project decisio
 
 - **Buy:** LCSC **C965555** (JLCPCB-stocked for assembly). [LCSC](https://www.lcsc.com/product-detail/C965555.html) · [JLCPCB](https://jlcpcb.com/partdetail/Worldsemi-WS2812B2020/C965555)
 - **Operating range 3.7–5.3 V** — this **validates our 5 V→4.5 V series-diode design** (`D_LVD`): at 4.5 V the data V_IH ≈ 0.7·VDD = 3.15 V, so the 3.3 V data line has margin.
-- **3D / footprint:** [SnapEDA/SnapMagic](https://www.snapeda.com/parts/WS2812B-2020/Worldsemi/view-part/) (KiCad + STEP) and the KiCad library. *Mechanical needs the PCB2 outline, not the individual LED model.*
+- **3D model — checked in:** [`../pcb/3d-models/WS2812B-2020_C965555.step`](../pcb/3d-models/WS2812B-2020_C965555.step) (+ `.wrl`), a real BREP solid pulled from LCSC/EasyEDA. *Mechanical also needs the PCB2 outline, not just the individual LED model.*
 - **Alternate:** discrete RGB + TLC59116 I²C driver (already in `alternates.csv`).
 
 ## 2. Pump — TOPSFLO TL-B series (brushless DC, submersible)
@@ -109,7 +109,7 @@ numbers in [bom.csv](bom.csv)). What's left is the **wire**:
 | Pump (TOPSFLO TL-B0x) | TOPSFLO (datasheet + STEP on request, `info@topsflo.com`) |
 | LED board (LM301H) | flat board — model from the vendor's board dimensions; pair with the heatsink (WI-ME-05) |
 | LED driver (LDD-1000H) | Mean Well STEP download (also HLG-60H STEP if Option B) |
-| Status LEDs / PCB2 | SnapEDA WS2812B-2020 (component); mechanical uses the **PCB2 outline** from WI-EE-09 |
+| Status LEDs (WS2812B-2020) | **checked in:** [`pcb/3d-models/`](../pcb/3d-models/) (STEP+WRL, LCSC C965555); mechanical uses the **PCB2 outline** from WI-EE-09 for placement |
 | Connectors (JST VH/PH/XH, XT30) | JST / Amass STEP via the manufacturer or SnapEDA |
 | Float / leak / moisture probe | supplier model (request with the chosen part) |
 

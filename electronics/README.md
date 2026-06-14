@@ -10,6 +10,7 @@ PCB, wiring, BOM, and electrical verification for OpenCanopy. Owned by the **Ele
     pin-level net + ERC checker), generated `controller.net` (optional interchange) and `controller-netlist.csv`.
   - `programmatic/` — **headless code→PCB→Gerbers** flow (tscircuit): the generator, the board, the
     per-subsystem render blocks, and `out/` (draft Gerbers/PnP/BOM + KiCad-PCB bridge + previews).
+  - `3d-models/` — checked-in STEP/WRL models of off-the-shelf parts (e.g. the WS2812B-2020 status LED) for mechanical CAD.
   - `fabrication/` — fab notes + stackup (the fab package itself lives in `programmatic/out/`).
 - `wiring/` — system harness.
   - `wiring-diagram.svg` — full system wiring diagram.
