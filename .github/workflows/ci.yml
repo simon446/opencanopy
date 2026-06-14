@@ -195,6 +195,11 @@ jobs:
         run: python3 scripts/bom_check.py --selftest
       - name: Validate electronics BOM (if present)
         run: python3 scripts/bom_check.py
+      - name: Controller netlist ERC + BOM coverage (schematic-as-data, WI-EE-03)
+        # Plain-Python ERC stand-in until the KiCad schematic lands (then the eda job's
+        # `kicad-cli sch erc` supersedes it). Enforces: no floating nets, no double-driven
+        # pins, fail-OFF pump gate, fan parts DNP, and that every populated part is in the BOM.
+        run: python3 electronics/pcb/netlist/controller_netlist.py --selftest
 
   mechanical:
     name: Mechanical — CAD presence + STL manifold
@@ -238,7 +243,9 @@ jobs:
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "NOTICE: no KiCad project yet — skipping ERC/DRC (added by the Electronics track)."
+            echo "NOTICE: no KiCad project yet — skipping ERC/DRC. Interim electrical-rule check"
+            echo "        runs in the 'BOM' job (controller_netlist.py --selftest); the KiCad"
+            echo "        schematic is entered by importing electronics/pcb/netlist/controller.net."
           fi
       - name: Install KiCad CLI
         if: steps.detect.outputs.present == 'true'

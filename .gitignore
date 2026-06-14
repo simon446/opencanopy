@@ -22,6 +22,9 @@ fp-info-cache
 _autosave-*
 *.000
 *.net
+# ...except the committed controller netlist — it is a deliverable (KiCad-import handoff),
+# generated from electronics/pcb/netlist/controller_netlist.py and kept in sync by its --selftest.
+!electronics/pcb/netlist/controller.net
 
 # ---------------------------------------------------------------------------
 # Firmware build — Rust / Cargo (esp-hal, no_std)

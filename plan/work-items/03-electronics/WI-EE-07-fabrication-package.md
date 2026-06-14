@@ -6,7 +6,7 @@
 | Milestone | M4-07 |
 | Depends on | WI-EE-04, WI-EE-06 |
 | Spec refs | §14.1 (electronics/), §16.1 |
-| Status | In progress — BOM + alternates + fab notes done & passing bom_check ([fab-notes](../../../electronics/pcb/fabrication/fab-notes.md)); Gerber/PNP/iBOM export pending KiCad PCB source |
+| Status | BOM **complete** — every populated part incl. all passives is in [bom.csv](../../../electronics/bom/bom.csv) (netlist↔BOM coverage enforced in CI); alternates + fab notes done; passes bom_check `--strict`. **Residual:** Gerber/PNP/iBOM export, which `kicad-cli` generates from the routed `.kicad_pcb` (GUI step). [fab-notes](../../../electronics/pcb/fabrication/fab-notes.md) |
 
 ## Objective
 

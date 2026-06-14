@@ -106,8 +106,17 @@ so they keep working while Wi-Fi is active (ADC2 is unusable with the radio on).
 
 The schematic must pass KiCad ERC with no unconnected pins, no power-input-not-driven, no
 output-output conflicts. Net-class power nets (24 V, 12 V, 5 V, 3V3, GND) are tagged for the
-width/clearance rules used by [WI-EE-04](WI-EE-04-pcb-layout.md). The ERC run itself executes once
-the KiCad source exists and can be wired into CI (`kicad-cli sch erc`, spec §10.5).
+width/clearance rules used by [WI-EE-04](WI-EE-04-pcb-layout.md) and
+[design-rules.md](design-rules.md). The ERC run itself executes once the KiCad source exists and can
+be wired into CI (`kicad-cli sch erc`, spec §10.5).
+
+**The schematic is formally captured as a netlist** —
+[`electronics/pcb/netlist/controller_netlist.py`](../pcb/netlist/controller_netlist.py) — which is the
+machine-readable source of truth (every component + pin-level net) and ships an **ERC stand-in** that
+runs in CI today: no floating nets, no double-driven pins, the fail-OFF pump gate, full BOM coverage,
+and a check that every MCU net matches [pin-map.csv](pin-map.csv). The KiCad schematic is entered by
+importing the generated [`controller.net`](../pcb/netlist/controller.net), after which `kicad-cli sch
+erc` supersedes the stand-in.
 
 ## 8. §11.1 design-review checklist (worked against this capture)
 

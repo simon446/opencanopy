@@ -6,7 +6,7 @@
 | Milestone | (part of M4) |
 | Depends on | WI-EE-03 |
 | Spec refs | §7.11, §3.5 |
-| Status | In progress — design complete ([report](../../../electronics/analysis/WI-EE-09-status-led-board.md)); KiCad board + fab pending source; diffuser fit pends WI-ME-01 |
+| Status | Electrical design **complete** — 5×WS2812 chain captured in the [netlist](../../../electronics/pcb/netlist/controller_netlist.py) (decoupling, data series-R, 5V→4.5V series diode for WS2812 V_IH); [report](../../../electronics/analysis/WI-EE-09-status-led-board.md). **Residual:** KiCad board entry/fab (GUI) + LED pitch/outline, which pend the mechanical front-UI CAD ([WI-ME-01](../04-mechanical/WI-ME-01-assembly-cad.md)) |
 
 ## Objective
 

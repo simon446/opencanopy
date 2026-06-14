@@ -6,7 +6,7 @@
 | Milestone | M4-03 |
 | Depends on | WI-EE-03 |
 | Spec refs | §7.9, §8.5 |
-| Status | Done — [harness-table.csv](../../../electronics/wiring/harness-table.csv), [wiring-diagram.svg](../../../electronics/wiring/wiring-diagram.svg), [README](../../../electronics/wiring/README.md) |
+| Status | Done — [harness-table.csv](../../../electronics/wiring/harness-table.csv), [wiring-diagram.svg](../../../electronics/wiring/wiring-diagram.svg), [README](../../../electronics/wiring/README.md), **+ [connector-spec.md](../../../electronics/wiring/connector-spec.md)** (chosen connectors + mating cable-side parts + mechanical requirements — the handoff for the mechanical wiring team) |
 
 ## Objective
 

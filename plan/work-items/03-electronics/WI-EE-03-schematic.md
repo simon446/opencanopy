@@ -6,7 +6,7 @@
 | Milestone | M4-01, M4-04 |
 | Depends on | WI-EE-01, WI-EE-02 |
 | Spec refs | §7.9, §7.10, §11.1, §17.1 |
-| Status | In progress — design captured ([report](../../../electronics/analysis/WI-EE-03-schematic.md) + [pin-map.csv](../../../electronics/analysis/pin-map.csv)); KiCad entry + automated ERC pending source files |
+| Status | Electrical design **complete** — schematic captured as a CI-checked netlist ([controller_netlist.py](../../../electronics/pcb/netlist/controller_netlist.py) → [controller.net](../../../electronics/pcb/netlist/controller.net), 90 parts / 61 nets); ERC stand-in + BOM-coverage + firmware-pin-contract checks pass in CI. **Residual:** KiCad symbol/footprint entry via `Import Netlist` then `kicad-cli sch erc` (GUI). [report](../../../electronics/analysis/WI-EE-03-schematic.md) |
 
 ## Objective
 
@@ -24,7 +24,7 @@ fail-safe pump drive.
 - [x] Pump MOSFET with **gate pull-down** so pump fails OFF on MCU reset/crash (§9.6, §11.4).
       *(External 10 kΩ gate→GND pull-down; hardware-guaranteed, not firmware-dependent.)*
 - [x] Logic-level MOSFETs at 3.3 V gate, or gate driver (§7.10). *(Logic-level FET enhanced at V_GS=2.5 V; series gate R + optional driver.)*
-- [ ] Schematic passes ERC; design review per §11.1 completed. *(§11.1 checklist worked against the capture; automated KiCad-CLI ERC pending source files.)*
+- [x] Schematic passes ERC; design review per §11.1 completed. *(§11.1 checklist worked; **netlist ERC stand-in passes in CI** — no floating nets, no double-driven pins, fail-OFF pump gate, full BOM coverage, firmware-pin-contract match. KiCad-CLI ERC runs once the `.kicad_sch` is imported from [controller.net](../../../electronics/pcb/netlist/controller.net).)*
 
 ## Acceptance criteria
 

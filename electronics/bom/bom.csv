@@ -12,7 +12,6 @@ F1,Input fuse + holder,protection,power,1,6.3A slow,fuse-6p3A,generic,5x20mm,§7
 Q2,Reverse-polarity P-FET,protection,power,1,P-FET 40V,DMP3056L,Diodes Inc,SOT23,§17.1,,,,,,,committed,high-side; Zener-clamped gate
 D1,Input TVS,protection,power,1,SMBJ28A,SMBJ28A,Littelfuse,SMB,§17.1,,,,,,,committed,28V standoff
 D2,Pump flyback,protection,irrigation,1,Schottky 3A,SS34,generic,SMC,§17.1,,,,,,,committed,
-D3,Fan flyback,protection,climate,1,Schottky 1A,SS14,generic,SMA,§17.1,,,,,,,optional-dnp,no fan in V1 (ECO-001); footprint kept DNP for future fan-drive option
 U6,24->12V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,optional,12V pump option only (no fan in V1, ECO-001); omit if 24V pump used
 U7,24->5V buck,power,power,1,2A,TPS5430,Texas Instruments,SOIC,§7.8,,,,,,,committed,sensors/status/3V3 feed
 U8,5->3.3V reg,power,power,1,1A,AP2112K-3.3,Diodes Inc,SOT23-5,§7.8,,,,,,,committed,MCU rail
@@ -37,3 +36,28 @@ LED_PANEL,Grow light (compact),light,light,1,60W full-spectrum,LIGHT-CANDIDATE-6
 LED_STATUS,Status LED board parts (5x WS2812B),ui,ui,1,WS2812B-2020,WS2812B-2020,Worldsemi,2020,§7.11,,,,,,,committed,front-panel; see WI-EE-09
 PCB2,Status LED PCB,pcb,ui,1,2-layer,opencanopy-status,inhouse,board,§7.11,,,,,,,pending-cad,fab from KiCad source
 PSU1,External 24VDC PSU,power,power,1,120W (150W@100W LED),PSU-24-120,generic,brick,§7.8/§16.1,,,,,,CE/UL,committed,certified external brick; not inside unit
+C2 C3 C_EN C_RTC C_INA C_U5 C_LK C_BULK3,Decoupling/bypass capacitor,passive,power,8,100nF,CL05B104KO5NNNC,Samsung,0402,§7.9,,,,,,,committed,per-IC 100nF + 24V HF bypass (netlist)
+C1,MCU 3V3 bulk cap,passive,control,1,22uF,GRM21BR61A226ME,Murata,0805,§7.8,,,,,,,committed,ESP32-S3 rail bulk
+C_OUT5,5V buck output cap,passive,power,1,22uF,GRM31CR61E226KE,Murata,1210,§7.8,,,,,,,committed,U7 output
+C_BULK2 C_IN5,24V bulk / buck input ceramic,passive,power,2,10uF,GRM31CR71H106KA,Murata,1206,§7.8,,,,,,,committed,50V rated
+C_IN33 C_OUT33,3V3 LDO in/out cap,passive,power,2,1uF,CL05A105KO5NNNC,Samsung,0402,§7.8,,,,,,,committed,U8 in/out
+C_BT5 C_MOIST,buck boot / moisture filter cap,passive,mixed,2,10nF,CL05B103KB5NNNC,Samsung,0402,§7.8,,,,,,,committed,U7 BOOT + moisture RC
+C_BULK1,24V bulk electrolytic,passive,power,1,100uF,EEHZA1H101P,Panasonic,CP_Elec_8x10,§7.8,,,,,,,committed,low-ESR; pump inrush
+R_EN R_LK_RA R_LK_RB R_LK_OUT,Resistor 10k,passive,mixed,4,10k,RC0402FR-0710K,Yageo,0402,§7.9,,,,,,,committed,EN pull-up + leak divider + OC pull-up
+R_SDA R_SCL,I2C pull-up,passive,control,2,4.7k,RC0402FR-074K7,Yageo,0402,§7.5,,,,,,,committed,SDA/SCL to 3V3
+R_LK_PU R_RP,Resistor 100k,passive,mixed,2,100k,RC0402FR-07100K,Yageo,0402,§17.1,,,,,,,committed,leak-trace pull-up + Q2 gate R
+R_MOIST,Moisture series R,passive,irrigation,1,1k,RC0402FR-071K,Yageo,0402,§7.6,,,,,,,committed,ADC series
+R_DIM,LED dim series R,passive,light,1,100R,RC0402FR-07100R,Yageo,0402,§7.2,,,,,,,committed,PWM-direct dim
+R_DATA,WS2812 data series R,passive,ui,1,330R,RC0402FR-07330R,Yageo,0402,§7.11,,,,,,,committed,status data line
+R_FB5A,5V buck feedback top,passive,power,1,22k,RC0402FR-0722K,Yageo,0402,§7.8,,,,,,,committed,TPS5430 Vsense
+R_FB5B,5V buck feedback bottom,passive,power,1,7.15k,RC0402FR-077K15,Yageo,0402,§7.8,,,,,,,committed,TPS5430 Vsense
+L5,5V buck inductor,passive,power,1,10uH,SRP1245A-100M,Bourns,L_12x12,§7.8,,,,,,,committed,>=3A saturation
+D_CAT5,5V buck catch diode,protection,power,1,B340A,B340A,Diodes Inc,SMC,§7.8,,,,,,,committed,3A 40V Schottky
+DZ_RP,Reverse-pol gate Zener,protection,power,1,15V,BZT52C15,Diodes Inc,SOD-323,§17.1,,,,,,,committed,Q2 V_GS clamp
+R_SHUNT,Pump current shunt,passive,irrigation,1,0.1R,CSS2H-2512R-L100F,Bourns,2512,§7.5/DR-04,,,,,,,committed,INA219 sense; 1W
+SW1 SW2,Boot/reset buttons,switch,control,2,tact,TS-1187,generic,SW_SPST_SMD,§7.9,,,,,,,committed,hidden in normal use
+C_IN12 C_OUT12 C_BT12 L12 D_CAT12 R_FB12A R_FB12B,12V buck support (DNP option),passive,power,7,assorted,see-netlist,various,mixed,§7.8,,,,,,,optional-dnp,12V pump alternate only; no fan in V1 (ECO-001)
+R_NTC,LED NTC divider top (DNP),passive,light,1,10k,RC0402FR-0710K,Yageo,0402,§7.2/DR-09,,,,,,,optional-dnp,fit with optional LED-heatsink NTC
+R_DIMF C_DIMF,0-10V dim RC (DNP),passive,light,2,assorted,see-netlist,various,0402,§7.2,,,,,,,optional-dnp,with U9 op-amp; PWM-direct is default
+R_FANG R_TACH,Fan PWM/tach provision (DNP),passive,climate,2,assorted,see-netlist,various,0402,§7.4,,,,,,,optional-dnp,no fan in V1 (ECO-001); 4-pin PWM provision
+J_EXP J_CAM,Expansion headers (DNP),connector,control,2,header,PinHeader,generic,TH,§4.3,,,,,,,optional-dnp,camera/PAR/pH-EC/load-cell; unpopulated V1

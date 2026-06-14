@@ -6,7 +6,7 @@
 | Milestone | M4-02, M4-05 |
 | Depends on | WI-EE-03 |
 | Spec refs | §7.9, §7.10 |
-| Status | In progress — layout design captured ([report](../../../electronics/analysis/WI-EE-04-pcb-layout.md)); KiCad board entry + automated DRC pending source files |
+| Status | Layout **fully specified** — stackup, floorplan, pours, test points + a deterministic [net-class & design-rule recipe](../../../electronics/analysis/design-rules.md) (widths/clearances/DRC values per net class). **Residual:** placement + routing in the KiCad GUI (import [controller.net](../../../electronics/pcb/netlist/controller.net), apply net classes, route, `kicad-cli pcb drc`). [report](../../../electronics/analysis/WI-EE-04-pcb-layout.md) |
 
 ## Objective
 
