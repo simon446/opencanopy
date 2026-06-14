@@ -71,7 +71,6 @@ fn demo_calibration() -> Calibration {
         moisture_raw_dry: 1200,
         moisture_raw_wet: 2600,
         pump_ml_per_sec: 3.8,
-        fan_min_pwm: 28,
         led_ppfd_25: 120,
         led_ppfd_50: 240,
         led_ppfd_75: 360,
@@ -107,7 +106,8 @@ pub fn run(peripherals: Peripherals) -> ! {
     // ASSUMPTION to confirm at WI-EE-08 bring-up: the float's NO/NC orientation matches this.
     let res_float_in = Input::new(peripherals.GPIO5, Pull::Up);
 
-    // ---- LEDC PWM: pump (GPIO10), fan (GPIO12, 25 kHz), grow LED (GPIO14) ----
+    // ---- LEDC PWM: pump (GPIO10, 25 kHz), grow LED (GPIO14) ----
+    // (V1 has no circulation fan — the GPIO12 fan channel was removed with it.)
     let mut ledc = Ledc::new(peripherals.LEDC);
     ledc.set_global_slow_clock(LSGlobalClkSource::APBClk);
     let mut pwm_timer = ledc.timer::<LowSpeed>(timer::Number::Timer0);
@@ -122,10 +122,6 @@ pub fn run(peripherals: Peripherals) -> ! {
     pump_pwm
         .configure(channel::config::Config { timer: &pwm_timer, duty_pct: 0, pin_config: channel::config::PinConfig::PushPull })
         .expect("pump ch");
-    let mut fan_pwm = ledc.channel(channel::Number::Channel1, peripherals.GPIO12);
-    fan_pwm
-        .configure(channel::config::Config { timer: &pwm_timer, duty_pct: 0, pin_config: channel::config::PinConfig::PushPull })
-        .expect("fan ch");
     let mut grow_pwm = ledc.channel(channel::Number::Channel2, peripherals.GPIO14);
     grow_pwm
         .configure(channel::config::Config { timer: &pwm_timer, duty_pct: 0, pin_config: channel::config::PinConfig::PushPull })
@@ -167,24 +163,21 @@ pub fn run(peripherals: Peripherals) -> ! {
             control::board::ReservoirFloatLow(res_float_in.is_low()),
             control::board::LeakPinHigh(leak_in.is_high()),
             None,
-            None,
         );
         let cmd = app.step(&frame);
 
         // --- Drive actuators through the REAL PWM channels ---
         let _ = pump_pwm.set_duty(if cmd.pump_on { 100 } else { 0 });
-        let _ = fan_pwm.set_duty(cmd.fan_pct);
         let _ = grow_pwm.set_duty(cmd.led_pct);
 
         {
             println!(
-                "[t={}m] stage={} state={} light={} led={}% fan={}% pump={} moist={} temp={} pump_mA={}",
+                "[t={}m] stage={} state={} light={} led={}% pump={} moist={} temp={} pump_mA={}",
                 now_ms / 60_000,
                 cmd.stage.code(),
                 cmd.state.name(),
                 cmd.light_on as u8,
                 cmd.led_pct,
-                cmd.fan_pct,
                 cmd.pump_on as u8,
                 cmd.moisture_pct.map(|m| m as i32).unwrap_or(-1),
                 temp_rh.map(|t| t.temp_c as i32).unwrap_or(-99),

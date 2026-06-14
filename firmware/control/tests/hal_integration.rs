@@ -7,14 +7,13 @@
 use control::app_state::{App, AppConfig, Commands, SensorFrame};
 use control::calibration::Calibration;
 use control::hal::{
-    Clock, Fan, GrowLed, LeakSensor, MoistureSensor, Pump, ReservoirSensor, Rtc, TempRhSensor,
-    WallTime,
+    Clock, GrowLed, LeakSensor, MoistureSensor, Pump, ReservoirSensor, Rtc, TempRhSensor, WallTime,
 };
 use control::led_status::{self, LedColor};
 use control::safety_controller::SystemState;
 use control::testkit::{
-    MockClock, MockFan, MockLeak, MockLed, MockMoisture, MockPump, MockReservoir, MockRtc,
-    MockStatusLeds, MockTempRh,
+    MockClock, MockLeak, MockLed, MockMoisture, MockPump, MockReservoir, MockRtc, MockStatusLeds,
+    MockTempRh,
 };
 
 fn cal() -> Calibration {
@@ -23,7 +22,6 @@ fn cal() -> Calibration {
         moisture_raw_dry: 1000,
         moisture_raw_wet: 3000,
         pump_ml_per_sec: 3.8,
-        fan_min_pwm: 28,
         led_ppfd_25: 120,
         led_ppfd_50: 240,
         led_ppfd_75: 360,
@@ -44,7 +42,6 @@ struct Bench {
     res: MockReservoir,
     leak: MockLeak,
     pump: MockPump,
-    fan: MockFan,
     led: MockLed,
     leds: MockStatusLeds,
 }
@@ -82,10 +79,6 @@ impl Bench {
             },
             leak: MockLeak::default(),
             pump: MockPump::default(),
-            fan: MockFan {
-                duty: 0,
-                tach_rpm: Some(1500),
-            },
             led: MockLed::default(),
             leds: MockStatusLeds::default(),
         }
@@ -101,12 +94,10 @@ impl Bench {
             reservoir_low: self.res.low || self.res.read_adc().map(|a| a < 700).unwrap_or(true),
             leak: self.leak.is_wet(),
             led_heat_c: None,
-            fan_tach_rpm: self.fan.tach_rpm(),
         };
         let cmd = self.app.step(&frame);
         // Drive actuators *through the traits*.
         self.pump.set(cmd.pump_on);
-        self.fan.set_duty(cmd.fan_pct);
         self.led.set_power(cmd.led_pct);
         led_status::drive(&mut self.leds, &cmd.panel);
         // Advance the simulated clock and RTC.
@@ -133,8 +124,6 @@ fn full_stack_runs_through_trait_seam() {
         watered,
         "a dry pot in-window should be watered via the Pump trait"
     );
-    // Fan was driven to at least the stage minimum.
-    assert!(b.fan.duty >= 20);
     // Status LEDs were populated through the StatusLeds trait.
     assert_ne!(b.leds.get(control::hal::LedId::System).0, LedColor::Off);
 }

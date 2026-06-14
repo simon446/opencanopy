@@ -109,13 +109,6 @@ pub struct Setpoints {
     pub daily_max_ml: u16,
     /// Minutes to wait after a pulse before remeasuring (watering-model §3, mid of range).
     pub recheck_delay_min: u16,
-    // --- Climate fan minimums (§9.7) ---
-    /// Fan duty floor while lights are on, percent.
-    pub fan_min_on_pct: u8,
-    /// Fan duty during its periodic lights-off circulation bursts, percent.
-    pub fan_min_off_pct: u8,
-    /// Minutes per hour the fan runs during lights-off (periodic circulation, §9.7).
-    pub fan_off_min_per_hour: u8,
 }
 
 // S0 has no automated watering row (kept warm/moist by hand until emergence, watering-model §3);
@@ -136,9 +129,6 @@ const GERMINATION: Setpoints = Setpoints {
     emergency_pulse_ml: 20,
     daily_max_ml: 250,
     recheck_delay_min: 18,
-    fan_min_on_pct: 18,
-    fan_min_off_pct: 18,
-    fan_off_min_per_hour: 5,
 };
 
 const SEEDLING: Setpoints = Setpoints {
@@ -157,9 +147,6 @@ const SEEDLING: Setpoints = Setpoints {
     emergency_pulse_ml: 20,
     daily_max_ml: 250,
     recheck_delay_min: 18, // 15–20 min
-    fan_min_on_pct: 20,    // 15–25%
-    fan_min_off_pct: 20,
-    fan_off_min_per_hour: 5,
 };
 
 const VEGETATIVE: Setpoints = Setpoints {
@@ -178,9 +165,6 @@ const VEGETATIVE: Setpoints = Setpoints {
     emergency_pulse_ml: 50,
     daily_max_ml: 800,
     recheck_delay_min: 25, // 20–30 min
-    fan_min_on_pct: 28,    // 20–35%
-    fan_min_off_pct: 28,
-    fan_off_min_per_hour: 8,
 };
 
 const FLOWERING: Setpoints = Setpoints {
@@ -199,9 +183,6 @@ const FLOWERING: Setpoints = Setpoints {
     emergency_pulse_ml: 75,
     daily_max_ml: 1200,
     recheck_delay_min: 25,
-    fan_min_on_pct: 35, // 25–45%
-    fan_min_off_pct: 35,
-    fan_off_min_per_hour: 10,
 };
 
 const FRUITING: Setpoints = Setpoints {
@@ -220,9 +201,6 @@ const FRUITING: Setpoints = Setpoints {
     emergency_pulse_ml: 100,
     daily_max_ml: 1800,
     recheck_delay_min: 25,
-    fan_min_on_pct: 40, // 25–50%
-    fan_min_off_pct: 40,
-    fan_off_min_per_hour: 10,
 };
 
 // S5 Maintenance: lower light/water survival mode (design ← R4). Conservative, low caps.
@@ -242,9 +220,6 @@ const MAINTENANCE: Setpoints = Setpoints {
     emergency_pulse_ml: 40,
     daily_max_ml: 400,
     recheck_delay_min: 30,
-    fan_min_on_pct: 20,
-    fan_min_off_pct: 20,
-    fan_off_min_per_hour: 5,
 };
 
 /// Look up the immutable setpoints for a stage.

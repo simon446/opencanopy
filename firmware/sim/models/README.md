@@ -18,10 +18,13 @@ this file documents the equations and their parameters.
 | Pump raises moisture after a delay | water matures after `SOAK_MS`, then `Δ% = ml / POT_ML_PER_PCT` | `POT_ML_PER_PCT` | 15 mL/% |
 | | | `SOAK_MS` | 8 min |
 | Reservoir drains when the pump runs | `reservoir -= run_s · ml_per_s` (immediate) | `RESERVOIR_LOW_ML` | 300 mL |
-| LED adds heat | `air_T = room_T + led% · LED_HEAT_GAIN_C − fan% · FAN_COOL_C` | `LED_HEAT_GAIN_C` | +4 °C @100% |
-| Fan disperses heat + humidity | `air_RH = room_RH − fan% · FAN_DEHUMIDIFY_PCT` | `FAN_COOL_C` | −1 °C @100% |
-| | | `FAN_DEHUMIDIFY_PCT` | −6 %RH @100% |
+| LED adds heat | `air_T = room_T + led% · LED_HEAT_GAIN_C` | `LED_HEAT_GAIN_C` | +4 °C @100% |
+| Air RH tracks the room | `air_RH = room_RH` (V1 has no fan to disturb it) | — | — |
 | Leak / sensor faults | injected via `sim::Inject` | — | — |
+
+> **No fan in V1.** The circulation fan was removed from the mechanical/electrical design, so the
+> air model has no dispersion term: the only way the device sheds heat is by derating/cutting the
+> grow LED, and humidity has no actuator at all (the climate monitor only flags it).
 
 ## Fault injection (`sim::Inject`)
 
@@ -29,7 +32,6 @@ this file documents the equations and their parameters.
 - `moisture_stuck_pct` — probe frozen at a fixed reported % (stuck-wet / stuck-dry scenarios).
 - `moisture_error` — forces a `SensorError` from the probe.
 - `pump_disconnected` — pump motor runs but moves no water (no rise, no drawdown).
-- `fan_tach_zero` — tach reads 0 while commanded on → `FAN_FAULT`.
 
 ## Important modeling note (no-rise vs. pump effect)
 

@@ -19,7 +19,6 @@ pub struct Calibration {
     pub moisture_raw_dry: u16,
     pub moisture_raw_wet: u16,
     pub pump_ml_per_sec: f32,
-    pub fan_min_pwm: u8,
     /// Measured canopy PPFD at 25/50/75/100 % LED power (§9.9 `led_ppfd_map`).
     pub led_ppfd_25: u16,
     pub led_ppfd_50: u16,
@@ -59,8 +58,10 @@ pub struct LoadedCalibration {
 }
 
 const MAGIC: u32 = 0x4F43_414C; // "OCAL"
-/// Encoded record length in bytes.
-pub const RECORD_LEN: usize = 4 + 2 + 2 + 2 + 4 + 1 + 1 + 2 + 2 + 2 + 2 + 2 + 4;
+/// Encoded record length in bytes. Layout: magic(4) version(2) dry(2) wet(2) flow(4)
+/// ppfd25/50/75/100(2×4) reservoir(2) crc(4). The fan-min byte was removed when the circulation
+/// fan was dropped from V1; an old 30-byte record now fails the length check below → fail-safe.
+pub const RECORD_LEN: usize = 4 + 2 + 2 + 2 + 4 + 2 + 2 + 2 + 2 + 2 + 4;
 
 impl Calibration {
     /// Conservative engineering defaults. NOTE: these are *placeholders for non-moisture fields*;
@@ -72,7 +73,6 @@ impl Calibration {
         moisture_raw_dry: 0,
         moisture_raw_wet: 0,
         pump_ml_per_sec: 3.8, // §9.9 example
-        fan_min_pwm: 28,
         led_ppfd_25: 120,
         led_ppfd_50: 240,
         led_ppfd_75: 360,
@@ -98,9 +98,6 @@ impl Calibration {
             && self.led_ppfd_75 <= self.led_ppfd_100
             && self.led_ppfd_100 > 0)
         {
-            return Err(CalError::Implausible);
-        }
-        if self.fan_min_pwm == 0 || self.fan_min_pwm > 100 {
             return Err(CalError::Implausible);
         }
         Ok(())
@@ -163,10 +160,6 @@ impl Calibration {
         i += 2;
         b[i..i + 4].copy_from_slice(&self.pump_ml_per_sec.to_le_bytes());
         i += 4;
-        b[i] = self.fan_min_pwm;
-        i += 1;
-        b[i] = 0; // pad
-        i += 1;
         b[i..i + 2].copy_from_slice(&self.led_ppfd_25.to_le_bytes());
         i += 2;
         b[i..i + 2].copy_from_slice(&self.led_ppfd_50.to_le_bytes());
@@ -207,12 +200,11 @@ impl Calibration {
             moisture_raw_dry: u16a(6),
             moisture_raw_wet: u16a(8),
             pump_ml_per_sec: f32::from_le_bytes([bytes[10], bytes[11], bytes[12], bytes[13]]),
-            fan_min_pwm: bytes[14],
-            led_ppfd_25: u16a(16),
-            led_ppfd_50: u16a(18),
-            led_ppfd_75: u16a(20),
-            led_ppfd_100: u16a(22),
-            reservoir_low_adc: u16a(24),
+            led_ppfd_25: u16a(14),
+            led_ppfd_50: u16a(16),
+            led_ppfd_75: u16a(18),
+            led_ppfd_100: u16a(20),
+            reservoir_low_adc: u16a(22),
         };
         cal.validate()?;
         Ok(cal)
@@ -271,7 +263,6 @@ mod tests {
             moisture_raw_dry: 1234,
             moisture_raw_wet: 2870,
             pump_ml_per_sec: 3.8,
-            fan_min_pwm: 28,
             led_ppfd_25: 120,
             led_ppfd_50: 240,
             led_ppfd_75: 360,

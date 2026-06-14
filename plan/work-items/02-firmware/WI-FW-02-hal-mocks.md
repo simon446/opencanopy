@@ -17,9 +17,10 @@ hardware. These `no_std` traits are the seam between `control/` and the `control
 
 ## Deliverables
 
-- [x] `no_std` traits for: temp/RH sensor, capacitive moisture, reservoir level, leak sensor, fan
-      (PWM + tach), pump (drive + optional current), LED dimming, status LEDs, `Clock`/time.
+- [x] `no_std` traits for: temp/RH sensor, capacitive moisture, reservoir level, leak sensor,
+      pump (drive + optional current), LED dimming, status LEDs, `Clock`/time.
       Use `embedded-hal` traits where a standard one fits; define project traits otherwise.
+      *(The `Fan` trait/`MockFan` were removed 2026-06-14 with the circulation fan.)*
 - [x] Mock (host) trait implementations with injectable readings and fault-injection hooks.
 - [x] **Injected `Clock` trait** (simulated time) so schedules and timeouts run deterministically in tests.
 
@@ -37,11 +38,11 @@ allocation-free in `no_std`.
 
 ## Implementation
 
-- `control/src/hal.rs`: project traits for temp/RH, capacitive moisture, reservoir, leak, fan
-  (PWM + tach), pump (drive + optional current), grow-LED, status LEDs, plus injected `Clock`
+- `control/src/hal.rs`: project traits for temp/RH, capacitive moisture, reservoir, leak,
+  pump (drive + optional current), grow-LED, status LEDs, plus injected `Clock`
   (monotonic) and `Rtc` (wall-clock) traits. Controllers are generic over these by `&mut T`
-  (monomorphized, no `dyn`/alloc).
+  (monomorphized, no `dyn`/alloc). *(The `Fan` trait was removed with the fan.)*
 - `control/src/testkit.rs`: host mocks for every trait with injectable readings + fault hooks
-  (leak, sensor error, stuck reading via constant raw, fan-tach zero, pump current). Exercised
+  (leak, sensor error, stuck reading via constant raw, pump current). Exercised
   end-to-end in `control/tests/hal_integration.rs` (leak keeps the Pump trait de-energized;
   injected sensor fault disables watering) and as the foundation of the `sim/` harness.

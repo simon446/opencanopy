@@ -143,7 +143,7 @@ pub fn derate(air_temp_c: f32, led_heat_c: Option<f32>) -> Derate {
             0.7
         } else if h > 60.0 {
             derated = true;
-            0.9 // dim slightly / fan high
+            0.9 // dim slightly
         } else {
             1.0
         };
@@ -232,7 +232,6 @@ mod tests {
             moisture_raw_dry: 1234,
             moisture_raw_wet: 2870,
             pump_ml_per_sec: 3.8,
-            fan_min_pwm: 28,
             led_ppfd_25: 120,
             led_ppfd_50: 240,
             led_ppfd_75: 360,

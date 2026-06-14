@@ -28,7 +28,6 @@ pub struct Env {
     /// Ambient room relative humidity, %.
     pub room_rh_pct: f32,
     last_led_pct: u8,
-    last_fan_pct: u8,
 }
 
 /// Fault/condition injections (§10.3 "leak/sensor failure can be injected").
@@ -41,8 +40,6 @@ pub struct Inject {
     pub moisture_error: Option<SensorError>,
     /// Pump motor runs but moves no water (disconnected/clogged) → no moisture rise, no drawdown.
     pub pump_disconnected: bool,
-    /// Fan tach reads zero while commanded on → FAN_FAULT.
-    pub fan_tach_zero: bool,
 }
 
 /// Aggregate metrics collected across a run, for scenario assertions.
@@ -57,7 +54,6 @@ pub struct Metrics {
     /// Lowest moisture seen after the first simulated day (warm-up excluded).
     pub min_moisture_after_warmup_pct: f32,
     pub min_reservoir_ml: f32,
-    pub max_fan_pct: u8,
     pub led_on_ticks: u32,
     /// True iff every lights-off tick had the LED fully off.
     pub led_off_at_night_ok: bool,
@@ -133,7 +129,6 @@ fn default_cal() -> Calibration {
         moisture_raw_dry: 1000,
         moisture_raw_wet: 3000,
         pump_ml_per_sec: 3.8,
-        fan_min_pwm: 28,
         led_ppfd_25: 120,
         led_ppfd_50: 240,
         led_ppfd_75: 360,
@@ -175,7 +170,6 @@ impl Sim {
                 room_temp_c: cfg.room_temp_c,
                 room_rh_pct: cfg.room_rh_pct,
                 last_led_pct: 0,
-                last_fan_pct: 0,
             },
             cal: cal.unwrap_or_else(default_cal),
             inject: Inject::default(),
@@ -193,7 +187,6 @@ impl Sim {
                 max_moisture_pct: cfg.start_moisture_pct,
                 min_moisture_after_warmup_pct: 100.0,
                 min_reservoir_ml: cfg.start_reservoir_ml,
-                max_fan_pct: 0,
                 led_on_ticks: 0,
                 led_off_at_night_ok: true,
                 saw_led_derate: false,
@@ -246,12 +239,8 @@ impl Sim {
         self.pending.retain(|p| p.apply_at_ms > now);
 
         // 2) Build the sensor frame from the environment.
-        let temp_c = models::air_temp(
-            self.env.room_temp_c,
-            self.env.last_led_pct,
-            self.env.last_fan_pct,
-        );
-        let rh = models::air_rh(self.env.room_rh_pct, self.env.last_fan_pct);
+        let temp_c = models::air_temp(self.env.room_temp_c, self.env.last_led_pct);
+        let rh = models::air_rh(self.env.room_rh_pct);
         let led_heat = if self.led_heat_present {
             Some(self.env.room_temp_c + self.env.last_led_pct as f32 * 0.6)
         } else {
@@ -266,11 +255,6 @@ impl Sim {
             reservoir_low,
             leak: self.inject.leak,
             led_heat_c: led_heat,
-            fan_tach_rpm: if self.inject.fan_tach_zero {
-                Some(0)
-            } else {
-                Some(1500)
-            },
         };
 
         // 3) Run the real controller.
@@ -302,7 +286,6 @@ impl Sim {
 
         // 7) Persist actuator state for next tick's environment model + advance time.
         self.env.last_led_pct = cmd.led_pct;
-        self.env.last_fan_pct = cmd.fan_pct;
         self.now_ms += TICK_MS;
         self.last = Some(cmd);
         cmd
@@ -319,7 +302,6 @@ impl Sim {
                 m.min_moisture_after_warmup_pct.min(self.env.moisture_pct);
         }
         m.min_reservoir_ml = m.min_reservoir_ml.min(self.env.reservoir_ml);
-        m.max_fan_pct = m.max_fan_pct.max(cmd.fan_pct);
         m.saw_led_derate |= cmd.led_derated;
         m.saw_climate_red |= cmd.climate_red;
         m.saw_rtc_fallback |= cmd.rtc_fallback;

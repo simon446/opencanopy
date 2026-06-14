@@ -12,7 +12,7 @@
 //! - [`plant_profile`] — age → stage → setpoints (§5.1, §5.2)
 //! - [`light_controller`] — photoperiod, ramp, RTC fallback, thermal derate (§9.5)
 //! - [`irrigation_controller`] — pulse-dosing decision loop, caps, windows, lockouts (§9.6)
-//! - [`climate_controller`] — VPD + fan/LED nudge (§9.7)
+//! - [`climate_controller`] — VPD + temp/humidity health monitor, LED-derate request (§9.7)
 //! - [`safety_controller`] — state machine + fault-priority arbitration (§9.3, §9.4)
 //! - [`led_status`] — colorblind-safe status-LED mapping (§9.8)
 //! - [`calibration`] — flash-backed calibration store, fail-safe (§9.9, §7.6)

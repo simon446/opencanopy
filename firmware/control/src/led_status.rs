@@ -141,7 +141,7 @@ fn system_led(
             }
         }
         // Any other fault surfaced on System as amber/red warning while subsystem LED carries detail.
-        LowWater | SensorFault | PumpFault | FanFault | LedFault => {
+        LowWater | SensorFault | PumpFault | LedFault => {
             LedState::new(LedColor::Amber, LedPattern::SlowPulse)
         }
     }

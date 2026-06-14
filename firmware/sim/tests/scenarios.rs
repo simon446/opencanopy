@@ -161,7 +161,7 @@ fn leak_detected_immediate_pump_off_red_water_and_system() {
 
 // 8 ----------------------------------------------------------------------------------------------
 #[test]
-fn hot_room_fan_high_led_derate_no_runaway() {
+fn hot_room_led_derate_no_runaway() {
     let mut s = Sim::new(Config {
         room_temp_c: 31.0, // + LED self-heat pushes the canopy past 32 °C
         room_rh_pct: 45.0,
@@ -169,20 +169,18 @@ fn hot_room_fan_high_led_derate_no_runaway() {
     });
     s.run_days(1);
 
-    assert_eq!(
-        s.metrics.max_fan_pct, 100,
-        "fan should reach max in a hot room"
-    );
+    // V1 has no fan, so cutting the grow LED is the *only* thermal defense. A hot room must trip the
+    // LED derate and flag the climate red.
     assert!(s.metrics.saw_led_derate, "LED should derate when hot");
     assert!(s.metrics.saw_climate_red);
-    // No runaway: the loop completed and temperature never ran away (LED derate caps the only heat
-    // source the device controls). Moisture stayed sane.
+    // No runaway: the loop completed and the LED derate caps the only heat source the device
+    // controls, so the canopy can't feed back into thermal runaway. Moisture stayed sane.
     assert!(s.metrics.max_moisture_pct < 65.0);
 }
 
 // 9 ----------------------------------------------------------------------------------------------
 #[test]
-fn humid_night_fan_pulses_no_watering() {
+fn humid_night_climate_flags_no_watering() {
     let mut s = Sim::new(Config {
         start_unix_s: 23 * 3600, // 23:00 — lights off
         room_temp_c: 22.0,
@@ -192,11 +190,11 @@ fn humid_night_fan_pulses_no_watering() {
     });
     s.run(96); // ~8 hours overnight at 5-min ticks
 
-    // Fan runs hard for the humidity even at night (RH>85 → +30%).
+    // V1 has no fan, so high humidity has no actuator response — but the climate monitor must still
+    // surface it: RH 92 % (>90) flags the Climate LED red so the user knows to ventilate the room.
     assert!(
-        s.metrics.max_fan_pct >= 30,
-        "fan should respond to humidity: {}",
-        s.metrics.max_fan_pct
+        s.metrics.saw_climate_red,
+        "sustained high humidity should flag climate red"
     );
     // No watering: substrate isn't dry and it's night (no emergency).
     assert_eq!(s.metrics.pump_runs, 0);

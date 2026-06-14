@@ -112,16 +112,6 @@ pub trait Pump {
     }
 }
 
-/// Circulation fan: PWM duty out, optional tachometer in. Missing tach while commanded on is a
-/// `FAN_FAULT` (§9.7).
-pub trait Fan {
-    /// Set duty cycle, percent 0..=100.
-    fn set_duty(&mut self, pct: u8);
-    fn tach_rpm(&self) -> Option<u16> {
-        None
-    }
-}
-
 /// Dimmable grow LED. Percent is *commanded* power; the PPFD it yields comes from the
 /// `led_ppfd_map` calibration (§9.9).
 pub trait GrowLed {

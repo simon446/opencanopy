@@ -16,8 +16,8 @@ Run them: `cargo test -p sim` (host, stable Rust, no hardware).
 | 5 | Moisture sensor stuck dry | `moisture_stuck_pct = 20` | Tries then `PUMP_FAULT` (no-rise), capped well below daily max |
 | 6 | Pump disconnected | `pump_disconnected`, dry | `PUMP_FAULT` (no rise), zero water moved, reservoir untouched |
 | 7 | Leak detected | `leak = true`, dry | Pump never on, `LEAK_DETECTED`, Water + System LEDs **red** |
-| 8 | Hot room | room 31 °C (+LED self-heat) | Fan **max**, LED **derate**, climate **red**, no runaway |
-| 9 | Humid night | 23:00 start, RH 92%, not dry | Fan responds (≥30%), **no watering** (not dry, night) |
+| 8 | Hot room | room 31 °C (+LED self-heat) | LED **derate** (the only heat lever — no fan), climate **red**, no runaway |
+| 9 | Humid night | 23:00 start, RH 92%, not dry | Climate flags **red** (RH>90; no fan to act), **no watering** (not dry, night) |
 | 10 | RTC invalid | `rtc_valid = false`, dry | Safe-schedule fallback, **watering still works**, System LED **amber pulse** |
 | 11 | Power loss mid-watering | run to a pulse, then reboot | Watering event logged, reboot comes up **NORMAL** (pump off, not resumed) |
 

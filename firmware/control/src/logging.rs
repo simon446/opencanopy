@@ -28,7 +28,6 @@ pub enum LogKind {
         moisture_pct: i16, // -1 = invalid/no reading
         reservoir_low: bool,
         light_pct: u8,
-        fan_pct: u8,
     },
     /// A watering pulse completed.
     Watering {
@@ -130,7 +129,6 @@ mod tests {
             moisture_pct: 42,
             reservoir_low: false,
             light_pct: 62,
-            fan_pct: 28,
         }
     }
 

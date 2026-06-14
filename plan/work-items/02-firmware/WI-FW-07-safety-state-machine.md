@@ -16,7 +16,8 @@ controllers when safety states are active.
 ## Deliverables
 
 - [x] States: BOOT, SELF_TEST, NORMAL, WATERING, LOW_WATER, LEAK_DETECTED, SENSOR_FAULT, PUMP_FAULT,
-      FAN_FAULT, LED_FAULT, OVER_TEMP, MAINTENANCE, SAFE_SHUTDOWN (§9.3).
+      LED_FAULT, OVER_TEMP, MAINTENANCE, SAFE_SHUTDOWN (§9.3). *(`FAN_FAULT` removed 2026-06-14 — the
+      circulation fan was dropped from V1; spec §9.3 still lists it and needs a coordinated revision.)*
 - [x] Priority arbitration: LEAK > OVER_TEMP(critical) > PUMP_FAULT > SENSOR_FAULT(watering) >
       LOW_WATER > NORMAL/WATERING.
 - [x] Boot sequence per §9.4 (self-test, restore grow-cycle age from flash, pump forced off).
@@ -30,8 +31,9 @@ controllers when safety states are active.
 
 ## Implementation
 
-- `control/src/safety_controller.rs`: `SystemState` (all 13 states), total-ordering `arbitrate()`,
-  `gates()` (pump-off / LED-off-min enforcement), latched leak (`clear_leak`), and the §9.4
+- `control/src/safety_controller.rs`: `SystemState` (12 states — `FAN_FAULT` removed with the fan),
+  total-ordering `arbitrate()`, `gates()` (pump-off / LED-off-min enforcement; the over-temp gate's
+  LED cut is now the sole thermal defense), latched leak (`clear_leak`), and the §9.4
   `boot()` sequence (pump forced off; bad calibration → fault, never NORMAL). Host-tested incl.
   "highest-priority state always wins" and leak/over-temp overriding controller outputs.
 - Watchdog (RWDT) + brownout enable are esp-hal concerns wired in `controller/src/drivers`

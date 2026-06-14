@@ -7,8 +7,8 @@
 //! The simulator (`sim/`) builds its plant/environment models on top of these.
 
 use crate::hal::{
-    Clock, Fan, GrowLed, LeakSensor, LedHeatSensor, LedId, MoistureSensor, Pump, ReservoirSensor,
-    Rtc, SensorError, StatusLeds, TempRh, TempRhSensor, WallTime,
+    Clock, GrowLed, LeakSensor, LedHeatSensor, LedId, MoistureSensor, Pump, ReservoirSensor, Rtc,
+    SensorError, StatusLeds, TempRh, TempRhSensor, WallTime,
 };
 use crate::led_status::{LedColor, LedPattern};
 
@@ -148,21 +148,6 @@ impl Pump for MockPump {
     }
     fn current_ma(&self) -> Option<u16> {
         self.current_ma
-    }
-}
-
-/// Fan mock recording the last duty; optional injectable tach (set `Some(0)` to fault).
-#[derive(Debug, Clone, Copy, Default)]
-pub struct MockFan {
-    pub duty: u8,
-    pub tach_rpm: Option<u16>,
-}
-impl Fan for MockFan {
-    fn set_duty(&mut self, pct: u8) {
-        self.duty = pct;
-    }
-    fn tach_rpm(&self) -> Option<u16> {
-        self.tach_rpm
     }
 }
 

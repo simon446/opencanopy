@@ -7,8 +7,8 @@
 //! build runs the production 5-minute cadence.
 //!
 //! STATUS: the esp-hal driver code is verified by cross-compilation and the Wokwi run (with mock
-//! I2C chips); calibration values, the WS2812 status-LED RMT driver, and the fan-tach PCNT input
-//! are completed/validated at WI-EE-08 bring-up against real hardware and the finalized pin map.
+//! I2C chips); calibration values and the WS2812 status-LED RMT driver are completed/validated at
+//! WI-EE-08 bring-up against real hardware and the finalized pin map.
 
 #![no_std]
 #![no_main]

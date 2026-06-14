@@ -35,7 +35,6 @@ pub struct SensorFrame {
     pub reservoir_low: bool,
     pub leak: bool,
     pub led_heat_c: Option<f32>,
-    pub fan_tach_rpm: Option<u16>,
 }
 
 /// Commanded actuator outputs + observability for one tick.
@@ -45,7 +44,6 @@ pub struct Commands {
     pub pump_run_seconds: f32,
     pub pump_dose_ml: u16,
     pub led_pct: u8,
-    pub fan_pct: u8,
     pub state: SystemState,
     pub panel: Panel,
     pub stage: Stage,
@@ -186,14 +184,11 @@ impl App {
             led_heat_c: frame.led_heat_c,
         });
 
-        // --- Climate / fan controller. ---
-        let minute = scheduler::minute_of_hour(frame.rtc, self.cfg.utc_offset_s, self.boot_ms, now);
+        // --- Climate monitor (no fan in V1 — VPD/health flags + LED-derate request only). ---
         let climate = climate_controller::evaluate(&ClimateInputs {
             air,
             sp: &sp,
             lights_on: light.on,
-            minute_of_hour: minute,
-            tach_rpm: frame.fan_tach_rpm,
         });
 
         // --- Moisture validation (drives auto-watering enable + sensor fault). ---
@@ -230,7 +225,6 @@ impl App {
             pump_fault,
             moisture_sensor_invalid: sensor_invalid,
             reservoir_low: frame.reservoir_low,
-            fan_fault: climate.fan_fault,
             led_fault: light.derate.led_fault,
             maintenance: self.maintenance,
             watering_active: decision.watering_active,
@@ -241,11 +235,6 @@ impl App {
         // --- Apply safety gates on top of controller outputs (safety always wins). ---
         let pump_on = decision.pump_on && gates.pump_allowed;
         let led_pct = (light.commanded_pct as f32 * gates.led_max_factor) as u8;
-        let fan_pct = if gates.force_fan_high {
-            100
-        } else {
-            climate.fan_pct
-        };
 
         // --- LED status panel. ---
         let panel = self.render_panel(
@@ -268,7 +257,6 @@ impl App {
             air,
             climate.vpd_kpa,
             led_pct,
-            fan_pct,
             moisture,
         );
 
@@ -277,7 +265,6 @@ impl App {
             pump_run_seconds: if pump_on { decision.run_seconds } else { 0.0 },
             pump_dose_ml: if pump_on { decision.dose_ml } else { 0 },
             led_pct,
-            fan_pct,
             state,
             panel,
             stage,
@@ -353,7 +340,6 @@ impl App {
         air: TempRh,
         vpd: f32,
         led_pct: u8,
-        fan_pct: u8,
         moisture: Option<f32>,
     ) {
         let ts = frame.rtc.unix_s;
@@ -413,7 +399,6 @@ impl App {
                     moisture_pct: moisture.map(|m| m as i16).unwrap_or(-1),
                     reservoir_low: frame.reservoir_low,
                     light_pct: led_pct,
-                    fan_pct,
                 },
             });
         }
@@ -431,7 +416,6 @@ mod tests {
             moisture_raw_dry: 1000,
             moisture_raw_wet: 3000,
             pump_ml_per_sec: 3.8,
-            fan_min_pwm: 28,
             led_ppfd_25: 120,
             led_ppfd_50: 240,
             led_ppfd_75: 360,
@@ -458,7 +442,6 @@ mod tests {
             reservoir_low: false,
             leak: false,
             led_heat_c: None,
-            fan_tach_rpm: Some(1200),
         }
     }
 
@@ -583,9 +566,8 @@ mod tests {
         });
         let cmd = app.step(&f);
         assert_eq!(cmd.state, SystemState::OverTemp);
-        assert_eq!(cmd.led_pct, 0); // LED off/min
+        assert_eq!(cmd.led_pct, 0); // LED off/min — the only thermal lever now (no fan)
         assert!(!cmd.pump_on); // no watering on temperature alone
-        assert_eq!(cmd.fan_pct, 100); // fan forced high
     }
 
     #[test]

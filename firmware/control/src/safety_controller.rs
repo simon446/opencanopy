@@ -16,7 +16,6 @@ pub enum SystemState {
     LeakDetected,
     SensorFault,
     PumpFault,
-    FanFault,
     LedFault,
     OverTemp,
     Maintenance,
@@ -34,7 +33,6 @@ impl SystemState {
             SystemState::LeakDetected => "LEAK_DETECTED",
             SystemState::SensorFault => "SENSOR_FAULT",
             SystemState::PumpFault => "PUMP_FAULT",
-            SystemState::FanFault => "FAN_FAULT",
             SystemState::LedFault => "LED_FAULT",
             SystemState::OverTemp => "OVER_TEMP",
             SystemState::Maintenance => "MAINTENANCE",
@@ -57,8 +55,6 @@ pub struct SafetyInputs {
     pub moisture_sensor_invalid: bool,
     /// Reservoir low/empty — watering lockout (§9.6).
     pub reservoir_low: bool,
-    /// Fan tach missing while commanded on (§9.7). Does not stop watering.
-    pub fan_fault: bool,
     /// LED driver/heat-sink fault (§9.5 >80 °C ladder). Does not stop watering.
     pub led_fault: bool,
     /// Dev/overwinter maintenance mode is engaged.
@@ -75,8 +71,6 @@ pub struct Gates {
     pub pump_allowed: bool,
     /// Multiplier applied to the commanded LED power (0.0 = forced off/min).
     pub led_max_factor: f32,
-    /// Force the fan to maximum (heat-dispersion during over-temp).
-    pub force_fan_high: bool,
 }
 
 /// Report produced by the §9.4 boot sequence. Captures the ordered steps so boot is testable
@@ -150,7 +144,7 @@ impl SafetyController {
 
     /// Arbitrate the active state from the current inputs. Total ordering, highest first:
     /// LEAK > OVER_TEMP(critical) > PUMP_FAULT > SENSOR_FAULT(watering) > LOW_WATER >
-    /// FAN_FAULT > LED_FAULT > MAINTENANCE > WATERING > NORMAL.
+    /// LED_FAULT > MAINTENANCE > WATERING > NORMAL.
     ///
     /// Leak latches: once seen, it stays the active state until [`clear_leak`](Self::clear_leak).
     pub fn arbitrate(&mut self, inp: &SafetyInputs) -> SystemState {
@@ -167,8 +161,6 @@ impl SafetyController {
             SystemState::SensorFault
         } else if inp.reservoir_low {
             SystemState::LowWater
-        } else if inp.fan_fault {
-            SystemState::FanFault
         } else if inp.led_fault {
             SystemState::LedFault
         } else if inp.maintenance {
@@ -189,38 +181,31 @@ impl SafetyController {
             SystemState::LeakDetected => Gates {
                 pump_allowed: false,
                 led_max_factor: 1.0,
-                force_fan_high: false,
             },
-            // Critical over-temp: LED off/min, fan flat out, no watering on temperature alone.
+            // Critical over-temp: cut the LED to off/min and stop watering on temperature alone.
+            // With no fan, killing the LED is the *only* way to shed heat — there is no circulation
+            // actuator to disperse it, so the derate/cut is the entire thermal defense (§9.5, §9.7).
             SystemState::OverTemp => Gates {
                 pump_allowed: false,
                 led_max_factor: 0.0,
-                force_fan_high: true,
             },
             SystemState::PumpFault | SystemState::SensorFault | SystemState::LowWater => Gates {
                 pump_allowed: false,
                 led_max_factor: 1.0,
-                force_fan_high: false,
             },
             SystemState::LedFault => Gates {
                 pump_allowed: true,
                 led_max_factor: 0.0,
-                force_fan_high: false,
             },
             // Boot/self-test/shutdown: hold actuators safe.
             SystemState::Boot | SystemState::SelfTest | SystemState::SafeShutdown => Gates {
                 pump_allowed: false,
                 led_max_factor: 0.0,
-                force_fan_high: false,
             },
             // Normal operating states: controllers are trusted.
-            SystemState::Normal
-            | SystemState::Watering
-            | SystemState::FanFault
-            | SystemState::Maintenance => Gates {
+            SystemState::Normal | SystemState::Watering | SystemState::Maintenance => Gates {
                 pump_allowed: true,
                 led_max_factor: 1.0,
-                force_fan_high: false,
             },
         }
     }
@@ -272,8 +257,7 @@ mod tests {
         assert_eq!(c.arbitrate(&inp), SystemState::OverTemp);
         let g = c.gates();
         assert!(!g.pump_allowed);
-        assert_eq!(g.led_max_factor, 0.0); // LED off/min
-        assert!(g.force_fan_high);
+        assert_eq!(g.led_max_factor, 0.0); // LED off/min — the only heat lever without a fan
     }
 
     #[test]
@@ -299,18 +283,10 @@ mod tests {
             (
                 SafetyInputs {
                     reservoir_low: true,
-                    fan_fault: true,
-                    ..Default::default()
-                },
-                SystemState::LowWater,
-            ),
-            (
-                SafetyInputs {
-                    fan_fault: true,
                     led_fault: true,
                     ..Default::default()
                 },
-                SystemState::FanFault,
+                SystemState::LowWater,
             ),
             (
                 SafetyInputs {
@@ -374,13 +350,8 @@ mod tests {
     }
 
     #[test]
-    fn fan_and_led_faults_do_not_stop_watering() {
+    fn led_fault_does_not_stop_watering() {
         let mut c = ctrl();
-        c.arbitrate(&SafetyInputs {
-            fan_fault: true,
-            ..Default::default()
-        });
-        assert!(c.gates().pump_allowed);
         c.arbitrate(&SafetyInputs {
             led_fault: true,
             ..Default::default()

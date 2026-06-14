@@ -34,7 +34,6 @@ pub fn build_sensor_frame(
     reservoir: ReservoirFloatLow,
     leak: LeakPinHigh,
     led_heat_c: Option<f32>,
-    fan_tach_rpm: Option<u16>,
 ) -> SensorFrame {
     SensorFrame {
         now_ms,
@@ -44,7 +43,6 @@ pub fn build_sensor_frame(
         reservoir_low: reservoir.0, // RES_LOW_SW closed (LOW) == reservoir low
         leak: leak.0,               // active-HIGH == leak
         led_heat_c,
-        fan_tach_rpm,
     }
 }
 
@@ -68,7 +66,6 @@ mod tests {
             ReservoirFloatLow(true), // pin low => reservoir LOW
             LeakPinHigh(false),      // pin low => no leak
             Some(55.0),
-            Some(1200),
         );
         assert_eq!(f.now_ms, 123);
         assert_eq!(f.rtc.unix_s, 42);
@@ -76,7 +73,6 @@ mod tests {
         assert!(f.reservoir_low, "float pin low must map to reservoir_low");
         assert!(!f.leak, "leak pin low must map to no leak");
         assert_eq!(f.led_heat_c, Some(55.0));
-        assert_eq!(f.fan_tach_rpm, Some(1200));
     }
 
     #[test]
@@ -88,7 +84,6 @@ mod tests {
             Err(SensorError::NotPresent),
             ReservoirFloatLow(false), // pin high => reservoir NOT low
             LeakPinHigh(true),        // pin high => leak
-            None,
             None,
         );
         assert!(f.leak);
@@ -111,7 +106,6 @@ mod tests {
             moisture_raw_dry: 1000,
             moisture_raw_wet: 3000,
             pump_ml_per_sec: 3.8,
-            fan_min_pwm: 28,
             led_ppfd_25: 120,
             led_ppfd_50: 240,
             led_ppfd_75: 360,
@@ -143,7 +137,6 @@ mod tests {
             Ok(1400), // dry-ish — would otherwise water
             ReservoirFloatLow(false),
             LeakPinHigh(true), // LEAK
-            None,
             None,
         );
         let cmd = app.step(&frame);

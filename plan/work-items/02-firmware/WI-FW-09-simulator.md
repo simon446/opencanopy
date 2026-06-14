@@ -17,11 +17,14 @@ and implement the 11 required scenarios.
 
 - [x] Rust simulator crate (`firmware/sim/`) that drives the **real `control` crate** through host
       implementations of the `hal.rs` traits, with models for: moisture decline (faster under
-      light/high VPD), pump→moisture rise after delay, reservoir drawdown, fan→RH effect, LED→heat,
+      light/high VPD), pump→moisture rise after delay, reservoir drawdown, LED→heat,
       injectable leak/sensor faults (§10.3). Models may live under `sim/models/`.
+      *(The fan→RH/heat-dispersion term was removed 2026-06-14 with the fan; air RH now tracks the
+      room and the LED is the only heat source/lever.)*
 - [x] All 11 required scenarios implemented as automated `cargo test` cases (data under `sim/scenarios/`):
       normal seedling, normal fruiting, reservoir empty, sensor stuck wet, sensor stuck dry, pump
-      disconnected, leak, hot room, humid night, RTC invalid, power loss mid-watering.
+      disconnected, leak, hot room (LED-derate, no fan), humid night (climate flags, no fan), RTC
+      invalid, power loss mid-watering.
 
 ## Acceptance criteria
 
@@ -38,8 +41,8 @@ reality matches the model.
 ## Implementation
 
 - `sim/` drives the real `control::app_state::App` (not a reimplementation): `sim/src/models.rs`
-  (moisture decline ∝ light/VPD, pump→rise after soak, reservoir drawdown, LED heat, fan
-  dispersion; injectable leak/sensor/pump faults), `sim/src/lib.rs` harness, and all **11 scenarios**
+  (moisture decline ∝ light/VPD, pump→rise after soak, reservoir drawdown, LED heat — no fan
+  dispersion in V1; injectable leak/sensor/pump faults), `sim/src/lib.rs` harness, and all **11 scenarios**
   in `sim/tests/scenarios.rs` (all passing via `cargo test -p sim`). Models documented in
   `sim/models/README.md`, scenarios in `sim/scenarios/README.md`, both flagged for
   re-parameterization from bench data (WI-QA-09 / §23 DR-02) before gating a live grow.

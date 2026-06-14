@@ -1,9 +1,11 @@
-//! Climate / fan controller: VPD calculation and the open-frame fan/LED response. Spec §9.7,
-//! §5.3, §5.4. Implements `docs/vpd-climate-model.md`.
+//! Climate monitor: VPD calculation and temp/humidity health flags. Spec §9.7, §5.3, §5.4.
+//! Implements `docs/vpd-climate-model.md`.
 //!
-//! This is a **monitor-and-nudge** system, not an HVAC: it never tries to cool below ambient. The
-//! only heat source it controls is the LED (derate request handed to the light controller); the
-//! fan provides circulation and heat dispersion, not active cooling.
+//! V1 has **no circulation fan** (removed from the mechanical/electrical design). This module
+//! therefore commands no actuator of its own — it is pure observation: it computes VPD, classifies
+//! the air against the stage's preferred band for the Climate status LED, and (the one thing it can
+//! still influence) **requests an LED derate** when the air runs hot, since the grow LED is now the
+//! only heat source — and only lever — the device controls.
 
 use crate::hal::TempRh;
 use crate::math::{clampf, exp};
@@ -48,34 +50,18 @@ pub fn vpd_band(vpd: f32) -> VpdBand {
     }
 }
 
-/// Output of the climate controller for one tick.
+/// Output of the climate monitor for one tick. No actuator command — V1 has no fan.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ClimateOutput {
-    /// Commanded fan duty, percent 0..=100 (before any safety force-high).
-    pub fan_pct: u8,
     pub vpd_kpa: f32,
     pub vpd_band: VpdBand,
     /// Climate LED should be amber (outside preferred range) — §9.8.
     pub climate_amber: bool,
     /// Climate LED should be red (critical temp/humidity) — §9.8.
     pub climate_red: bool,
-    /// Request the light controller derate the LED (temp >32 °C) — §9.7.
+    /// Request the light controller derate the LED (temp >32 °C) — §9.7, §9.5. With no fan, cutting
+    /// the LED is the only way to shed heat.
     pub request_led_derate: bool,
-    /// Fan tach missing while commanded on → FAN_FAULT (§9.7).
-    pub fan_fault: bool,
-}
-
-/// Stage fan minimum for the current lighting condition (§9.7). During lights-off the fan runs
-/// periodically: on for `fan_off_min_per_hour` minutes each hour. `minute_of_hour` selects the
-/// phase deterministically so the behavior is testable without wall-clock drift.
-pub fn fan_minimum(sp: &Setpoints, lights_on: bool, minute_of_hour: u8) -> u8 {
-    if lights_on {
-        sp.fan_min_on_pct
-    } else if minute_of_hour < sp.fan_off_min_per_hour {
-        sp.fan_min_off_pct
-    } else {
-        0
-    }
 }
 
 /// Inputs needed beyond the air reading.
@@ -83,69 +69,50 @@ pub fn fan_minimum(sp: &Setpoints, lights_on: bool, minute_of_hour: u8) -> u8 {
 pub struct ClimateInputs<'a> {
     pub air: TempRh,
     pub sp: &'a Setpoints,
+    /// Whether the grow lights are on — affects only the "sustained warm at night" amber nuance.
     pub lights_on: bool,
-    pub minute_of_hour: u8,
-    /// Fan tach reading; `None` while commanded on → fault. `Some` only meaningful when fan runs.
-    pub tach_rpm: Option<u16>,
 }
 
-/// Compute the fan duty and climate flags (§9.7, vpd-climate-model §4,§5).
-///
-/// Boosts are additive on the stage minimum. RH and temperature use the **highest applicable
-/// tier** (not cumulative across tiers) so a humid, hot reading doesn't double-count; the VPD
-/// boost is independent. Temp >32 °C pins the fan to max and requests an LED derate.
+/// Classify the air and decide the climate health flags + LED-derate request (§9.7, vpd-climate-
+/// model §4,§5). With the fan gone there is no duty to compute; temperature tiers now only raise
+/// the amber/red health flags and, past 32 °C, ask the light controller to derate.
 pub fn evaluate(inp: &ClimateInputs) -> ClimateOutput {
     let t = inp.air.temp_c;
     let rh = inp.air.rh_pct;
     let vpd = vpd_kpa(t, rh);
     let band = vpd_band(vpd);
 
-    let base = fan_minimum(inp.sp, inp.lights_on, inp.minute_of_hour) as i32;
-    let mut duty = base;
     let mut amber = false;
     let mut red = false;
     let mut derate = false;
 
-    // --- RH tiers (highest applicable) ---
+    // --- RH health ---
     if rh > 85.0 {
-        duty += 30;
         amber = true; // §9.7 "amber climate"
-    } else if rh > 75.0 && inp.lights_on {
-        duty += 15;
     }
-    // RH > 85 sustained leans toward red disease-risk; we surface red at the very high end.
+    // RH > 90 sustained leans toward red disease-risk.
     if rh > 90.0 {
         red = true;
     }
 
-    // --- VPD boost (independent) ---
-    if vpd < 0.5 {
-        duty += 20;
-    }
+    // --- VPD ---
     if band == VpdBand::Stress {
         amber = true; // persistent stress risk — alert (vpd-climate-model §2)
     }
 
     // --- Temperature tiers (highest applicable, escalating) ---
-    if t > 35.0 {
-        duty = 100;
+    if t > 32.0 {
+        // >32 °C (and the >35 °C critical case handled by safety as OverTemp): red + LED derate,
+        // the only heat lever left without a fan (§9.7, §9.5).
         red = true;
-        derate = true; // critical handled by safety as OverTemp; still drive fan max + derate
-    } else if t > 32.0 {
-        duty = 100; // max fan
-        red = true;
-        derate = true; // LED derate (§9.7, §9.5)
+        derate = true;
     } else if t > 30.0 {
-        duty += 40;
         amber = true;
-    } else if t > 28.0 {
-        duty += 20;
-        if !inp.lights_on {
-            // sustained warm at night still warrants attention
-            amber = true;
-        }
+    } else if t > 28.0 && !inp.lights_on {
+        // sustained warm at night still warrants attention
+        amber = true;
     } else if t < 16.0 {
-        // cold: fan minimum only, climate amber (vpd-climate-model §4).
+        // cold: climate amber (vpd-climate-model §4).
         amber = true;
     }
 
@@ -154,19 +121,12 @@ pub fn evaluate(inp: &ClimateInputs) -> ClimateOutput {
         amber = true;
     }
 
-    let fan_pct = clampf(duty as f32, 0.0, 100.0) as u8;
-
-    // Fan-tach fault: commanded to spin (duty > 0) but no tach pulses.
-    let fan_fault = fan_pct > 0 && inp.tach_rpm == Some(0);
-
     ClimateOutput {
-        fan_pct,
         vpd_kpa: vpd,
         vpd_band: band,
         climate_amber: amber && !red,
         climate_red: red,
         request_led_derate: derate,
-        fan_fault,
     }
 }
 
@@ -223,135 +183,73 @@ mod tests {
         assert_eq!(vpd_band(2.0), VpdBand::Stress);
     }
 
-    fn veg_inputs(t: f32, rh: f32, _lights_on: bool) -> (crate::plant_profile::Setpoints, TempRh) {
-        (
-            setpoints(Stage::Vegetative),
-            TempRh {
+    fn eval(t: f32, rh: f32, lights_on: bool) -> ClimateOutput {
+        let sp = setpoints(Stage::Vegetative);
+        evaluate(&ClimateInputs {
+            air: TempRh {
                 temp_c: t,
                 rh_pct: rh,
             },
-        )
+            sp: &sp,
+            lights_on,
+        })
     }
 
-    // §10.2 "Fan controller — temp/RH/VPD duty behavior".
+    // §10.2 "Climate monitor — temp/RH/VPD health classification".
     #[test]
-    fn fan_at_stage_minimum_when_nominal() {
-        let (sp, air) = veg_inputs(23.0, 60.0, true);
-        let out = evaluate(&ClimateInputs {
-            air,
-            sp: &sp,
-            lights_on: true,
-            minute_of_hour: 0,
-            tach_rpm: Some(1200),
-        });
-        assert_eq!(out.fan_pct, sp.fan_min_on_pct); // 28%, no boosts
+    fn nominal_air_is_neither_amber_nor_red() {
+        let out = eval(23.0, 60.0, true);
         assert!(!out.climate_amber && !out.climate_red);
+        assert!(!out.request_led_derate);
     }
 
     #[test]
-    fn high_rh_boosts_and_ambers() {
-        let (sp, air) = veg_inputs(24.0, 80.0, true);
-        let out = evaluate(&ClimateInputs {
-            air,
-            sp: &sp,
-            lights_on: true,
-            minute_of_hour: 0,
-            tach_rpm: Some(1200),
-        });
-        // 28 base + 15 (RH>75 lights on) = 43
-        assert_eq!(out.fan_pct, 43);
-        let (sp, air) = veg_inputs(24.0, 86.0, true);
-        let out = evaluate(&ClimateInputs {
-            air,
-            sp: &sp,
-            lights_on: true,
-            minute_of_hour: 0,
-            tach_rpm: Some(1200),
-        });
-        // RH>85 tier (+30) AND VPD 0.42<0.5 (+20): 24°C/86% is humid enough to trip both.
-        assert_eq!(out.fan_pct, 28 + 30 + 20);
-        assert!(out.climate_amber);
+    fn high_rh_ambers_and_very_high_reds() {
+        // RH>85 → amber climate.
+        assert!(eval(24.0, 86.0, true).climate_amber);
+        // RH>90 → red (disease risk); red supersedes amber.
+        let out = eval(24.0, 92.0, true);
+        assert!(out.climate_red);
+        assert!(!out.climate_amber);
     }
 
     #[test]
-    fn low_vpd_adds_twenty() {
-        // 24°C/90% → VPD 0.298 (<0.5): +20. RH 90 → red. Duty pinned by RH30 + VPD20.
-        let (sp, air) = veg_inputs(24.0, 90.0, true);
-        let out = evaluate(&ClimateInputs {
-            air,
-            sp: &sp,
-            lights_on: true,
-            minute_of_hour: 0,
-            tach_rpm: Some(1200),
-        });
-        assert_eq!(out.fan_pct, 28 + 30 + 20);
-        assert!(out.vpd_kpa < 0.5);
+    fn low_vpd_is_humid_band() {
+        // 24°C/90% → VPD ~0.30 (<0.4): too-humid band, and RH 90 just under the red line.
+        let out = eval(24.0, 90.0, true);
+        assert!(out.vpd_kpa < 0.4);
+        assert_eq!(out.vpd_band, VpdBand::TooHumid);
     }
 
     #[test]
     fn temp_escalation_thresholds() {
-        let sp = setpoints(Stage::Vegetative);
-        let mk = |t: f32| {
-            evaluate(&ClimateInputs {
-                air: TempRh {
-                    temp_c: t,
-                    rh_pct: 60.0,
-                },
-                sp: &sp,
-                lights_on: true,
-                minute_of_hour: 0,
-                tach_rpm: Some(1200),
-            })
-        };
-        assert_eq!(mk(29.0).fan_pct, 28 + 20); // >28
-        assert_eq!(mk(31.0).fan_pct, 28 + 40); // >30
-        let hot = mk(33.0); // >32
-        assert_eq!(hot.fan_pct, 100);
+        // <16 cold → amber; 28–30 by day → no amber; 28–30 at night → amber; >30 → amber;
+        // >32 → red + LED derate (the only heat lever without a fan). RH 72 % keeps VPD in the
+        // Normal band and inside the preferred RH window, isolating the temperature behavior.
+        assert!(eval(15.0, 60.0, true).climate_amber); // cold
+        assert!(!eval(29.0, 72.0, true).climate_amber); // warm, lights on: not yet flagged
+        assert!(eval(29.0, 72.0, false).climate_amber); // warm at night
+        assert!(eval(31.0, 72.0, true).climate_amber); // >30
+        let hot = eval(33.0, 60.0, true); // >32
         assert!(hot.request_led_derate);
         assert!(hot.climate_red);
-        let crit = mk(36.0); // >35
-        assert_eq!(crit.fan_pct, 100);
+        let crit = eval(36.0, 60.0, true); // >35 (safety also raises OverTemp)
         assert!(crit.request_led_derate && crit.climate_red);
     }
 
     #[test]
-    fn fan_tach_missing_is_fault() {
-        let (sp, air) = veg_inputs(23.0, 60.0, true);
-        let out = evaluate(&ClimateInputs {
-            air,
-            sp: &sp,
-            lights_on: true,
-            minute_of_hour: 0,
-            tach_rpm: Some(0),
-        });
-        assert!(out.fan_fault);
-    }
-
-    #[test]
-    fn lights_off_fan_is_periodic() {
-        let sp = setpoints(Stage::Vegetative); // 8 min/hour off-period circulation
-                                               // In the first 8 minutes of the hour the fan runs at the off-duty...
-        assert_eq!(fan_minimum(&sp, false, 3), sp.fan_min_off_pct);
-        // ...and is otherwise off.
-        assert_eq!(fan_minimum(&sp, false, 30), 0);
-    }
-
-    #[test]
-    fn never_cools_below_ambient_only_circulates() {
-        // The controller never returns a "cooling" command; its only outputs are fan duty and a
-        // derate *request*. Confirm a hot reading maxes the fan and asks for derate — no magic cooling.
-        let sp = setpoints(Stage::Fruiting);
-        let out = evaluate(&ClimateInputs {
-            air: TempRh {
-                temp_c: 34.0,
-                rh_pct: 50.0,
-            },
-            sp: &sp,
-            lights_on: true,
-            minute_of_hour: 0,
-            tach_rpm: Some(1500),
-        });
-        assert_eq!(out.fan_pct, 100);
+    fn hot_air_only_requests_derate_no_actuator() {
+        // The monitor's sole influence is the LED-derate request — there is no fan to spin up. A hot
+        // reading asks the light controller to shed heat and reds the climate LED; nothing more.
+        let out = eval(34.0, 50.0, true);
         assert!(out.request_led_derate);
+        assert!(out.climate_red);
+    }
+
+    #[test]
+    fn outside_preferred_rh_band_ambers() {
+        // Vegetative band is 55–75 % RH; 50 % is below it → amber even when temp is fine.
+        let out = eval(23.0, 50.0, true);
+        assert!(out.climate_amber);
     }
 }
