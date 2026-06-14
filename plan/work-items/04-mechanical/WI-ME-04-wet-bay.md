@@ -6,12 +6,19 @@
 | Milestone | M5-04 |
 | Depends on | WI-ME-02 |
 | Spec refs | §6.2, §7.7, §8.4, §12.3 |
-| Status | Done |
+| Status | Done — **re-scoped by [ECO-003](../../../docs/ECO-003-v1-redesign.md)** (no pump) |
+
+> **🔄 Re-scoped by [ECO-003](../../../docs/ECO-003-v1-redesign.md):** V1 is **passive self-watering —
+> no pump**. The base **is** the wet zone: a **6 L reservoir** + the **grow-insert well** with a
+> capillary wick path, a top **fill port**, **overflow**, and **insert lift-out** for cleaning. The
+> **pump mount / pump clip / intake filter / pump-impeller guard are removed** (and the pump-specific
+> leak→lockout is gone — leak/overflow is monitor-and-warn). Electronics are at the **top**, so there
+> is no wet-bay-to-dry-bay overflow concern in the base. Pump-related deliverables below are superseded.
 
 ## Objective
 
-Design the bottom wet bay: reservoir cradle, pump mount, intake filter access, leak tray, and
-overflow/drainage path.
+Design the base **wet zone**: the 6 L passive reservoir, the grow-insert well + capillary wick path,
+fill port, overflow, and tool-free insert lift-out for cleaning. **No pump** (ECO-003).
 
 ## Deliverables
 

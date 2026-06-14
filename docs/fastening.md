@@ -1,59 +1,58 @@
 # Fastening & assembly strategy
 
-How the parts join, and why. This addresses the "how is it held together?" question for
-the open-frame unit (base cabinet + two side-frame arches + top light bridge + panels).
+How the parts join, and why — for the two-pillar unit (**base + two wooden pillars + top
+LED block + removable grow insert**). See [ECO-003](ECO-003-v1-redesign.md) for the redesign.
 
 ## Why it can't be a single print
 
-The unit is **480 × 320 × 680 mm**. Consumer FDM beds are ~220–350 mm, so a one-piece
-print is impossible on normal hardware; a 500 mm+ printer is rare and expensive, the
-print would run days with high failure risk, and you'd lose all service access. So the
-unit is **printed (and/or cut) in modular panels and bolted together** — the standard
-approach for large printed enclosures/frames.
+The unit is **480 × 320 × 680 mm**. Consumer FDM beds are ~220–350 mm, so a one-piece print
+is impossible. The unit is built from a few modular parts that bolt together: the **base** (may
+itself be split for the bed, or printed on a 350 mm+ bed), **two pillars**, and the **top LED
+block** — which **prints in two parts (body + bottom lid)** so the encapsulated controller PCB
+can be installed. This is the standard approach for large printed assemblies and keeps the unit
+**serviceable**.
 
-## Primary method — heat-set inserts + machine screws
+## Primary method — heat-set inserts + machine screws + dowels
 
-The de-facto standard for quality printed assemblies (used by Voron, Prusa enclosures,
-most printed-enclosure designs) and what V1 uses:
+The de-facto standard for quality printed assemblies (Voron, Prusa enclosures), and what V1 uses:
 
-- **M3 brass heat-set threaded inserts** melted into bosses on one part, with **M3
-  socket-head cap screws** through clearance holes (Ø3.4 mm) on the mating part. Strong,
-  repeatable, and **re-serviceable** (unlike glue or one-shot snap-fits).
-- **Dowel pins** (3–4 mm) at panel seams for alignment and to carry shear, so the screws
-  aren't the only thing locating the parts.
+- **Brass heat-set threaded inserts** + **machine screws** through clearance holes on the mating
+  part: strong, repeatable, **re-serviceable** (unlike glue or one-shot snap-fits).
+- **Dowel pins** (Ø4 mm) for alignment and to **carry shear**, so screws aren't the only locator.
 - **Stainless steel** screws anywhere near water (§8.3 / §16.2).
 
-Tolerances for the bosses/holes are the ones the tolerance coupons validate
-(heat-set bore, screw boss — see `mechanical/fit-tests.md`).
-
-### Alternatives (and when)
-
-| Method | Use | Notes |
-|---|---|---|
-| Heat-set insert + M3 screw | **all structural + serviceable joints** | primary |
-| Captive (trap) hex nut + screw | where a heat-set tool isn't available | print a nut pocket |
-| Dowel pin (+ light glue) | alignment at seams | not load-bearing alone |
-| CA / epoxy glue | permanent decorative seams only | **not** for serviceable/structural joints |
-| Snap-fit | tool-free covers (e.g. clip lids) | wears with cycles; not for primary structure |
-
-Glue-only / plug-and-glue is avoided for the frame because the unit must stay
-**serviceable** (remove reservoir, pump, electronics, LED — §8.4).
-
-## Per-joint scheme
+## Per-joint scheme (two-pillar architecture)
 
 | Joint | Fastening |
 |---|---|
-| Side-frame arch ↔ base (×4 feet) | each arch foot **tenons 26 mm into a base socket** + **2 dowel pins** (alignment/shear) + **1 hidden M4** from the underside into a heat-set insert in the foot. The base underside is counterbored for straight screwdriver access. |
-| Side-frame arch ↔ light bridge | **bridge tongues** into the arch-top sockets + dowel pins + accessible **M3/M4** screws from the underside/rear. |
-| Base panels (front/sides/floor/deck) | M3 inserts + screws at the edges; **dowel pins** locate the seams. |
-| Sealed wet/dry wall | keyed (slot) into the floor + deck and screwed — a positive water/dry barrier, not just glued. |
-| Electronics (PCB, driver, PSU) | M3 heat-set standoffs on the dry-compartment floor. |
-| LED bar ↔ bridge | M3 bracket screws + a **secondary-retention tether** so it can't fall (§7.2). |
-| Reservoir, pump | **no fasteners** — drop-in / lift-out from the open rear service bay (§8.4). |
-| Cables | routed **inside the hollow side-frame arches** (no external channel); drip loop before the dry compartment (§8.5). |
-| Wood shelf | located by the recessed pot well + screwed/clipped to the base deck. |
-| Feet (×4) | screw-in rubber feet on the base underside. |
+| **Pillar ↔ base** (×2) | each pillar **seats 30 mm into a base socket** in a dry structural boss + **1 hidden M4** from the **underside** into a threaded insert in the pillar bottom + **1 anti-rotation dowel** (Ø4). The base underside is **counterbored** for straight-screwdriver access. |
+| **Pillar ↔ top block** (×2) | each pillar top **seats 30 mm into a socket** in the block + a **rear set screw** grips the pillar (the set-screw access is on the block rear face). |
+| **Top block body ↔ bottom lid** | the block prints in two parts to **encapsulate the PCB**; joined with **M3 heat-set inserts + screws** along the underside seam. |
+| **Controller PCB ↔ block** | the **1.6 mm board** mounts on **4 standoff bosses** inside the block bay with **M2.5 screws**; the **USB-C** port exits through the block **rear face**. The board is fully enclosed (not exposed). |
+| **LED bar ↔ block** | **M4 screws** up into block inserts (heads below the bar); a **secondary-retention tether** so the bar can't fall (§7.2). |
+| **Grow insert** | **drop-in / lift-out, no fasteners** — lifts straight out of the well for cleaning and root inspection (§8.4). |
+| **Reservoir** | **integral to the base** (the base *is* the wet zone). Service is **fill from the top port** + **insert lift-out** to access/clean the reservoir; no fasteners. |
+| **Feet (×4)** | screw-in rubber feet on the base underside. |
+| **Cabling** | low-voltage **sensor leads run up the rear flat of the right pillar** through a **sealed grommet** into the base; **USB-C power enters at the top block**. Drip/strain relief at the base entry. No cable crosses the open water. |
 
-The block model (`mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad`) shows
-the joint **screws** as a labelled part and the **hollow posts**; precise boss/insert
-geometry is added when the panels are split for printing (the next CAD step).
+## Materials note (pillars)
+
+The pillars are the visible structural + decorative element. Options (ECO-003 Open Q5): real
+**wood dowels** with a threaded insert or cross-pinned foot; **printed faux-wood** with heat-set
+inserts; or a wood/composite. The socket + M4 + dowel joint above works for any of these — only
+the insert install method differs (drilled+epoxied insert in real wood vs heat-set in printed).
+
+## Alternatives (and when)
+
+| Method | Use | Notes |
+|---|---|---|
+| Heat-set insert + screw | **all structural + serviceable joints** | primary |
+| Captive hex nut + screw | where a heat-set tool isn't available | print a nut pocket |
+| Dowel pin | alignment + shear at seams | not load-bearing alone |
+| Set screw (grub) | pillar ↔ block grip | accessible from the block rear |
+| CA / epoxy | wood-insert install; permanent decorative seams only | **not** for serviceable structural joints |
+| Snap-fit | tool-free covers | wears with cycles; not for primary structure |
+
+The block model (`mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad`) shows the
+**dowels** and **screws** as labelled parts and the pillar sockets/bosses; precise boss/insert
+geometry and the block body/lid split are finalised when parts are prepared for printing.

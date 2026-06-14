@@ -4,13 +4,20 @@
 |---|---|
 | Track | Mechanical |
 | Milestone | M5-08, M5-09 |
-| Depends on | WI-ME-02, WI-ME-03, WI-ME-04, WI-ME-05, WI-ME-06, WI-ME-07 |
+| Depends on | WI-ME-02, WI-ME-04, WI-ME-05, WI-ME-07 (WI-ME-03/06 superseded — ECO-003/ECO-001) |
 | Spec refs | §8.3, §12.2, §14.1 (mechanical/) |
-| Status | In progress |
+| Status | In progress — **re-scoped by [ECO-003](../../../docs/ECO-003-v1-redesign.md)** |
+
+> **🔄 Re-scoped by [ECO-003](../../../docs/ECO-003-v1-redesign.md):** the alpha build is now the
+> **two-pillar** unit. The authoritative geometry check is the OpenSCAD **`audit.py`** (no-whitelist,
+> volume-based interference + float — **CLEAN**), which **replaces** the old `collision_check.py`/FCL
+> step below. Add coupons for the **pillar↔base socket**, the **PCB standoff/M2.5 bosses**, and the
+> **block body↔lid seam**. The build123d coupon set + STLs below are the superseded arched model.
 
 ## Objective
 
-Validate print tolerances with coupons, then build and document the first full alpha unit.
+Validate print tolerances with coupons (incl. pillar socket, PCB standoffs, block body/lid seam),
+then build and document the first full **two-pillar** alpha unit.
 
 ## Deliverables
 

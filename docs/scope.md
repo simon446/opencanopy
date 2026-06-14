@@ -9,6 +9,10 @@ an [§4.3 optional expansion header](#expansion-headers-provisioned-not-in-scope
 
 > **Change control:** Adding any non-goal back into V1 scope requires a [`risk-register.md`](risk-register.md)
 > entry (scope creep is tracked risk #7) and Project & Repo sign-off.
+>
+> **🔄 REDESIGN — [ECO-003](ECO-003-v1-redesign.md).** V1 is now **passive self-watering (no pump)** and
+> **fan-less**, in a two-pillar form with electronics in the top block. The in-scope list below reflects
+> this: watering is monitor-and-warn, not pumped; there is no fan; the status interface is 4 LEDs.
 
 **Why this scope (research basis).** V1 is deliberately *a small indoor device, not a commercial
 greenhouse crop plan* (spec §2.3): the compact geometry trades maximum yield for table fit, and the
@@ -26,12 +30,11 @@ A zero-config, LED-status, offline-first tabletop grower for **one** hot-pepper 
 
 - One plant; fixed hot-pepper profile.
 - Broad-spectrum horticultural LED with dimming and an automated light schedule.
-- Soil/substrate moisture sensing + automated pump watering.
+- Soil/media moisture sensing + **passive self-watering** (reservoir + wicking insert; no pump — monitor & warn).
 - Reservoir-level sensing.
 - Temperature/humidity sensing with **computed VPD**.
-- Circulation fan control.
-- Leak/flood safety sensor with pump lockout.
-- 5-LED status interface.
+- Leak/flood (overflow) safety sensing with warning. *(No pump to lock out; no fan — ECO-003/ECO-001.)*
+- 4-LED status interface (Water, Moisture, Light, System).
 - Local, deterministic firmware control (offline-first).
 - Open-source firmware, PCB + wiring, and mechanical design.
 - Simulation tests, hardware verification, and a grow-validation protocol.

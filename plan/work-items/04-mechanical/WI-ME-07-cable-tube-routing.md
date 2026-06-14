@@ -6,12 +6,20 @@
 | Milestone | M5-07 |
 | Depends on | WI-ME-03, WI-ME-04 |
 | Spec refs | §8.5 |
-| Status | Done |
+| Status | Done — **re-scoped by [ECO-003](../../../docs/ECO-003-v1-redesign.md)** |
+
+> **🔄 Re-scoped by [ECO-003](../../../docs/ECO-003-v1-redesign.md):** **no water tubing** (no pump) and
+> **no in-base electronics**. Power (**USB-C**) enters at the **top block**; the only base↔top run is a
+> **low-voltage sensor bundle** (moisture, reservoir level, leak/status-LED) up the **rear flat of the
+> right pillar**, through a **sealed grommet** with strain relief, to the top controller. No cable
+> crosses the open water. Harness labels drop `pump`/`fan`; the `J_PWR` input becomes USB-C at the top.
+> The dual wire/tube channel below is the superseded design.
 
 ## Objective
 
-Design cable channels and tube routing that separate wiring from water, force drip loops before
-electronics, and keep tubing inspectable.
+Route the **low-voltage sensor bundle** up the rear of the right pillar (sealed grommet + strain
+relief) to the top controller; **USB-C power enters at the top block**. No water tubing (no pump),
+no cable across the open water.
 
 ## Deliverables
 

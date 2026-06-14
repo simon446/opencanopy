@@ -6,12 +6,21 @@
 | Milestone | M5-01 |
 | Depends on | WI-PS-04 |
 | Spec refs | §8.1, §8.2, §3.3, §3.4, §12.1 |
-| Status | Done |
+| Status | Done — **re-scoped by [ECO-003](../../../docs/ECO-003-v1-redesign.md)** |
+
+> **🔄 Re-scoped by [ECO-003](../../../docs/ECO-003-v1-redesign.md):** the assembly is now a
+> **two-pillar** form — base + two wooden pillars + top LED block + removable raised grow insert —
+> with **electronics in the top block** and **passive watering**; wet/dry separation is **top vs
+> bottom**. The authoritative model is now the OpenSCAD
+> `mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad` (geometry audit CLEAN; LED centred
+> over the plant, offset 0.0/0.0). The build123d source + STEP below are the superseded arched-frame
+> model, retained for history.
 
 ## Objective
 
-Model the complete open-frame vertical-stack assembly within the locked compact envelope, with all
-modules placed and the wet/dry zone separation respected.
+Model the complete **two-pillar** assembly (base + two pillars + top LED block + raised grow insert)
+within the locked compact envelope, with the LED centred over the plant and **top/bottom** wet/dry
+separation.
 
 ## Deliverables
 

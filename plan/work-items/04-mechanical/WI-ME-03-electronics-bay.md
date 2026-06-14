@@ -6,12 +6,20 @@
 | Milestone | M5-03 |
 | Depends on | WI-ME-01 |
 | Spec refs | §6.2, §8.4, §17.1 |
-| Status | Done |
+| Status | **Superseded by [ECO-003](../../../docs/ECO-003-v1-redesign.md)** — electronics moved into the top LED block |
+
+> **🔄 Superseded by [ECO-003](../../../docs/ECO-003-v1-redesign.md).** There is no separate electronics
+> bay in V1. The electronics are now a **small 1.6 mm controller + driver PCB encapsulated inside the
+> top LED block** (on standoff bosses, USB-C through the block rear face). With the pump removed, power
+> distribution shrinks to USB-C + the LED driver. **New mechanical PCB budget published to
+> [WI-EE-04](../03-electronics/WI-EE-04-pcb-layout.md): ≈ 62 × 44 mm, 1.6 mm, 4 mounting holes**, fitting
+> the block bay (was 120 × 90 mm) — the board must shrink (ECO-003 hand-off). The deliverables below are
+> the superseded separate-bay design, kept for history.
 
 ## Objective
 
-Design the upper dry electronics bay so the controller PCB, LED driver, and power distribution stay
-isolated from the wet path and are serviceable.
+*(Superseded.)* Originally: design a separate dry electronics bay. Now: the top LED block **is** the
+electronics enclosure — see [WI-ME-01](WI-ME-01-assembly-cad.md) and the block in the CAD model.
 
 ## Deliverables
 

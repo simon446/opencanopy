@@ -17,6 +17,14 @@ are grounded in extension/research guidance — see [`references.md`](references
 example, R3's overwatering/blossom-end-rot link comes from sources R5/R8/R15/R16; R1's DLI/PPFD framing
 from R1/R2/R3.
 
+> **🔄 REDESIGN — [ECO-003](ECO-003-v1-redesign.md) (2026-06-14).** V1 moved to a two-pillar form with
+> **electronics in the top block** and **passive self-watering (no pump, no fan)**. This **changes or
+> retires several risks below** — kept for ledger history, annotated, not deleted:
+> **R3** overwatering → far lower (no pump; passive cannot flood); **R4/S2** isolation → now **top
+> (electronics) vs bottom (water)**, not an in-base wall; **R5/S14/S18** (fan) → moot ([ECO-001](../electronics/analysis/ECO-001-fan-removal.md));
+> **S5/S6/S7/S20** (pump lockout / fail-off / flood caps / impeller access) → **N/A, no pump**; **R8**
+> (pump-fail-off HIL) → pump portion N/A. New redesign risks **R9–R14** are in **§C** below.
+
 ---
 
 ## A. Key engineering risks (spec §22)
@@ -82,10 +90,24 @@ All §17 safety requirements are tracked here as risks, each with an owner and a
 
 ---
 
+## C. Redesign risks (ECO-003 — two-pillar, top electronics, passive watering)
+
+| # | Risk | Likelihood | Impact | Owning track | Mitigation | Mitigating / verifying work item(s) |
+|---|---|---|---|---|---|---|
+| R9 | Passive watering underperforms for a mature pepper (insufficient wick rate / effective media) | Medium | High | Plant Science + Mechanical | Size wick area + reservoir contact; ~5 L raised insert + 6 L reservoir; **validate in the n=2 grow trial**; reserve space for an optional pump/aeration retrofit if passive is inadequate | [WI-PL-03](../plan/work-items/01-plant-science/WI-PL-03-watering-model.md), [WI-ME-04](../plan/work-items/04-mechanical/WI-ME-04-wet-bay.md), verified [WI-QA-07](../plan/work-items/05-validation-qa/WI-QA-07-grow-trial.md) |
+| R10 | Roots waterlogged / no oxygen (passive semi-hydro) | Medium | High | Plant Science | Maintain an air gap; slotted insert + perforated floor + capillary media; no fully-submerged root mass | [WI-PL-03](../plan/work-items/01-plant-science/WI-PL-03-watering-model.md), verified [WI-QA-07](../plan/work-items/05-validation-qa/WI-QA-07-grow-trial.md) |
+| R11 | Reservoir stagnation (no circulation) | Low | Medium | Plant Science + Docs | Inert nutrients; opaque tank; documented refill/clean cadence; avoid organic sludge | [WI-PL-03](../plan/work-items/01-plant-science/WI-PL-03-watering-model.md), [WI-DOC-06](../plan/work-items/06-documentation/WI-DOC-06-maintenance-grow-guide.md) |
+| R12 | USB-C power insufficient for the 50–80 W LED | Medium | High | Electronics | Validate USB-C PD negotiation + cable/connector rating + driver input; **reserve a DC-barrel fallback** if PD is inadequate (mechanical reserves connector space only) | Electronics (power budget / schematic); flagged in [ECO-003](ECO-003-v1-redesign.md) §3 |
+| R13 | Pillar joints wobble (two-pillar structure under the cantilevered light + plant load) | Medium | Medium | Mechanical | Pillar sockets (30 mm) + underside M4 into inserts + anti-rotation dowel + block set screws; validate with a load test (physics sim deferred) | [WI-ME-01](../plan/work-items/04-mechanical/WI-ME-01-assembly-cad.md), [WI-ME-08](../plan/work-items/04-mechanical/WI-ME-08-tolerance-alpha-build.md) |
+| R14 | Effective media (~5 L raised insert) too small vs the old 10 L pot → reduced vigour/yield | Medium | Medium | Plant Science + Mechanical + Docs | Documented trade-off; size insert as large as the low base allows; set realistic yield expectations; grow-trial-gated | [WI-ME-02](../plan/work-items/04-mechanical/WI-ME-02-pot-reservoir-fit.md), [WI-PL-01](../plan/work-items/01-plant-science/WI-PL-01-lifecycle-profile.md), verified [WI-QA-07](../plan/work-items/05-validation-qa/WI-QA-07-grow-trial.md) |
+
+---
+
 ## Change log
 
 | Date | Change | Reference |
 |---|---|---|
+| 2026-06-14 | **ECO-003 (V1 redesign):** two-pillar form; **electronics moved to the top block**; **pump removed → passive self-watering**; reservoir 4 L→6 L; pot→integrated insert; status LEDs 5→4; power→USB-C; wet/dry separation now top/bottom. Retires/changes R3, R4, R5, R8, S2, S5, S6, S7, S14, S18, S20; adds R9–R14. Maintainer (Project & Repo) approved. | [ECO-003](ECO-003-v1-redesign.md) |
 | 2026-06-13 | Register seeded with §22 engineering risks (R1–R7) and §17 safety risks (S1–S22). | WI-PS-05 |
 | 2026-06-13 | Design review (spec §23): pump current-sense made required (DR-04) and battery-backed RTC added (DR-05); pre-order modeling + bench-characterization + surrogate-shakedown gates added (DR-01/02/03). | spec §23 |
 | 2026-06-13 | Grow-trial decision: run **n=2 parallel units** (DR-03) — no single-unit-trial risk accepted. | spec §23 DR-03, WI-QA-07/10 |
