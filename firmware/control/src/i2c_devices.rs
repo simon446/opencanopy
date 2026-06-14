@@ -140,13 +140,10 @@ pub fn ina219_bus_mv(raw_bus_reg: u16) -> u32 {
 /// write to [`INA219_REG_CALIBRATION`].
 pub fn ina219_calibration(current_lsb_ua: u32, r_shunt_milliohm: u32) -> u16 {
     // 0.04096 / (lsb_A * R) = 40960 / (lsb_uA * R_mOhm / 1000) ... keep integer:
-    // cal = 0.04096 / (lsb_A * R_ohm) = 40_960_000 / (lsb_uA * R_mOhm)
+    // cal = 0.04096 / (lsb_A * R_ohm) = 40_960_000 / (lsb_uA * R_mOhm). checked_div → 0 on a zero
+    // denominator (avoids a panic and the manual zero-check clippy flags).
     let denom = current_lsb_ua as u64 * r_shunt_milliohm as u64;
-    if denom == 0 {
-        0
-    } else {
-        (40_960_000u64 / denom).min(0xFFFF) as u16
-    }
+    40_960_000u64.checked_div(denom).unwrap_or(0).min(0xFFFF) as u16
 }
 
 // ============================================================================ BUS DRIVERS =======
