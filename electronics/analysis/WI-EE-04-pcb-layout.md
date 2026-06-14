@@ -1,9 +1,10 @@
 <!-- SPDX-License-Identifier: CERN-OHL-S-2.0 -->
 # WI-EE-04 — PCB layout (design)
 
-**Status:** Layout design captured (stackup, floorplan, grounding, pours, test points, connector
-placement, DRC rules). **KiCad board entry and the automated DRC run are pending the `.kicad_pcb`
-source.**
+**Status:** Layout fully specified (stackup, floorplan, grounding, pours, test points, connector
+placement) + a deterministic [net-class & design-rule recipe](design-rules.md). The board is built by
+the headless tscircuit flow ([ECO-002](ECO-002-pcb-toolchain.md); KiCad retired); **residual: real
+footprints + a reviewed placement/route** ([programmatic/](../pcb/programmatic/)).
 **Spec refs:** §7.9, §7.10.
 **Trace-width numbers:** [WI-EE-06 trace report](../test/pcb-verification.md) (this doc states the targets; EE-06 proves them).
 
@@ -91,17 +92,17 @@ This set satisfies M4-05 ("all rails and control signals have accessible test po
 
 Net classes drive the rules: power nets (24 V/12 V/5 V/3V3) get the wider clearance/width from §4;
 24 V↔logic clearance ≥0.5 mm (creepage with possible condensation in mind, even though the board is
-in the dry bay). DRC runs against the KiCad source via `kicad-cli pcb drc` and is wired into CI
-(spec §10.5) once the board exists.
+in the dry bay). The full rule set is in [design-rules.md](design-rules.md); it is applied (and DRC'd)
+in the tscircuit layout step.
 
 ## 8. Deliverable status
 
 | Deliverable | State |
 |---|---|
-| KiCad PCB (4-layer preferred) | ✔ stackup + floorplan designed; board entry pending |
+| PCB (4-layer preferred) | ✔ stackup + floorplan designed; board generated (tscircuit draft) |
 | High-current paths sized, not through control traces | ✔ targets set (proven in WI-EE-06) |
 | LED loop away from analog; partitioned/star grounds | ✔ floorplan + grounding specified |
 | Copper pours for MOSFET heat | ✔ specified |
 | Test points on every rail/control | ✔ enumerated (§5) |
 | Locking/keyed connectors; silkscreen polarity/voltage/warnings | ✔ specified |
-| DRC clean | ⏳ runs against KiCad source (CLI in CI) |
+| DRC clean | ⏳ at the reviewed-layout step (tscircuit); draft is autorouter-grade |

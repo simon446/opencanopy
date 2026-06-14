@@ -2,7 +2,7 @@
 // Headless code->PCB flow (tscircuit). Draft: IC/connector/module footprints are pinrowN
 // placeholders; autoroute does not encode design-rules.md. See README.md. Do not hand-edit.
 export default () => (
-  <board width="140mm" height="100mm" layers={2}>
+  <board width="110mm" height="75mm" layers={2}>
   <chip name="BT1" footprint="pinrow2" pinLabels={{pin1: "P", pin2: "N"}} />
   <capacitor name="C1" capacitance="22uF" footprint="0805" />
   <capacitor name="C2" capacitance="100nF" footprint="0402" />

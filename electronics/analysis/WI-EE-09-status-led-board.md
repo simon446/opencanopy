@@ -1,8 +1,10 @@
 <!-- SPDX-License-Identifier: CERN-OHL-S-2.0 -->
 # WI-EE-09 — Status LED board (design)
 
-**Status:** Design complete. **KiCad board entry + fab files pending source; diffuser fit pends the
-mechanical front-UI CAD ([WI-ME-01](../../plan/work-items/04-mechanical/WI-ME-01-assembly-cad.md)).**
+**Status:** Design complete; 5×WS2812 chain captured in the
+[netlist](../pcb/netlist/controller_netlist.py) (board PCB2). **Board build via the tscircuit flow
+([ECO-002](ECO-002-pcb-toolchain.md)); LED pitch/outline pend the mechanical front-UI CAD
+([WI-ME-01](../../plan/work-items/04-mechanical/WI-ME-01-assembly-cad.md)).**
 **Spec refs:** §7.11, §3.5.
 **Pairs with firmware:** [WI-FW-08 LED status](../../plan/work-items/02-firmware/WI-FW-08-led-status.md).
 
@@ -70,7 +72,7 @@ firmware map.
 
 | Deliverable | State |
 |---|---|
-| 5-indicator front-panel PCB (RGB) | ✔ designed (WS2812 primary; discrete+TLC alt); KiCad entry pending |
+| 5-indicator front-panel PCB (RGB) | ✔ designed (WS2812 primary; discrete+TLC alt); in the netlist |
 | Current-limited; PWM night dimming | ✔ specified (per-LED + global brightness; decoupling + data series-R) |
 | Connector back to controller | ✔ `J_STATUS` 3-pin (5 V/GND/DATA), in harness |
 | Mechanical fit with diffuser | ⏳ pends WI-ME-01 front-UI CAD |

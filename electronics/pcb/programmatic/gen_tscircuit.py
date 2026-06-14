@@ -63,6 +63,20 @@ PASSIVE_FP = {
     "CP_Elec_8x10": "1210", "R_0402": "0402", "R_2512": "2512", "L_12x12": "1210",
 }
 
+# Functional subsystems (for per-block schematic renders / docs). Every populated controller part
+# belongs to exactly one. A part connects to nets outside its block via labelled net stubs.
+SUBSYSTEMS = {
+    "power-input": ["J_PWR", "F1", "Q2", "R_RP", "DZ_RP", "D1", "C_BULK1", "C_BULK2", "C_BULK3"],
+    "power-rails": ["U7", "L5", "D_CAT5", "C_IN5", "C_BT5", "C_OUT5", "R_FB5A", "R_FB5B",
+                    "U8", "C_IN33", "C_OUT33"],
+    "mcu": ["U1", "C1", "C2", "C3", "R_EN", "C_EN", "SW1", "SW2", "J_USB", "J_DBG"],
+    "i2c-rtc-current": ["R_SDA", "R_SCL", "U3", "C_RTC", "BT1", "U4", "C_INA", "R_SHUNT", "J_SENS"],
+    "moisture-reservoir": ["R_MOIST", "C_MOIST", "J_MOIST", "J_RES"],
+    "leak-detect": ["U5", "C_U5", "R_LK_PU", "R_LK_RA", "R_LK_RB", "R_LK_OUT", "C_LK", "J_LEAK"],
+    "pump-drive": ["Q1", "R1", "R2", "D2", "J_PUMP"],
+    "led-status": ["R_DIM", "J_LED", "R_DATA", "J_STATUS"],
+}
+
 
 def elem_type(ref: str) -> str:
     if ref.startswith("LED"):
@@ -109,7 +123,10 @@ def emit_component(ref, c, pins) -> tuple[str, dict]:
     return f'  <chip name="{ref}" footprint="pinrow{npins}" pinLabels={{{{{lbl}}}}} />', sel
 
 
-def generate() -> str:
+def emit_board(ref_filter=None, width="140mm", height="100mm") -> str:
+    """Emit a tscircuit <board>. ref_filter=None -> whole controller; a set -> just that subset
+    (a subsystem block), with every pin wired to a labelled `net.<NET>` so cross-block I/O shows as
+    stubs. Connectivity is taken verbatim from the netlist, so blocks can't drift from the schematic."""
     nl = _load_netlist()
     nets = nl._norm_pins()
     comps = nl.COMPONENTS
@@ -118,12 +135,18 @@ def generate() -> str:
         c = comps.get(ref)
         return c and c.board == "ctrl" and c.populated
 
-    # collect pins per populated ctrl component (from the nets)
+    def included(ref):
+        return populated_ctrl(ref) and (ref_filter is None or ref in ref_filter)
+
+    # nets that are real connections on the FULL board (>=2 populated pins) — drives which stubs exist
+    full_active = {net for net, pins in nets.items()
+                   if sum(populated_ctrl(p.split(".", 1)[0]) for p in pins) >= 2}
+
     pins_by_ref: dict[str, set] = {}
     for net, pins in nets.items():
         for p in pins:
             ref, _, pin = p.partition(".")
-            if populated_ctrl(ref):
+            if included(ref):
                 pins_by_ref.setdefault(ref, set()).add(pin)
 
     comp_jsx, sel_map = [], {}
@@ -134,20 +157,20 @@ def generate() -> str:
 
     trace_jsx = []
     for net, pins in nets.items():
-        active = [(p.split(".", 1)[0], p.split(".", 1)[1]) for p in pins
-                  if populated_ctrl(p.split(".", 1)[0])]
-        if len(active) < 2:
-            continue  # single-pin / reserved net — nothing to connect
+        if net not in full_active:
+            continue
         nn = net_name(net)
-        for ref, pin in active:
-            trace_jsx.append(f'  <trace from="{sel_map[(ref, pin)]}" to="net.{nn}" />')
+        for p in pins:
+            ref, _, pin = p.partition(".")
+            if included(ref):
+                trace_jsx.append(f'  <trace from="{sel_map[(ref, pin)]}" to="net.{nn}" />')
 
     body = "\n".join(comp_jsx) + "\n\n" + "\n".join(trace_jsx)
     return f"""// AUTO-GENERATED from electronics/pcb/netlist/controller_netlist.py by gen_tscircuit.py.
 // Headless code->PCB flow (tscircuit). Draft: IC/connector/module footprints are pinrowN
 // placeholders; autoroute does not encode design-rules.md. See README.md. Do not hand-edit.
 export default () => (
-  <board width="140mm" height="100mm" layers={{2}}>
+  <board width="{width}" height="{height}" layers={{2}}>
 {body}
   </board>
 )
@@ -155,7 +178,23 @@ export default () => (
 
 
 if __name__ == "__main__":
-    OUT_TSX.write_text(generate(), encoding="utf-8")
+    import sys
     nl = _load_netlist()
-    n_comp = sum(1 for c in nl.COMPONENTS.values() if c.board == "ctrl" and c.populated)
-    print(f"wrote {OUT_TSX.name} ({n_comp} populated controller parts)")
+    if "--subsystems" in sys.argv:
+        outdir = HERE / "blocks"
+        outdir.mkdir(exist_ok=True)
+        for name, refs in SUBSYSTEMS.items():
+            (outdir / f"{name}.circuit.tsx").write_text(
+                emit_board(set(refs), width="60mm", height="50mm"), encoding="utf-8")
+        # coverage check: every populated ctrl part is in exactly one subsystem
+        mapped = {r for refs in SUBSYSTEMS.values() for r in refs}
+        allpop = {r for r, c in nl.COMPONENTS.items() if c.board == "ctrl" and c.populated}
+        miss = allpop - mapped
+        if miss:
+            print(f"WARNING: unmapped populated parts: {sorted(miss)}")
+        print(f"wrote {len(SUBSYSTEMS)} subsystem blocks to {outdir.name}/ "
+              f"({len(allpop)} parts, {len(allpop - miss)} mapped)")
+    else:
+        OUT_TSX.write_text(emit_board(width="110mm", height="75mm"), encoding="utf-8")
+        n_comp = sum(1 for c in nl.COMPONENTS.values() if c.board == "ctrl" and c.populated)
+        print(f"wrote {OUT_TSX.name} ({n_comp} populated controller parts)")

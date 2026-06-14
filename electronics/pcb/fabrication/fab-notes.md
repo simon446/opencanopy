@@ -2,8 +2,10 @@
 # WI-EE-07 — Fabrication package
 
 **Status:** BOM (`bom.csv` + `alternates.csv`) complete and **passing `scripts/bom_check.py`** (incl.
-`--strict`); fab notes + stackup specified. **Gerbers, drill, pick-and-place, and interactive BOM are
-generated from the KiCad PCB source and are pending those source files.**
+`--strict`); fab notes + stackup specified. A **headless programmatic draft** fab package (Gerbers +
+drill + PnP + BOM) is generated from the netlist by the tscircuit flow ([ECO-002](../../analysis/ECO-002-pcb-toolchain.md);
+KiCad retired). A **fab-ready** package needs real footprints + a reviewed layout (see
+[`programmatic/README.md`](../programmatic/README.md)).
 **Spec refs:** §14.1, §16.1, §16.3.
 
 ## 1. What's in the package
@@ -13,13 +15,11 @@ generated from the KiCad PCB source and are pending those source files.**
 | BOM | [`bom/bom.csv`](../../bom/bom.csv) | ✔ complete, passes §16.3 check |
 | Alternates | [`bom/alternates.csv`](../../bom/alternates.csv) | ✔ complete |
 | Fab notes / stackup | this file | ✔ |
-| Gerbers + drill | [`pcb/gerbers/`](../gerbers/) | ⏳ `kicad-cli pcb export gerbers/drill` |
-| Pick-and-place | [`pcb/fabrication/`](.) | ⏳ `kicad-cli pcb export pos` |
-| Interactive BOM | [`pcb/ibom/`](../ibom/) | ⏳ InteractiveHtmlBom plugin |
+| Gerbers + drill + PnP + BOM | [`pcb/programmatic/out/controller.gerbers.zip`](../programmatic/out/controller.gerbers.zip) | ◑ **draft** (placeholder IC/connector footprints; autorouter-grade) |
+| Board as KiCad PCB | [`pcb/programmatic/out/controller.kicad_pcb`](../programmatic/out/controller.kicad_pcb) | ◑ draft (optional interchange) |
 
-The three ⏳ artifacts are mechanical exports from `pcb/kicad/` once the board is laid out
-([WI-EE-04](../../analysis/WI-EE-04-pcb-layout.md)); the commands are listed in §3 so generation is a
-single CI/script step.
+The draft package is produced by [`pcb/programmatic/build.sh`](../programmatic/build.sh) (a single
+script step). It is real fab-FORMAT data but not fab-ready — see §3.
 
 ## 2. Fabrication spec (controller PCB, PCB1)
 
@@ -34,17 +34,17 @@ single CI/script step.
 
 Status LED PCB (PCB2): 2-layer, same finish, small front-panel board ([WI-EE-09](../../analysis/WI-EE-09-status-led-board.md)).
 
-## 3. Generation commands (run once KiCad source exists)
+## 3. Generation (headless, no GUI)
 
 ```sh
-# from electronics/pcb/kicad/
-kicad-cli pcb export gerbers  -o ../gerbers/  opencanopy-ctrl.kicad_pcb
-kicad-cli pcb export drill    -o ../gerbers/  opencanopy-ctrl.kicad_pcb
-kicad-cli pcb export pos      -o ./           opencanopy-ctrl.kicad_pcb   # pick-and-place
-# interactive BOM via the InteractiveHtmlBom plugin -> ../ibom/
+electronics/pcb/programmatic/build.sh     # netlist -> tscircuit -> autoroute -> out/controller.gerbers.zip
 ```
 
-These slot into CI alongside the existing `bom_check.py` gate (spec §10.5).
+This produces the draft Gerbers/drill/PnP/BOM + a `controller.kicad_pcb`. **Before fab**, the draft
+needs: (1) real footprints for the ICs, connectors, and the ESP32-S3 module (the draft uses `pinrowN`
+placeholders), and (2) a reviewed power/analog/thermal placement per
+[`design-rules.md`](../../analysis/design-rules.md) — the autorouter does not encode it. The committed
+electrical gate (`controller_netlist.py --selftest`) runs in CI alongside `bom_check.py` (spec §10.5).
 
 ## 4. BOM compliance (§16.1, §16.3)
 

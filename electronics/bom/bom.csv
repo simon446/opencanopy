@@ -27,14 +27,14 @@ CN_SENS,Sensor/I2C connector,connector,climate,1,JST PH 4,B4B-PH,JST,TH,§7.9,,,
 CN_STATUS,Status LED connector,connector,ui,1,JST XH 3,B3B-XH,JST,TH,§7.9/§7.11,,,,,,,committed,5V/GND/DATA
 CN_DBG,Debug UART header,connector,control,1,2.54 4-pin,header-4,generic,TH,§7.9,,,,,,,committed,service only
 CN_USB,USB-C receptacle,connector,control,1,USB-C,USB4105,GCT,SMD,§7.9,,,,,,,committed,USB-CDC flash/log
-PCB1,Controller PCB,pcb,control,1,4-layer,opencanopy-ctrl,inhouse,board,§7.9,,,,,,,pending-cad,fab from KiCad source
+PCB1,Controller PCB,pcb,control,1,4-layer,opencanopy-ctrl,inhouse,board,§7.9,,,,,,,pending-cad,fab from netlist (tscircuit flow)
 M1,Pump (24V submersible),actuator,irrigation,1,>=1.0m head,PMP-24-1m,generic,module,§7.3,,,,,,,committed,brushless centrifugal; <5W
 SEN1,Capacitive moisture probe,sensor,irrigation,1,v2 coated,SEN-CAP-V2,generic,module,§7.6,,,,,,,committed,corrosion-resistant; replaceable
 SEN2,Reservoir float switch,sensor,irrigation,1,low-level,SEN-FLOAT-LOW,generic,module,§7.7,,,,,,,committed,
 SEN3,Leak trace/rope,sensor,irrigation,1,tray,SEN-LEAK-TRACE,generic,module,§7.5,,,,,,,committed,
 LED_PANEL,Grow light (compact),light,light,1,60W full-spectrum,LIGHT-CANDIDATE-60W,generic-hort,panel,§7.2/§16.3,60,avg ~450 / min ~325 umol/m2/s @150mm unif>=0.64 (PPF ~150 umol/s; see validation/ppfd-measurements/model/ppfd-map-c-150mm.csv),PWM + 0-10V,full-spectrum white 3500K + 660nm deep red horticultural,remote aluminum heatsink driver in upper dry bay,CE/UL listed,CANDIDATE-DR01-PASS,DR-01 both halves pass (PL-06 photometric + EE-10 thermal); panel meets >=0.6 unif at 150mm; final procurement pick outstanding
 LED_STATUS,Status LED board parts (5x WS2812B),ui,ui,1,WS2812B-2020,WS2812B-2020,Worldsemi,2020,§7.11,,,,,,,committed,front-panel; see WI-EE-09
-PCB2,Status LED PCB,pcb,ui,1,2-layer,opencanopy-status,inhouse,board,§7.11,,,,,,,pending-cad,fab from KiCad source
+PCB2,Status LED PCB,pcb,ui,1,2-layer,opencanopy-status,inhouse,board,§7.11,,,,,,,pending-cad,fab from netlist (tscircuit flow)
 PSU1,External 24VDC PSU,power,power,1,120W (150W@100W LED),PSU-24-120,generic,brick,§7.8/§16.1,,,,,,CE/UL,committed,certified external brick; not inside unit
 C2 C3 C_EN C_RTC C_INA C_U5 C_LK C_BULK3,Decoupling/bypass capacitor,passive,power,8,100nF,CL05B104KO5NNNC,Samsung,0402,§7.9,,,,,,,committed,per-IC 100nF + 24V HF bypass (netlist)
 C1,MCU 3V3 bulk cap,passive,control,1,22uF,GRM21BR61A226ME,Murata,0805,§7.8,,,,,,,committed,ESP32-S3 rail bulk

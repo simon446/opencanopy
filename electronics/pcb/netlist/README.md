@@ -12,7 +12,7 @@ truth** for connectivity and the populated parts list.
 |---|---|
 | [`controller_netlist.py`](controller_netlist.py) | **Source of truth.** Every component (incl. all passives) and every pin-level net. Also the ERC checker. |
 | `controller-netlist.csv` | Generated flat netlist (`net,ref,pin,populated,part`) — human/diff-friendly. Regenerate: `--emit-csv`. |
-| `controller.net` | Generated **KiCad-importable** netlist (S-expression). This is the KiCad-entry handoff (see below). Regenerate: `--emit-kicad`. |
+| `controller.net` | Generated standard netlist (S-expression) — optional KiCad/other-tool interchange. Regenerate: `--emit-kicad`. |
 
 The two generated files are committed so the layout step and reviewers have them without running
 Python; they are reproduced exactly by the source.
@@ -27,7 +27,7 @@ python3 controller_netlist.py --emit-csv     # (re)write controller-netlist.csv
 python3 controller_netlist.py --emit-kicad   # (re)write controller.net
 ```
 
-## What the ERC check enforces (stand-in for `kicad-cli sch erc`)
+## What the ERC check enforces (the electrical-rule gate)
 
 - No **floating** nets (every net has ≥2 populated pins, unless explicitly reserved/DNP/no-connect).
 - No pin assigned to **two nets** (no shorts / double-drives).
@@ -42,22 +42,18 @@ python3 controller_netlist.py --emit-kicad   # (re)write controller.net
 
 CI runs `--selftest` as a **blocking** check in the `BOM` job.
 
-## How this becomes a KiCad schematic / PCB
+## How this becomes a board
 
-This netlist is the bridge, not a replacement for layout:
+The PCB is built with the **headless tscircuit flow** in
+[`../programmatic/`](../programmatic/) — [`gen_tscircuit.py`](../programmatic/gen_tscircuit.py) reads
+this netlist directly and emits a tscircuit board that auto-routes and exports Gerbers/PnP/BOM with no
+GUI (see [ECO-002](../../analysis/ECO-002-pcb-toolchain.md); **KiCad is retired**). Layout follows
+[`WI-EE-04`](../../analysis/WI-EE-04-pcb-layout.md) + [`design-rules.md`](../../analysis/design-rules.md).
 
-1. In KiCad, create the project under [`../kicad/`](../kicad/) and **Import Netlist** →
-   `controller.net`. That instantiates every component and net; you then place symbols and the tool's
-   own ERC supersedes the check here.
-2. Assign footprints (the `footprint` field names the class, e.g. `C_0402`, `SOIC-8`) and lay out the
-   board per [`WI-EE-04`](../../analysis/WI-EE-04-pcb-layout.md) (stackup, floorplan, net classes,
-   design rules in [`design-rules.md`](../../analysis/design-rules.md)).
-3. Route, then generate the fab package with `kicad-cli` into `../gerbers/`, `../fabrication/`,
-   `../ibom/` per [`fab-notes.md`](../fabrication/fab-notes.md). The `eda` CI job then runs ERC/DRC on
-   the real source.
+The remaining work — real footprints (the draft uses `pinrowN` placeholders for ICs/connectors/module)
+and a reviewed power/analog/thermal placement — is the same regardless of tool; the autorouter doesn't
+remove that review.
 
-Steps 2–3 (placement, routing, Gerber export) can be done **in the KiCad GUI** — or **headlessly**
-via the [`../programmatic/`](../programmatic/) tscircuit flow, which auto-routes this netlist and
-exports a Gerber/PnP/BOM **draft** with no GUI. Either way the residual is the same: real footprints
-and a reviewed power/analog/thermal placement (the autorouter doesn't remove that review). This
-netlist makes the schematic-entry step mechanical rather than a re-capture from prose.
+**Optional KiCad interchange:** `controller.net` (this netlist, KiCad/standard format) and the
+`controller.kicad_pcb` that the programmatic flow exports let anyone open the design in KiCad if they
+want — interchange only, not part of the workflow.

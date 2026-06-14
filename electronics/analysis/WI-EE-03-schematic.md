@@ -1,14 +1,16 @@
 <!-- SPDX-License-Identifier: CERN-OHL-S-2.0 -->
 # WI-EE-03 — Schematic & protection (design capture)
 
-**Status:** Design captured (sheets, nets, pin map, protection, fail-safe pump drive) + ERC and
-§11.1 review checklist worked against the design. **KiCad schematic entry from this capture, and the
-automated CLI ERC run, are pending the KiCad source files** (`electronics/pcb/kicad/`).
+**Status:** Design captured (sheets, nets, pin map, protection, fail-safe pump drive) + §11.1 review
+checklist worked against the design. **Formalised as the netlist
+[`controller_netlist.py`](../pcb/netlist/controller_netlist.py)** (90 parts / 61 nets), whose ERC
+runs in CI; the board is built by the headless tscircuit flow ([ECO-002](ECO-002-pcb-toolchain.md);
+KiCad retired).
 **Spec refs:** §7.9, §7.10, §11.1, §17.1, §9.6, §11.4.
 **Pin map (firmware consumes this):** [pin-map.csv](pin-map.csv) → HAL [WI-FW-02](../../plan/work-items/02-firmware/WI-FW-02-hal-mocks.md).
 
-> This document is the engineering capture the KiCad schematic is drawn from: every sheet, net, part,
-> and protection element is specified here. It is the artifact the §11.1 design review signs off.
+> This document is the engineering design intent (every sheet, net, part, and protection element);
+> the machine-readable formalisation is the netlist. It is the artifact the §11.1 review signs off.
 
 ## 1. Sheet structure
 
@@ -104,19 +106,17 @@ so they keep working while Wi-Fi is active (ADC2 is unusable with the radio on).
 
 ## 7. ERC expectations (M4-01/M4-04)
 
-The schematic must pass KiCad ERC with no unconnected pins, no power-input-not-driven, no
-output-output conflicts. Net-class power nets (24 V, 12 V, 5 V, 3V3, GND) are tagged for the
-width/clearance rules used by [WI-EE-04](WI-EE-04-pcb-layout.md) and
-[design-rules.md](design-rules.md). The ERC run itself executes once the KiCad source exists and can
-be wired into CI (`kicad-cli sch erc`, spec §10.5).
+The design must have no unconnected pins, no power-input-not-driven, no output-output conflicts.
+Net-class power nets (24 V, 12 V, 5 V, 3V3, GND) are tagged for the width/clearance rules used by
+[WI-EE-04](WI-EE-04-pcb-layout.md) and [design-rules.md](design-rules.md).
 
 **The schematic is formally captured as a netlist** —
-[`electronics/pcb/netlist/controller_netlist.py`](../pcb/netlist/controller_netlist.py) — which is the
-machine-readable source of truth (every component + pin-level net) and ships an **ERC stand-in** that
-runs in CI today: no floating nets, no double-driven pins, the fail-OFF pump gate, full BOM coverage,
-and a check that every MCU net matches [pin-map.csv](pin-map.csv). The KiCad schematic is entered by
-importing the generated [`controller.net`](../pcb/netlist/controller.net), after which `kicad-cli sch
-erc` supersedes the stand-in.
+[`electronics/pcb/netlist/controller_netlist.py`](../pcb/netlist/controller_netlist.py) — the
+machine-readable source of truth (every component + pin-level net) that ships an **ERC** running in CI
+today: no floating nets, no double-driven pins, the fail-OFF pump gate, full BOM coverage, and a check
+that every MCU net matches [pin-map.csv](pin-map.csv). The board is generated from this netlist by the
+headless tscircuit flow ([ECO-002](ECO-002-pcb-toolchain.md)); a `controller.net` export is available
+for optional KiCad/other-tool interchange.
 
 ## 8. §11.1 design-review checklist (worked against this capture)
 
@@ -128,7 +128,7 @@ erc` supersedes the stand-in.
 | Protection review | ✔ fuse + reverse-polarity + TVS + flyback present (§2, §5.1) |
 | Wet/dry isolation review | ✔ PCB in upper dry bay; field connectors only to wet-zone sensors (§7.9, §17.1) |
 | Firmware pin-mapping review | ✔ ADC1-only analog, fail-off pump gate, RMT status LED — matches [WI-FW-02] HAL |
-| PCB DRC/ERC | ⏳ runs against KiCad source (CLI in CI) |
+| PCB ERC | ✔ netlist ERC passes in CI; DRC at layout (tscircuit flow) |
 | Trace-current review | → [WI-EE-06](../test/pcb-verification.md) |
 | Thermal review (MOSFET/regulator) | → [WI-EE-06](../test/pcb-verification.md) + copper-pour plan in [WI-EE-04](WI-EE-04-pcb-layout.md) |
 | Assembly review with mechanical CAD | ⏳ pends mechanical track (WI-ME-*) |
@@ -137,8 +137,8 @@ erc` supersedes the stand-in.
 
 | Deliverable | State |
 |---|---|
-| Full schematic capture (MCU, buses, pump, LED dim, status connector, expansion; fan-drive DNP) | ✔ specified; KiCad entry pending |
+| Full schematic capture (MCU, buses, pump, LED dim, status connector, expansion; fan-drive DNP) | ✔ formalised as the netlist (90 parts / 61 nets) |
 | Protection (fuse, reverse-polarity, TVS, flyback) | ✔ specified |
 | Pump MOSFET gate pull-down → fails OFF | ✔ specified (10 kΩ pull-down, hardware-guaranteed) |
 | Logic-level MOSFETs at 3.3 V / gate driver | ✔ specified |
-| ERC clean + §11.1 review sign-off | review worked here; **automated ERC pending KiCad source** |
+| ERC clean + §11.1 review sign-off | ✔ **netlist ERC passes in CI**; §11.1 checklist worked here |

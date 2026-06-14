@@ -21,3 +21,13 @@ Per spec §14.1, this subtree holds:
 | `references.md` | Documentation / Plant Science | Cited sources behind the design decisions. |
 
 The minimum documentation set required before a V1 tag is listed in spec §14.3.
+
+## Engineering & design references (rendered)
+
+Published design docs with renders, one per hardware track:
+
+| Doc | Track | What |
+|---|---|---|
+| [`electronics-design.md`](electronics-design.md) | Electronics | Controller board: per-subsystem schematics + 3D/board renders, safety design, connectors, BOM, the headless netlist→Gerbers flow. |
+| [`mechanical-build.md`](mechanical-build.md) | Mechanical | v1 product-model renders (CAD), joints, conduit, collision/physics checks. |
+| [`firmware-api.md`](firmware-api.md) | Firmware | Pointer to the published Rust API docs (`/api`). |

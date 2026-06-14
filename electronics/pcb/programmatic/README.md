@@ -45,17 +45,14 @@ is**:
 
 ## Where this fits
 
-There are two routes from the (complete, CI-checked) netlist to a fabricable board; both leave the
-**same** engineering residual — real footprints + a reviewed power/analog/thermal placement:
+This is **the** PCB route ([ECO-002](../../analysis/ECO-002-pcb-toolchain.md); KiCad retired): the
+(complete, CI-checked) netlist → tscircuit → autoroute → Gerbers, no GUI. Best for fast, reproducible
+drafts and CI; refine footprints/placement, then re-export.
 
-- **This programmatic route (tscircuit):** code → autoroute → Gerbers, no GUI. Best for fast,
-  reproducible drafts and CI; refine footprints/placement, then re-export. The `out/controller.kicad_pcb`
-  lets you open the result in KiCad to finish by hand.
-- **The KiCad route** ([`../kicad/`](../kicad/)): import [`../netlist/controller.net`](../netlist/controller.net),
-  place/route to the design rules, export with `kicad-cli`.
-
-Either way the netlist + design-rules are the source of truth; the remaining work is footprints and a
-considered layout — the autorouter doesn't remove the need for that review on a board like this.
+To reach a *fabricable* board the remaining work is real footprints + a reviewed power/analog/thermal
+placement per [`design-rules.md`](../../analysis/design-rules.md) — the autorouter doesn't remove that
+review. If you'd rather do that refinement in KiCad, `out/controller.kicad_pcb` (and the netlist's
+`controller.net`) open the design there — **optional interchange**, not required.
 
 > Toolchain note: tscircuit (npm/bun) is **not** a repo dependency or a CI gate — it's an optional
 > build tool installed on demand by `build.sh`. The plain-Python netlist ERC remains the committed gate.

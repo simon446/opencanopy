@@ -196,9 +196,10 @@ jobs:
       - name: Validate electronics BOM (if present)
         run: python3 scripts/bom_check.py
       - name: Controller netlist ERC + BOM coverage (schematic-as-data, WI-EE-03)
-        # Plain-Python ERC stand-in until the KiCad schematic lands (then the eda job's
-        # `kicad-cli sch erc` supersedes it). Enforces: no floating nets, no double-driven
-        # pins, fail-OFF pump gate, fan parts DNP, and that every populated part is in the BOM.
+        # The electrical-rule gate. The PCB is designed with the headless tscircuit flow
+        # (electronics/pcb/programmatic/, ECO-002); KiCad is retired. Enforces: no floating
+        # nets, no double-driven pins, fail-OFF pump gate, fan parts DNP, full BOM coverage,
+        # and that every MCU net matches the firmware pin contract (pin-map.csv).
         run: python3 electronics/pcb/netlist/controller_netlist.py --selftest
 
   mechanical:
@@ -227,44 +228,6 @@ jobs:
       - name: STL manifold check
         run: python3 scripts/stl_check.py --dir mechanical/stl
 
-  eda:
-    name: Electronics — ERC / DRC (if EDA project present)
-    runs-on: ubuntu-latest
-    # Coordinated with the Electronics track; non-blocking until a KiCad project lands and the
-    # team opts this into required checks.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - name: Detect KiCad project
-        id: detect
-        shell: bash
-        run: |
-          if find electronics/pcb/kicad -name '*.kicad_sch' -o -name '*.kicad_pcb' 2>/dev/null | grep -q .; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "NOTICE: no KiCad project yet — skipping ERC/DRC. Interim electrical-rule check"
-            echo "        runs in the 'BOM' job (controller_netlist.py --selftest); the KiCad"
-            echo "        schematic is entered by importing electronics/pcb/netlist/controller.net."
-          fi
-      - name: Install KiCad CLI
-        if: steps.detect.outputs.present == 'true'
-        run: |
-          sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
-          sudo apt-get update -qq && sudo apt-get install -y -qq kicad
-      - name: Schematic ERC
-        if: steps.detect.outputs.present == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in $(find electronics/pcb/kicad -name '*.kicad_sch'); do
-            kicad-cli sch erc --exit-code-violations "$f"
-          done
-      - name: PCB DRC
-        if: steps.detect.outputs.present == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in $(find electronics/pcb/kicad -name '*.kicad_pcb'); do
-            kicad-cli pcb drc --exit-code-violations "$f"
-          done
+  # NOTE: the former `eda` job (kicad-cli ERC/DRC) was removed — KiCad is retired (ECO-002).
+  # The electronics electrical gate is the netlist ERC in the `bom` job; the PCB is built with
+  # the headless tscircuit flow (electronics/pcb/programmatic/).

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 # PCB design rules & net classes (WI-EE-04 layout recipe)
 
-The deterministic rule set for laying out the controller board, so the KiCad placement/routing step
+The deterministic rule set for laying out the controller board, so the placement/routing step
 is mechanical rather than a judgement call. Pairs with the floorplan/stackup in
 [WI-EE-04](WI-EE-04-pcb-layout.md) and the trace-width proof in
 [WI-EE-06 / pcb-verification](../test/pcb-verification.md). Widths assume **1 oz** outer copper, 10 °C
@@ -21,7 +21,7 @@ returns (§7.10). 2-layer is a documented cost fallback (then GND is a bottom po
 
 ## 2. Net classes
 
-Assign every net to a class on import; these drive KiCad's width/clearance rules and the DRC.
+Assign every net to a class; these drive the per-net width/clearance rules and the DRC.
 
 | Net class | Nets | Track width | Min clearance | Notes |
 |---|---|---:|---:|---|
@@ -59,12 +59,17 @@ Assign every net to a class on import; these drive KiCad's width/clearance rules
 
 ## 5. How this is applied
 
-1. Import [`controller.net`](../pcb/netlist/controller.net) into the KiCad PCB.
-2. Create the net classes in **Board Setup → Net Classes** with the §2 widths/clearances and assign
-   nets by the patterns above (KiCad supports net-class assignment by net-name pattern).
-3. Set the §3 global/rule values in **Board Setup → Constraints / Custom Rules**.
-4. Place per §4, route, pour GND (L2) and the power planes (L3), stitch with vias.
-5. Run `kicad-cli pcb drc --exit-code-violations` (already wired into the `eda` CI job) until clean.
+The board is built with the headless [tscircuit flow](../pcb/programmatic/) ([ECO-002](ECO-002-pcb-toolchain.md);
+KiCad retired). These rules are the layout contract for that step:
 
-Steps 1–5 are the **KiCad-GUI residual** — this document removes the design judgement from them; what
-remains is the mechanical act of placing and routing in the tool.
+1. Real footprints replace the draft's `pinrowN` placeholders for the ICs, connectors, and the
+   ESP32-S3 module (the passive footprints are already real).
+2. Place per §4 — assign the §2 net classes and the §3 widths/clearances; keep the high-current
+   switching domain off the analog domain's copper and returns.
+3. Route; pour GND (L2) and the power planes (L3); stitch with vias; copper-pour the pump-FET and
+   regulators (§3).
+4. Re-export the fab package and review against §1–§4.
+
+The autorouter gets connectivity right but **not** this placement/clearance discipline — so §1–§4 are
+a **review pass on the draft**, not optional. (The design also exports a `controller.kicad_pcb`, so the
+same review can be done in KiCad if preferred — optional interchange, not required.)
