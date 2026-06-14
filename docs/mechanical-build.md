@@ -5,15 +5,23 @@ OpenSCAD source (`mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad`
 rendered with VTK (`mechanical/cad/render_block.py`) and validated by an honest,
 no-whitelist geometry audit (`mechanical/cad/audit.py`).
 
-**Architecture (unchanged):** electronics + reservoir in the base, side by side,
-separated by a **sealed vertical wall** (wet | wall | dry); open-frame; no fan; no
-screen/controls; 4 status LEDs only.
+**Architecture (major redesign — two-pillar Scandinavian form):**
 
-**This revision:** flatter, appliance-like form via **selective edge radii** (crisp,
-not uniformly rounded); the **LED optical centerline is centered on the pot at
-X = 240, Y = 160**; defined **tab-and-socket + dowel joints** with M4/M3 screws and
-straight screwdriver access; a real internal **cable conduit** (base dry bay → right-rear
-arch → top bridge → LED).
+- One **low integrated base** (the product body, 135 mm) — a **single wet zone**: a passive
+  **6 L reservoir** + an integrated **grow well**. There is **no electronics bay in the base**.
+- **Two vertical wooden pillars** (Ø28) rising from dry structural bosses in the base.
+- One horizontal **top LED block** spanning the pillars; the LED is centred over the grow
+  module, and the **small controller + driver board + USB-C** live here, under the bar,
+  wrapped around the right pillar foot.
+- A **removable raised grow insert** (slotted/perforated, semi-hydro) for one pepper plant.
+- **Passive self-watering** (reservoir + wicking). **No pump, no fan, no screen/controls;
+  4 status LEDs only.**
+
+**Wet/dry separation is now top (electronics) vs bottom (water)** — not an in-base wall. Only
+sealed low-voltage sensor leads + status-LED light pipes touch the base (entering through a
+grommet at the right pillar); power (USB-C) enters at the top. Pillars and the grow module
+share Y (= 190) so a thin block places the LED directly over the plant with no cantilever. The
+base stays low because the grow insert is a **raised planter** rising above the base top.
 
 ## Product views
 
@@ -28,54 +36,44 @@ arch → top bridge → LED).
 
 ## Validation (debug colours)
 
-**LED centering** — crosshair at X = 240, Y = 160; the script confirms numerically:
-`LED centroid X=240.0 Y=160.0`, `pot centroid X=240.0 Y=160.0`.
+**LED centering** — the LED optical centreline and the grow module are both at X = 240,
+Y = 190; the script confirms numerically `LED<->grow offset dX=0.0 dY=0.0` (acceptance ≤ 5 mm).
 
 ![LED centering (top)](assets/renders/v-led-center.png)
 
-**Exploded assembly** — parts + joint hardware (dowel pins, M4/M3 screws):
+**Exploded assembly** · **underside (pillar screw access)** · **base service cutaway**
+(reservoir + raised insert + wick path) · **cable cross-section** (sensor leads up the rear of
+the right pillar to the top board):
 
 ![Exploded](assets/renders/v-exploded.png)
 
-**Underside (screw access)** · **base service cutaway** · **right-rear-arch conduit
-cross-section** (cable path base → arch → bridge → LED):
-
-![Underside screw access](assets/renders/v-underside.png)
-
-![Base service cutaway](assets/renders/v-base-cutaway.png)
-
-![Conduit cross-section](assets/renders/v-conduit-xsec.png)
+![Underside](assets/renders/v-underside.png) ·
+![Base cutaway](assets/renders/v-base-cutaway.png) ·
+![Cable cross-section](assets/renders/v-cable-xsec.png)
 
 ## Checks
 
-- **Geometry audit (`audit.py`) — CLEAN.** Honest interference check on the real meshes
-  with **no whitelist**: it measures the true boolean **overlap volume** of every pair (so
+- **Geometry audit (`audit.py`) — CLEAN.** Honest interference check on the real meshes with
+  **no whitelist**: it measures the true boolean **overlap volume** of every part pair (so
   abutting/touching faces are *not* mistaken for interpenetration) and each part's
-  **nearest-neighbour gap** (so a floating/unsupported part is caught — a collision check
-  alone never flags a gap). Result: **no interpenetration > 80 mm³ and no floating parts.**
-  Hardware (dowels, screws) sits in real clearance holes/sockets; reservoir + electronics
-  are seated on the base floor; the bridge abuts the arches; the status pill sits in its
-  front slot. *(Earlier whitelisted collision checks masked several real overlaps/floats;
-  this volume audit replaces them.)*
-- **Joints:** each arch foot tenons 26 mm into a base socket with 2 dowel pins + a
-  hidden M4 from the underside (counterbored for a driver); the bridge tongues into the
-  arch tops with dowels + screws. See [fastening & assembly](fastening.md).
-- **Free-standing physics sim (MuJoCo) — PASS.** `mechanical/cad/physics_sim.py`:
-  **only the ground is fixed** — the ~21 kg unit (pot 10 kg) rests on its **4 feet** under
-  gravity; joints modelled as dowel + screw `connect` constraints (welds for seated parts).
-  After settling: **base settles 0.028 mm, tilt 0.000°** (doesn't sink or tip) and parts
-  move **0.024 mm / 0.003° relative to the base** (joints rigid) — all well under the
-  0.5 mm / 0.5° limit. Removing **each screw one at a time — and all screws together —
-  gives the identical result**, proving the **dowels/tabs carry the shear** (joints are not
-  screw-dependent for holding). *(Idealised rigid-body + pin/weld constraints with ground
-  contact, not FEA: validates free-standing stability and joint redundancy, not material
-  stress.)*
+  **nearest-neighbour gap** (so a floating/unsupported part is caught). Result: **no
+  interpenetration > 80 mm³ and no floating parts.** Hardware sits in real clearance holes; the
+  reservoir and raised insert are seated with a 0.5 mm wick gap; the boards/USB-C mount under
+  the block; the status pill sits in its front slot.
+- **LED centred over the grow module** — optical centre offset **0.0 / 0.0 mm** (≤ 5 mm limit).
+- **Reservoir** — **6.6 L** gross (≥ 6 L usable target). The grow insert is a **raised planter**
+  so the base stays low (≤ 130 mm visible); media capacity is a documented trade-off (see
+  ECO-002 / open questions) pending a grow trial.
+- **Joints:** each pillar seats 30 mm into a base socket with an **M4 from the underside** into a
+  threaded insert + an **anti-rotation dowel**; the block sockets onto the pillar tops with a
+  **rear set screw**. See [fastening & assembly](fastening.md).
+- **Physics sim:** the free-standing MuJoCo sim is being re-built for the two-pillar
+  architecture (`mechanical/cad/physics_sim.py`) — not yet re-run for this model.
 
 Reproduce:
 
 ```sh
 .venv-cad/bin/python mechanical/cad/render_block.py   # export parts + renders
 .venv-cad/bin/python mechanical/cad/audit.py          # interference (volume) + float audit
-.venv-cad/bin/python mechanical/cad/physics_sim.py    # MuJoCo settling + screw-removal test
 openscad -D 'part="base"' --render -o base.stl mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad
 ```

@@ -1,14 +1,23 @@
-// OpenCanopy Tabletop Pepper — v1 product model (selective radii, centered LED, joints)
+// OpenCanopy Tabletop Pepper — v1 product model (two-pillar Scandinavian architecture)
 // SPDX-License-Identifier: CERN-OHL-S-2.0
 //
-// Unchanged architecture: electronics + reservoir in the BASE, side by side, separated
-// by a SEALED vertical wall (wet | wall | dry); open-frame; no fan; no screen/controls;
-// 4 status LEDs only.
+// MAJOR REDESIGN (supersedes the arched-frame model). Architecture:
+//   - one low integrated BASE (the product body): a 6 L passive self-watering reservoir +
+//     an integrated grow well. The base is a SINGLE WET ZONE; there is NO electronics bay
+//     in the base (electronics moved to the top — see below).
+//   - TWO vertical wooden cylindrical PILLARS rising from dry structural bosses in the base.
+//   - one horizontal top LED BLOCK spanning the pillars; the LED is centered over the grow
+//     module, and the small controller + driver board + USB-C live HERE, under the bar,
+//     wrapped around the right pillar foot.
+//   - a removable RAISED GROW INSERT (slotted/perforated, semi-hydro) for ONE pepper plant.
+//   - passive self-watering: reservoir below + wicking. NO pump, NO fan, no screen/controls,
+//     4 status LEDs only.
 //
-// This revision: flatter/appliance look via SELECTIVE edge radii (not uniform rounding);
-// LED optical centerline centered on the pot at X=240, Y=160; defined TAB-AND-SOCKET +
-// DOWEL joints with M4/M3 screws and screwdriver access; a real internal CABLE CONDUIT
-// (base dry bay -> right-rear arch -> bridge -> LED, ID 10 mm).
+// Wet/dry separation is now TOP (electronics) vs BOTTOM (water) — not an in-base wall. Only
+// sealed low-voltage sensor leads + status-LED light pipes touch the base, entering through a
+// grommet at the right pillar; power (USB-C) enters at the TOP. Pillars and the grow module
+// share Y (=190) so a THIN block puts the LED directly over the plant with no cantilever. The
+// base stays low (135 mm) because the grow insert is a RAISED planter rising above the top.
 //
 // Per-part export:  openscad -D 'part="base"' --render -o base.stl this_file.scad
 // Origin = front-left-bottom. X=width(0..480) Y=depth(0..320) Z=height(0..680). mm
@@ -17,29 +26,49 @@
 env_w = 480; env_d = 320; env_h = 680;
 $fn = 64;
 
-foot_h   = 14;
-base_h   = 120;            // visible base height
-wall_t   = 12;
-base_rv  = 15;  base_re = 6;        // base vertical-corner / top-bottom radii
-shelf_w  = 360; shelf_d = 250; shelf_h = 30; shelf_r = 8; well_d = 244; well_depth = 22;
+// base (the product body — single wet zone)
+foot_h  = 12;
+base_h  = 135;                 // base top plane (visible base from foot top = 123 mm, <=130)
+wall_t  = 12; floor_t = 10; top_t = 8;
+base_rv = 16; base_re = 4;     // selective radii: vertical corners R16, top/bottom R4
+floor_z = foot_h + floor_t;    // 22  inner floor
+ceil_z  = base_h - top_t;      // 127 underside of base top
 
-side_t   = 26;             // side-frame arch thickness (X)
-arch_fw  = 32;             // arch member width
-arch_or  = 18;             // arch outer corner radius (14-22)
-arch_ir  = 9;              // arch opening corner radius
-arch_y0  = 8; arch_y1 = env_d - 8;          // arch depth span
-arch_h   = env_h - base_h;
+// grow module / LED optical center
+gm_x = 240; gm_y = 190;
 
-bridge_h = 52; bridge_y0 = 116; bridge_d = 88;   // centered on Y=160
-led_cx = 240; led_cy = 160;                       // LED optical centerline (= pot center)
-led_l = 300; led_w = 64; led_h = 18;
-led_z = env_h - bridge_h - 10;   // LED nests 8 mm UP into the bridge recess; emitter 10 mm proud
+// grow well opening (top of base) — rounded rectangle
+well_w = 270; well_d = 190; well_r = 8;
 
-iso_x = 340; iso_t = 14;
-floor_top = foot_h + wall_t; deck_bot = base_h - 12;
+// removable raised grow insert (semi-hydro basket)
+ins_w = 244; ins_d = 180; ins_wall = 6; ins_r = 10;
+ins_bot_z = 110;               // slotted bottom rests at the reservoir top (wick contact)
+ins_top_z = 250;               // rises to 250 -> ~115 mm raised planter above base top
 
-socket_depth = 26; tenon = 18; dowel_d = 4; m4 = 4.5; m4_head = 8;   // joints
-conduit_id = 10;                                                     // cable conduit
+// passive reservoir (wet) — sits on the inner floor BETWEEN the two pillar bosses
+res_x0 = 90; res_x1 = 390; res_y0 = 40; res_y1 = 290; res_z0 = floor_z; res_z1 = ins_bot_z - 0.5; // 0.5 mm wick gap below the insert
+
+// wooden pillars (rise from dry structural bosses in the base)
+pil_d = 28; pil_r = 14; pil_x0 = 64; pil_x1 = env_w - 64; pil_y = gm_y;
+boss_d = 42;                   // dry structural boss around each pillar foot
+socket_d = 30;                 // pillar seats 30 mm into base and into block
+pil_bot_z = base_h - socket_d; // 105
+pil_top_z = env_h - 48 + socket_d;  // 30 mm up into the block (= 662)
+
+// top LED block (mostly rectangular; only the pillar-hole ends are rounded)
+blk_l = 440; blk_d = 60; blk_h = 48;
+blk_z = env_h - blk_h;         // 632
+blk_x0 = (env_w - blk_l)/2;    // 20
+blk_y0 = gm_y - blk_d/2;       // 160
+blk_end_r = 16;                // end-cap radius (around pillar holes)
+blk_edge_r = 2;                // long edges
+
+// slim LED grow bar (emitter proud below the block)
+led_l = 280; led_w = 44; led_h = 16; led_z = blk_z - 10;
+
+// joints / hardware
+m4 = 4.5; m4_head = 8; dowel_d = 4; setscrew = 4.5;
+pil_clear = 0.6;               // pillar-to-socket diametral clearance
 
 // selective-radius box: vertical-corner radius rv, top/bottom edge radius re
 module rcube(size, rv, re) {
@@ -51,155 +80,151 @@ module rcube(size, rv, re) {
         sphere(r=re, $fn=18);
     }
 }
-
-// 2D inverted-U arch profile (x=depth, y=height); rounded outer corners, open bottom
-module arch2d() {
-    ad = arch_y1 - arch_y0; fw = arch_fw;
-    difference() {
-        offset(r=arch_or) offset(delta=-arch_or) square([ad, arch_h]);
-        translate([fw, -1]) offset(r=arch_ir) offset(delta=-arch_ir) square([ad-2*fw, arch_h-fw+1]);
-    }
-}
+// horizontal pill on the front face (L along X, ht along Z, depth along Y), centred at x
+module front_pill(L, ht, depth) { hull() for (x=[-L/2+ht/2, L/2-ht/2]) translate([x,0,0]) rotate([-90,0,0]) cylinder(h=depth, d=ht); }
+// rounded-rectangle prism centred on (cx,cy), corner radius r, from z0 height h
+module rrect(cx, cy, w, d, r, z0, h) { translate([cx,cy,z0]) linear_extrude(h) offset(r=r) offset(delta=-r) square([w,d], center=true); }
 
 // ------------------------------- modules ----------------------------------
-module feet() {
-    for (x=[44, env_w-44], y=[44, env_d-44]) translate([x,y,0]) cylinder(h=foot_h, r1=16, r2=14);
-}
+module feet() { for (x=[46, env_w-46], y=[46, env_d-46]) translate([x,y,0]) cylinder(h=foot_h, r1=17, r2=15); }
 
-// horizontal pill on the front face (L along X, ht along Z, depth along Y), centred
-module front_pill(L, ht, depth) { hull() for (x=[-L/2+ht/2, L/2-ht/2]) translate([x,0,0]) rotate([-90,0,0]) cylinder(h=depth, d=ht); }
-
-// one side-frame arch (thin in X) + foot tenons into base sockets. Dowel + foot-screw
-// CLEARANCE HOLES are cut through the tenons so the hardware sits in clearance, not solid.
-TEN_W = side_t-10; TEN_D = arch_fw-12;
-module arch_frame(x0) { translate([x0, arch_y0, base_h]) rotate([90,0,90]) linear_extrude(side_t) arch2d(); }
-module arch_tenons(x0) {
-    for (yc=[arch_y0+arch_fw/2, arch_y1-arch_fw/2])
-        translate([x0+side_t/2-TEN_W/2, yc-TEN_D/2, base_h-socket_depth]) cube([TEN_W, TEN_D, socket_depth]);
-}
-module one_arch(x0) {
-    difference() {
-        union() { arch_frame(x0); arch_tenons(x0); }
-        if (x0 > env_w/2)                                            // conduit up the right-rear leg
-            translate([x0+side_t/2, arch_y1-arch_fw/2, base_h-1]) cylinder(h=arch_h*0.9, d=conduit_id);
-        for (yc=[arch_y0+arch_fw/2, arch_y1-arch_fw/2]) {            // dowel + foot-screw clearance
-            for (dx=[-7,7]) translate([x0+side_t/2+dx, yc, base_h-socket_depth-1]) cylinder(h=socket_depth+2, d=dowel_d+0.4);
-            translate([x0+side_t/2, yc, base_h-socket_depth-1]) cylinder(h=socket_depth+2, d=m4);
-        }
-    }
-}
-module left_arch()  { one_arch(0); }
-module right_arch() { one_arch(env_w-side_t); }
-module side_frames() { left_arch(); right_arch(); }
-
-// slim top light bridge, CENTERED on Y=160; carries a LED recess in its underside so
-// the LED bar nests up into it (captured, not floating) + bridge tongues into arches
-module light_bridge() {
-    difference() {
-        translate([side_t, bridge_y0, env_h-bridge_h]) rcube([env_w-2*side_t, bridge_d, bridge_h], 10, 5); // abuts arch inner faces
-        translate([led_cx-(led_l+8)/2, led_cy-(led_w+8)/2, env_h-bridge_h-1]) cube([led_l+8, led_w+8, 13]); // LED recess
-        for (sx=[-1,1]) translate([led_cx+sx*(led_l/2-26), led_cy, env_h-bridge_h-1]) cylinder(h=bridge_h+2, d=m4+0.4); // LED screw clearance
-    }
-}
-module bridge_placed() { light_bridge(); }
-
-// LED grow bar — optical centerline at (led_cx, led_cy); top nests into the bridge recess
-module led_bar() {
-    difference() {
-        translate([led_cx-led_l/2, led_cy-led_w/2, led_z]) rcube([led_l, led_w, led_h], 6, 3);
-        for (sx=[-1,1]) translate([led_cx+sx*(led_l/2-26), led_cy, led_z-1]) cylinder(h=led_h+2, d=m4+0.4); // screw clearance
-    }
-}
-
-// base shell: selective radii, OPEN back + rear service bay, arch foot sockets, M4 access
+// BASE SHELL — low single-wet-zone body; cavity, grow well, two DRY pillar bosses, status
+// slot, fill port, deck drain, underside pillar joints. All hardware in clearance holes.
 module base_shell() {
     difference() {
-        translate([0,0,foot_h]) rcube([env_w, env_d, base_h-foot_h], base_rv, base_re);
-        translate([wall_t, wall_t, floor_top]) cube([env_w-2*wall_t, env_d, deck_bot-floor_top]); // cavity, open back
-        translate([70, env_d-30, foot_h+12]) cube([env_w-140, 31, base_h-foot_h-24]);             // rear service bay
-        translate([led_cx, -1, 56]) front_pill(97, 19, wall_t+2);                                  // status slot (0.5 mm fit)
-        translate([200,160,deck_bot-1]) cylinder(h=20,d=26);                                       // deck drain (wet side)
-        // arch foot SOCKETS (z-aligned to tenons, +1 mm clearance) + dowel/M4 holes + access
-        for (x0=[0, env_w-side_t]) for (yc=[arch_y0+arch_fw/2, arch_y1-arch_fw/2]) {
-            translate([x0+side_t/2-(TEN_W+1)/2, yc-(TEN_D+1)/2, base_h-socket_depth-1])
-                cube([TEN_W+1, TEN_D+1, socket_depth+2]);                                           // socket
-            for (dx=[-7,7]) translate([x0+side_t/2+dx, yc, foot_h-1]) cylinder(h=base_h, d=dowel_d+0.4); // dowel holes
-            translate([x0+side_t/2, yc, foot_h-1]) cylinder(h=base_h, d=m4);                        // M4 shank to insert
-            translate([x0+side_t/2, yc, -1]) cylinder(h=foot_h+2, d=m4_head);                       // underside counterbore (access)
+        union() {
+            difference() {
+                translate([0,0,foot_h]) rcube([env_w, env_d, base_h-foot_h], base_rv, base_re);
+                translate([wall_t, wall_t, floor_z]) cube([env_w-2*wall_t, env_d-2*wall_t, ceil_z-floor_z]); // wet cavity
+                rrect(gm_x, gm_y, well_w, well_d, well_r, ceil_z-1, top_t+2);          // grow well opening
+                translate([gm_x, 64, ceil_z-1]) cylinder(h=top_t+2, d=30);             // fill port
+                translate([gm_x, -1, 70]) front_pill(54, 9, wall_t+2);                 // status slot
+                translate([gm_x, gm_y, ceil_z-1]) cylinder(h=top_t+2, d=20);           // deck drain (wet)
+            }
+            for (xc=[pil_x0, pil_x1]) translate([xc, pil_y, floor_z]) cylinder(h=base_h-floor_z, d=boss_d); // dry pillar bosses
         }
+        for (xc=[pil_x0, pil_x1]) {
+            translate([xc, pil_y, pil_bot_z]) cylinder(h=socket_d+2, d=pil_d+pil_clear);   // socket (from top)
+            translate([xc, pil_y, -1]) cylinder(h=base_h+2, d=m4);                          // M4 shank from underside
+            translate([xc, pil_y, -1]) cylinder(h=foot_h+4, d=m4_head);                     // underside counterbore
+            translate([xc, pil_y+10, pil_bot_z-1]) cylinder(h=socket_d+3, d=dowel_d+0.4);   // anti-rotation dowel
+        }
+        translate([pil_x1, pil_y+boss_d/2-3, ceil_z-1]) cylinder(h=top_t+2, d=8);           // sealed sensor-lead grommet
     }
 }
 
-// raised wood-look shelf with recessed pot well
-module wood_shelf() {
+// WOODEN PILLAR — cylinder with tiny end chamfers; bottom into base socket (M4 insert pocket +
+// dowel clearance), top into block. A rear flat keys the cable clip.
+module pillar(xc) {
+    translate([xc, pil_y, pil_bot_z]) difference() {
+        union() {
+            cylinder(h=pil_top_z-pil_bot_z, d=pil_d);
+            cylinder(h=1.2, d1=pil_d-2, d2=pil_d);
+            translate([0,0,pil_top_z-pil_bot_z-1.2]) cylinder(h=1.2, d1=pil_d, d2=pil_d-2);
+        }
+        translate([-pil_d/2, pil_d/2-1.5, base_h-pil_bot_z+8]) cube([pil_d, 2, pil_top_z-base_h-20]); // rear cable flat
+        translate([0, 0, -1]) cylinder(h=26, d=6);                       // M4 insert pocket (bottom)
+        translate([0, 10, -1]) cylinder(h=socket_d+1, d=dowel_d+0.4);    // anti-rotation dowel clearance
+    }
+}
+module pillar_left()  { pillar(pil_x0); }
+module pillar_right() { pillar(pil_x1); }
+module pillars() { pillar_left(); pillar_right(); }
+
+// TOP LED BLOCK — mostly rectangular; rounded only at the pillar-hole ends. Pillar sockets
+// (blind), rear set-screw access, LED recess on the underside so the bar nests up into it.
+module light_block() {
     difference() {
-        translate([led_cx-shelf_w/2, led_cy-shelf_d/2, base_h]) rcube([shelf_w, shelf_d, shelf_h], shelf_r, 4);
-        translate([led_cx,led_cy, base_h+shelf_h-well_depth]) cylinder(h=well_depth+1, d=well_d);
+        translate([blk_x0, blk_y0, blk_z]) rcube([blk_l, blk_d, blk_h], blk_end_r, blk_edge_r);
+        for (xc=[pil_x0, pil_x1]) {
+            translate([xc, pil_y, blk_z-1]) cylinder(h=socket_d+1, d=pil_d+pil_clear);          // pillar socket
+            translate([xc, blk_y0+blk_d+1, blk_z+blk_h/2]) rotate([90,0,0]) cylinder(h=blk_d/2+2, d=setscrew); // rear set screw
+        }
+        translate([gm_x, gm_y, blk_z-1]) rrect(0,0, led_l+8, led_w+8, 6, 0, 13);                 // LED recess
     }
 }
 
-// ~9.5 L hollow pot, seated in the well, centered at (240,160)
-module pot_placeholder() {
-    top_d=270; bot_d=232; pot_h=215; pwall=9; pfloor=14;
-    z0 = base_h + shelf_h - well_depth;
-    translate([led_cx,led_cy,z0]) difference() {
-        cylinder(h=pot_h,d1=bot_d,d2=top_d);
-        translate([0,0,pfloor]) cylinder(h=pot_h,d1=bot_d-2*pwall,d2=top_d-2*pwall);
-        translate([0,0,-1]) cylinder(h=pfloor+2,d=22);
+// slim LED grow bar — optical centre at (gm_x, gm_y); nests up into the block recess
+module led_bar() {
+    difference() {
+        translate([gm_x-led_l/2, gm_y-led_w/2, led_z]) rcube([led_l, led_w, led_h], 6, 3);
+        for (sx=[-1,1]) translate([gm_x+sx*(led_l/2-26), gm_y, led_z-1]) cylinder(h=led_h+2, d=m4+0.4);
     }
 }
 
-module iso_wall() { translate([iso_x-iso_t/2, wall_t, floor_top]) cube([iso_t, env_d-wall_t, deck_bot-floor_top]); }
-// reservoir + electronics SEATED on the base inner floor (floor_top) — not floating
-module reservoir_placeholder() { translate([24,156,floor_top]) rcube([300,124,76],6,4); }
-module pcb()         { translate([iso_x+iso_t/2+16, 98, floor_top]) cube([90,116,8]); }
-module led_driver()  { translate([iso_x+iso_t/2+16, 222, floor_top]) rcube([100,56,34],3,3); }
-module power_input() { translate([iso_x+iso_t/2+16, 36, floor_top]) rcube([86,54,30],3,3); }
-module electronics_bay() { pcb(); led_driver(); power_input(); }
+// ---- top electronics (the only electronics; under the block, wrapped around the R pillar) ----
+// small controller + LED-driver board; the right pillar passes through a clearance hole so the
+// board sits around the pillar foot under the block. MUCH smaller than the old base board.
+module controller_pcb() {
+    difference() {
+        translate([392, 162, blk_z-9]) cube([64, 56, 8]);
+        translate([pil_x1, pil_y, blk_z-10]) cylinder(h=10, d=pil_d+4);
+    }
+}
+// USB-C input jack on the block underside, just inboard of the right pillar
+module usb_c() { translate([381, pil_y-7, blk_z-8.3]) cube([10, 14, 8]); }
+module top_electronics() { controller_pcb(); usb_c(); }
 
-// status pill on the FRONT face (matches the front slot) + 4 LED dots behind
+// REMOVABLE GROW INSERT — raised rounded-rect basket; slotted lower walls + perforated floor
+// for capillary/wick contact with the reservoir. Lifts straight up out of the well.
+module grow_insert() {
+    h = ins_top_z - ins_bot_z;
+    difference() {
+        rrect(gm_x, gm_y, ins_w, ins_d, ins_r, ins_bot_z, h);
+        rrect(gm_x, gm_y, ins_w-2*ins_wall, ins_d-2*ins_wall, max(1,ins_r-ins_wall), ins_bot_z+ins_wall, h);
+        for (i=[-2:2], j=[-1:1]) translate([gm_x+i*40, gm_y+j*45, ins_bot_z-1]) cylinder(h=ins_wall+2, d=12);   // perforated floor
+        for (i=[-2:2]) for (sy=[-1,1]) translate([gm_x+i*40, gm_y+sy*ins_d/2, ins_bot_z+10]) cube([14, ins_wall+4, 26], center=true); // slots F/B
+        for (j=[-1:1]) for (sx=[-1,1]) translate([gm_x+sx*ins_w/2, gm_y+j*45, ins_bot_z+10]) cube([ins_wall+4, 14, 26], center=true);  // slots sides
+    }
+}
+
+// passive reservoir water volume (placeholder) — on the inner floor, between the pillar bosses
+module reservoir() { translate([res_x0, res_y0, res_z0]) rcube([res_x1-res_x0, res_y1-res_y0, res_z1-res_z0], 6, 3); }
+
+// 4 status LEDs behind a front pill diffuser (no screen/controls)
 module status_diffuser() {
-    translate([led_cx, -1, 56]) front_pill(96, 18, 6);
-    for (i=[0:3]) translate([led_cx-30+i*20, 4, 56]) rotate([-90,0,0]) cylinder(h=3, d=7);
+    translate([gm_x, -1, 70]) front_pill(52, 8, 6);
+    for (i=[0:3]) translate([gm_x-21+i*14, 4, 70]) rotate([-90,0,0]) cylinder(h=3, d=5);
 }
+
+// fill-port plug/cap (sits in the port, proud lip)
+module fill_cap() { translate([gm_x, 64, ceil_z]) cylinder(h=base_h-ceil_z+3, d=29.4); }
 
 // joint hardware (validation/exploded views)
-module dowels() {
-    for (x0=[0,env_w-side_t]) for (yc=[arch_y0+arch_fw/2, arch_y1-arch_fw/2]) for (dx=[-7,7])
-        translate([x0+side_t/2+dx, yc, base_h-socket_depth]) cylinder(h=socket_depth-2, d=dowel_d-0.2);
-}
+module dowels() { for (xc=[pil_x0,pil_x1]) translate([xc, pil_y+10, pil_bot_z]) cylinder(h=socket_d-2, d=dowel_d-0.2); }
 module screws() {
-    for (x0=[0,env_w-side_t]) for (yc=[arch_y0+arch_fw/2, arch_y1-arch_fw/2]) {
-        translate([x0+side_t/2, yc, 2]) cylinder(h=base_h-10, d=m4-0.6);                // M4 shank up into the foot insert
-        translate([x0+side_t/2, yc, 1]) cylinder(h=5, d=m4_head-1);                     // head (underside)
+    for (xc=[pil_x0,pil_x1]) {                                          // pillar-to-base M4 from underside
+        translate([xc, pil_y, 2]) cylinder(h=base_h-16, d=m4-0.6);
+        translate([xc, pil_y, 1]) cylinder(h=5, d=m4_head-1);
+        translate([xc, blk_y0+blk_d-2, blk_z+blk_h/2]) rotate([90,0,0]) cylinder(h=14, d=setscrew-0.8); // block set screw (tip to pillar face)
     }
-    // LED-bar mount screws (up through the LED into the bridge) — head just below the LED
-    for (sx=[-1,1]) translate([led_cx+sx*(led_l/2-26), led_cy, led_z]) {
-        cylinder(h=env_h-bridge_h-led_z+12, d=m4-0.8);    // shank into bridge insert
-        translate([0,0,-5]) cylinder(h=5, d=m4_head-1.5);  // head below the LED
+    for (sx=[-1,1]) translate([gm_x+sx*(led_l/2-26), gm_y, led_z]) {    // LED-bar mount screws
+        cylinder(h=blk_z-led_z+8, d=m4-0.8);
+        translate([0,0,-5]) cylinder(h=5, d=m4_head-1.5);
     }
 }
-// cable path (debug): base dry bay -> drip loop -> right-rear arch -> bridge -> LED
+// cabling: sensor leads up the rear of the right pillar (base -> top board) + USB-C tail
 module cable_path() {
-    d=6;
-    translate([iso_x+iso_t/2+40, 60, floor_top+20]) sphere(d=12);                         // strain relief / drip loop
-    translate([env_w-side_t/2, arch_y1-arch_fw/2, base_h]) cylinder(h=arch_h*0.86, d=d);   // up right-rear arch
-    translate([env_w-side_t/2, arch_y1-arch_fw/2, env_h-bridge_h-4]) rotate([0,90,0]) cylinder(h=0.1,d=d);
+    cy = pil_y + pil_d/2 + 3.5;
+    translate([pil_x1, cy, base_h]) cylinder(h=blk_z-9-base_h, d=6);    // sensor bundle up rear of R pillar
+    translate([pil_x1, cy, base_h+4]) sphere(d=6);                      // strain relief at base
+    translate([pil_x1, cy, blk_z-9]) sphere(d=6);                       // entry to controller board
+    translate([390, pil_y, blk_z-26]) cylinder(h=18, d=6);             // USB-C tail hanging from jack
 }
 
 // ------------------------------- assembly ---------------------------------
-WHITE=[0.90,0.90,0.89]; WOOD=[0.78,0.60,0.36]; DARK=[0.24,0.24,0.27];
+WHITE=[0.90,0.90,0.89]; WOOD=[0.78,0.60,0.36]; DARK=[0.24,0.24,0.27]; BASKET=[0.36,0.40,0.37];
 module assembly() {
-    color(WHITE) side_frames();
-    color(WHITE) base_shell();
-    color(WHITE) bridge_placed();
-    color(WOOD)  wood_shelf();
+    color(WHITE)  base_shell();
+    color(WOOD)   pillars();
+    color(WHITE)  light_block();
     color([0.97,0.92,0.5]) led_bar();
-    color([0.80,0.55,0.42]) pot_placeholder();
-    color([0.30,0.62,0.88]) reservoir_placeholder();
-    color(DARK) electronics_bay();
-    color([0.86,0.88,0.92]) iso_wall();
+    color([0.15,0.7,0.3]) controller_pcb();
+    color([0.2,0.2,0.22]) usb_c();
+    color(BASKET) grow_insert();
+    color([0.30,0.62,0.88]) reservoir();
     color([0.30,0.82,0.55]) status_diffuser();
+    color(WHITE)  fill_cap();
     color([0.55,0.55,0.58]) feet();
     color([0.6,0.6,0.62]) dowels();
     color([0.2,0.2,0.22]) screws();
@@ -207,22 +232,20 @@ module assembly() {
 
 // ------------------------- per-part dispatch ------------------------------
 part = "all";
-if      (part=="all")        assembly();
-else if (part=="left_arch")  left_arch();
-else if (part=="right_arch") right_arch();
-else if (part=="side_frames") side_frames();
-else if (part=="base")       base_shell();
-else if (part=="bridge")     bridge_placed();
-else if (part=="shelf")      wood_shelf();
-else if (part=="led_bar")    led_bar();
-else if (part=="pot")        pot_placeholder();
-else if (part=="reservoir")  reservoir_placeholder();
-else if (part=="pcb")        pcb();
-else if (part=="driver")     led_driver();
-else if (part=="power")      power_input();
-else if (part=="iso_wall")   iso_wall();
-else if (part=="status")     status_diffuser();
-else if (part=="feet")       feet();
-else if (part=="dowels")     dowels();
-else if (part=="screws")     screws();
-else if (part=="cable")      cable_path();
+if      (part=="all")          assembly();
+else if (part=="base")         base_shell();
+else if (part=="pillar_left")  pillar_left();
+else if (part=="pillar_right") pillar_right();
+else if (part=="pillars")      pillars();
+else if (part=="light_block")  light_block();
+else if (part=="led_bar")      led_bar();
+else if (part=="pcb")          controller_pcb();
+else if (part=="usb_c")        usb_c();
+else if (part=="grow_insert")  grow_insert();
+else if (part=="reservoir")    reservoir();
+else if (part=="status")       status_diffuser();
+else if (part=="fill_cap")     fill_cap();
+else if (part=="feet")         feet();
+else if (part=="dowels")       dowels();
+else if (part=="screws")       screws();
+else if (part=="cable")        cable_path();

@@ -24,44 +24,44 @@ RENDERS = HERE.parent.parent / "docs" / "assets" / "renders"
 PARTS.mkdir(parents=True, exist_ok=True); RENDERS.mkdir(parents=True, exist_ok=True)
 OPENSCAD = next((p for p in ("/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD","openscad")
                  if Path(p).exists() or p=="openscad"), "openscad")
-ENV_W, SIDE_T = 480, 26
-CX, CY = 240, 160                      # pot + LED optical centerline
+ENV_W = 480; PIL_X1 = 416
+CX, CY = 240, 190                      # grow module + LED optical centerline
 
 WHITE=(0.90,0.90,0.89); WOOD=(0.78,0.60,0.36); DARK=(0.24,0.24,0.27); WATER=(0.30,0.62,0.88)
+BASKET=(0.36,0.40,0.37)
 # part -> (label, product colour, debug colour, explode vector)
 P = {
- "left_arch":  ("left side-frame arch", WHITE, (0.55,0.70,0.95), (-130,0,0)),
- "right_arch": ("right side-frame arch",WHITE, (0.55,0.70,0.95), (130,0,0)),
- "base":       ("base shell",           WHITE, (0.85,0.85,0.88), (0,0,-90)),
- "bridge":     ("top light bridge",     WHITE, (0.70,0.80,0.95), (0,0,150)),
- "shelf":      ("wood shelf + pot well",WOOD,  WOOD,              (0,0,70)),
- "led_bar":    ("LED grow bar",         (0.97,0.92,0.5),(0.97,0.85,0.2),(0,0,110)),
- "pot":        ("pot (~9.5 L)",         (0.80,0.55,0.42),(0.80,0.55,0.42),(0,0,150)),
- "reservoir":  ("reservoir (water)",    WATER, WATER,             (0,-120,0)),
- "pcb":        ("controller PCB",       DARK,  (0.15,0.7,0.3),    (130,40,0)),
- "driver":     ("LED driver",           DARK,  (0.9,0.5,0.2),     (150,0,0)),
- "power":      ("power input (24 V)",   DARK,  (0.7,0.7,0.2),     (150,-40,0)),
- "iso_wall":   ("sealed wet|dry wall",  (0.86,0.88,0.92),(0.95,0.4,0.4),(0,80,0)),
- "status":     ("status pill (4 LEDs)", (0.30,0.82,0.55),(0.30,0.82,0.55),(0,-60,0)),
- "feet":       ("feet (x4)",            (0.55,0.55,0.58),(0.55,0.55,0.58),(0,0,-130)),
- "dowels":     ("dowel pins",           (0.60,0.60,0.62),(0.1,0.6,0.9),  (0,0,-40)),
- "screws":     ("M4/M3 screws",         (0.20,0.20,0.22),(0.95,0.2,0.2), (0,0,-70)),
- "cable":      ("cable path",           (0.9,0.6,0.2),(0.9,0.6,0.2),     (0,0,0)),
+ "base":         ("base / reservoir body", WHITE, (0.85,0.85,0.88), (0,0,-120)),
+ "pillar_left":  ("left wood pillar",       WOOD,  (0.80,0.62,0.38), (-70,0,40)),
+ "pillar_right": ("right wood pillar",      WOOD,  (0.80,0.62,0.38), (70,0,40)),
+ "light_block":  ("top LED block",          WHITE, (0.70,0.80,0.95), (0,0,170)),
+ "led_bar":      ("LED grow bar",           (0.97,0.92,0.5),(0.97,0.85,0.2),(0,0,125)),
+ "pcb":          ("controller+driver board",(0.15,0.6,0.3),(0.15,0.7,0.3), (95,0,70)),
+ "usb_c":        ("USB-C input",            DARK,  (0.2,0.2,0.22),   (120,-30,50)),
+ "grow_insert":  ("removable grow insert",  BASKET, (0.40,0.55,0.45),(0,0,215)),
+ "reservoir":    ("passive reservoir (6 L)",WATER, WATER,            (0,-140,0)),
+ "status":       ("status pill (4 LEDs)",   (0.30,0.82,0.55),(0.30,0.82,0.55),(0,-70,0)),
+ "fill_cap":     ("fill-port cap",          WHITE, (0.7,0.7,0.75),   (0,0,70)),
+ "feet":         ("feet (x4)",              (0.55,0.55,0.58),(0.55,0.55,0.58),(0,0,-160)),
+ "dowels":       ("anti-rotation dowels",   (0.60,0.60,0.62),(0.1,0.6,0.9),  (0,0,-50)),
+ "screws":       ("M4 screws / set screws", (0.20,0.20,0.22),(0.95,0.2,0.2), (0,0,-70)),
+ "cable":        ("sensor + USB-C cabling", (0.9,0.6,0.2),(0.9,0.6,0.2),     (0,90,0)),
 }
-SHELL_CANOPY = ("left_arch","right_arch","bridge","led_bar","pot","shelf","status")
+INTERNAL = ("reservoir","dowels","screws","cable")            # hidden in clean product views
+CANOPY   = ("light_block","led_bar","pcb","usb_c")            # the top assembly
 # name, dir, up, hide, debug, explode, clip_x, focus, scale, overlay
 VIEWS = [
- ("p-iso-fl",  (-1,-1,0.5),(0,0,1), ("cable",), 0,0,None,None,None,None),
- ("p-front",   (0,-1,0.04),(0,0,1), ("cable",), 0,0,None,None,None,None),
- ("p-side",    (1,0,0.04), (0,0,1), ("cable",), 0,0,None,None,None,None),
- ("p-top",     (0,0,1),    (0,1,0), ("cable",), 0,0,None,None,None,None),
- ("p-rear",    (0,1,0.04), (0,0,1), ("cable",), 0,0,None,None,None,None),
- ("p-iso-rr",  (1,1,0.5),  (0,0,1), ("cable",), 0,0,None,None,None,None),
- ("v-exploded",(-1,-1,0.45),(0,0,1),("cable",), 1,1,None,None,None,None),
- ("v-underside",(0.25,0.2,-1),(0,1,0),("cable","pot","shelf","led_bar","bridge"),1,0,None,None,None,None),
- ("v-base-cutaway",(0.7,1,0.45),(0,0,1), SHELL_CANOPY+("cable","screws","dowels"),1,0,None,None,None,None),
- ("v-conduit-xsec",(1,0.4,0.25),(0,0,1), (), 1,0, ENV_W-SIDE_T/2, None,None,None),
- ("v-led-center",(0,0,1),(0,1,0), ("cable",),1,0,None,None,None,"centerline"),
+ ("p-iso-fl",  (-1,-1,0.5),(0,0,1), INTERNAL, 0,0,None,None,None,None),
+ ("p-front",   (0,-1,0.04),(0,0,1), INTERNAL, 0,0,None,None,None,None),
+ ("p-side",    (1,0,0.04), (0,0,1), INTERNAL, 0,0,None,None,None,None),
+ ("p-top",     (0,0,1),    (0,1,0), INTERNAL, 0,0,None,None,None,None),
+ ("p-rear",    (0,1,0.04), (0,0,1), ("reservoir","dowels","screws"), 0,0,None,None,None,None),
+ ("p-iso-rr",  (1,1,0.5),  (0,0,1), ("reservoir","dowels","screws"), 0,0,None,None,None,None),
+ ("v-exploded",(-1,-1,0.45),(0,0,1),(), 1,1,None,None,None,None),
+ ("v-underside",(0.25,0.2,-1),(0,1,0), CANOPY+("grow_insert","reservoir","status","fill_cap"),1,0,None,None,None,None),
+ ("v-base-cutaway",(0.7,0.8,0.4),(0,0,1), CANOPY+("dowels","screws","cable","fill_cap"),1,0,300,None,None,None),
+ ("v-cable-xsec",(-1,0.3,0.2),(0,0,1), (), 0,0, PIL_X1+16, None,None,None),
+ ("v-led-center",(0,0,1),(0,1,0), INTERNAL,1,0,None,None,None,"centerline"),
 ]
 EDGE_ANGLE = 40.0
 
@@ -100,12 +100,12 @@ def build(meshes):
 def overlay_actors(meshes):
     """crosshair + centroid markers proving LED & pot are centered at (CX,CY)."""
     acts=[]
-    zc = 692   # above the bridge so the crosshair/markers sit on top in the top view
+    zc = 690   # above the block so the crosshair/markers sit on top in the top view
     for p0,p1 in [((CX,0,zc),(CX,320,zc)),((0,CY,zc),(480,CY,zc))]:
         ls=vtk.vtkLineSource(); ls.SetPoint1(*p0); ls.SetPoint2(*p1)
         m=vtk.vtkPolyDataMapper(); m.SetInputConnection(ls.GetOutputPort())
         a=vtk.vtkActor(); a.SetMapper(m); a.GetProperty().SetColor(0.9,0.1,0.1); a.GetProperty().SetLineWidth(2.5); acts.append(a)
-    for key,col in [("led_bar",(0.95,0.6,0.0)),("pot",(0.1,0.3,0.9))]:
+    for key,col in [("led_bar",(0.95,0.6,0.0)),("grow_insert",(0.1,0.3,0.9))]:
         c=meshes[key].centroid
         s=vtk.vtkSphereSource(); s.SetCenter(c[0],c[1],zc); s.SetRadius(7)
         m=vtk.vtkPolyDataMapper(); m.SetInputConnection(s.GetOutputPort())
@@ -153,9 +153,10 @@ def render(meshes):
 def main():
     export_parts()
     meshes={k:trimesh.load_mesh(str(PARTS/f"{k}.stl")) for k in P}
-    lc, pc = meshes["led_bar"].centroid, meshes["pot"].centroid
-    print(f"LED centroid  X={lc[0]:.1f} Y={lc[1]:.1f}  (target {CX},{CY})")
-    print(f"pot centroid  X={pc[0]:.1f} Y={pc[1]:.1f}  (target {CX},{CY})")
+    lc, pc = meshes["led_bar"].centroid, meshes["grow_insert"].centroid
+    print(f"LED centroid    X={lc[0]:.1f} Y={lc[1]:.1f}  (target {CX},{CY})")
+    print(f"insert centroid X={pc[0]:.1f} Y={pc[1]:.1f}  (target {CX},{CY})")
+    print(f"LED<->grow offset  dX={abs(lc[0]-pc[0]):.1f}  dY={abs(lc[1]-pc[1]):.1f}  (accept <=5)")
     print("rendering:"); render(meshes)
     print("\n(interference/float verification: run audit.py — no whitelist, volume-based)")
     return 0
