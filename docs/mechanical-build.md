@@ -52,15 +52,19 @@ cross-section** (cable path base → arch → bridge → LED):
 - **Joints:** each arch foot tenons 26 mm into a base socket with 2 dowel pins + a
   hidden M4 from the underside (counterbored for a driver); the bridge tongues into the
   arch tops with dowels + screws. See [fastening & assembly](fastening.md).
-- **Dynamic physics sim (optional, §8):** not yet run — FCL is collision/clearance only.
-  The tab-and-dowel joints carry shear (dowels in double shear) independent of the
-  screws (which carry tension/pull-out), so the joint is not screw-dependent for shear.
-  A PyBullet gravity + joint-constraint settling test (pot 8–12 kg, screws removed one at
-  a time) is the recommended next validation step.
+- **Dynamic physics sim (MuJoCo) — PASS.** Rigid-body settling test
+  (`mechanical/cad/physics_sim.py`): base fixed, **pot 10 kg**, gravity on, joints modelled
+  as dowel + screw `connect` constraints (welds for seated parts). After settling the
+  **max part displacement is 0.041 mm and max rotation 0.006°** — well under the 0.5 mm /
+  0.5° limit. Removing **each screw one at a time — and all screws together — gives the
+  identical result**, proving the **dowels/tabs carry the shear** and the joints are not
+  screw-dependent for holding. (Idealised rigid-body + pin/weld constraints, not FEA: it
+  validates kinematic stability and joint redundancy, not material stress.)
 
 Reproduce:
 
 ```sh
-.venv-cad/bin/python mechanical/cad/render_block.py   # export + renders + collision
+.venv-cad/bin/python mechanical/cad/render_block.py   # export + renders + FCL collision
+.venv-cad/bin/python mechanical/cad/physics_sim.py    # MuJoCo settling + screw-removal test
 openscad -D 'part="base"' --render -o base.stl mechanical/cad/opencanopy_tabletop_pepper_v1_block_model.scad
 ```
