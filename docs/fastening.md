@@ -43,8 +43,8 @@ Glue-only / plug-and-glue is avoided for the frame because the unit must stay
 
 | Joint | Fastening |
 |---|---|
-| Side-frame arch ↔ base (×2) | M3 heat-set inserts in each arch foot (front + back leg); screws up through the base deck. |
-| Side-frame arch ↔ light bridge | M3 inserts in the arch tops; screws through the bridge ends. |
+| Side-frame arch ↔ base (×4 feet) | each arch foot **tenons 26 mm into a base socket** + **2 dowel pins** (alignment/shear) + **1 hidden M4** from the underside into a heat-set insert in the foot. The base underside is counterbored for straight screwdriver access. |
+| Side-frame arch ↔ light bridge | **bridge tongues** into the arch-top sockets + dowel pins + accessible **M3/M4** screws from the underside/rear. |
 | Base panels (front/sides/floor/deck) | M3 inserts + screws at the edges; **dowel pins** locate the seams. |
 | Sealed wet/dry wall | keyed (slot) into the floor + deck and screwed — a positive water/dry barrier, not just glued. |
 | Electronics (PCB, driver, PSU) | M3 heat-set standoffs on the dry-compartment floor. |
