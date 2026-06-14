@@ -28,6 +28,25 @@ grommet at the right pillar); power (USB-C) enters at the top. Pillars and the g
 share Y (= 160, base centre) so a thin block places the LED directly over the plant with no
 cantilever. The base stays low because the grow insert is a **raised planter** above the top.
 
+## Interactive 3D model
+
+**Drag to orbit, scroll to zoom.** The externally-visible assembly (base, pillars, top block,
+LED panel + heatsink, grow insert, status pill, feet) in web-standard glTF. Source:
+`mechanical/cad/exports/parts/*.stl` → `assets/models/opencanopy-v1.glb`
+(`mechanical/cad/render_block.py::export_glb`).
+
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
+<model-viewer
+  src="assets/models/opencanopy-v1.glb"
+  alt="OpenCanopy V1 — drag to rotate the assembly"
+  camera-controls auto-rotate touch-action="pan-y"
+  interaction-prompt="none" shadow-intensity="1" exposure="1.05"
+  camera-orbit="-35deg 72deg auto" min-camera-orbit="auto auto auto" max-camera-orbit="auto auto auto"
+  style="width:100%; height:520px; background:#f3f4f6; border-radius:10px;">
+  <p slot="poster" style="padding:1rem;">Loading 3D model… (or
+  <a href="assets/models/opencanopy-v1.glb">download the GLB</a>)</p>
+</model-viewer>
+
 ## Product views
 
 ![Front-left isometric](assets/renders/p-iso-fl.png)

@@ -49,14 +49,14 @@ jobs:
       - name: Install MkDocs
         run: pip install --quiet mkdocs mkdocs-material
 
-      - name: Render + collision-check v0 block model
+      - name: Render images + 3D GLB (best-effort)
         # Best-effort refresh: export each OpenSCAD part (CGAL, headless), render the
-        # assembly from many angles with VTK (z-buffered, labelled) and run the FCL
-        # collision check. The committed PNGs publish as-is if this hiccups.
+        # assembly from many angles with VTK (z-buffered, labelled) and write the colour
+        # GLB for the docs <model-viewer>. The committed PNGs + GLB publish as-is if this hiccups.
         continue-on-error: true
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq openscad
-          pip install --quiet numpy trimesh python-fcl vtk-osmesa
+          pip install --quiet numpy trimesh vtk-osmesa
           python mechanical/cad/render_block.py
 
       - name: Generate fallback mkdocs.yml if none committed

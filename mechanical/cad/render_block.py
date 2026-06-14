@@ -74,6 +74,28 @@ def export_parts():
     print(f"exported {len(P)} part STLs")
 
 
+# parts shown in the interactive 3D model (the externally-visible product; internal/debug hidden)
+GLB_SKIP = ("reservoir","pcb","usb_c","dowels","screws","cable")
+
+def export_glb(meshes):
+    """Write a colour-per-part GLB of the assembly for the docs <model-viewer> (web-rotatable)."""
+    R = trimesh.transformations.rotation_matrix(-np.pi/2, [1,0,0])   # Z-up (CAD) -> Y-up (glTF)
+    scene = trimesh.Scene()
+    for k,m in meshes.items():
+        if k in GLB_SKIP: continue
+        g = m.copy(); g.apply_transform(R)
+        r,gn,b = P[k][1]
+        g.visual = trimesh.visual.TextureVisuals(material=trimesh.visual.material.PBRMaterial(
+            name=k, baseColorFactor=[int(r*255),int(gn*255),int(b*255),255],
+            metallicFactor=0.0, roughnessFactor=0.75))
+        scene.add_geometry(g, geom_name=k, node_name=k)
+    out = RENDERS.parent / "models" / "opencanopy-v1.glb"           # docs/assets/models/
+    out.parent.mkdir(parents=True, exist_ok=True)
+    scene.export(str(out))
+    print(f"  wrote {out.relative_to(RENDERS.parents[2])} ({len(scene.geometry)} parts, "
+          f"{sum(len(g.faces) for g in scene.geometry.values())} tris)")
+
+
 def _pd(m):
     pts=vtk.vtkPoints(); pts.SetNumberOfPoints(len(m.vertices))
     for i,v in enumerate(m.vertices): pts.SetPoint(i,*map(float,v))
@@ -159,6 +181,7 @@ def main():
     print(f"insert centroid X={pc[0]:.1f} Y={pc[1]:.1f}  (target {CX},{CY})")
     print(f"LED<->grow offset  dX={abs(lc[0]-pc[0]):.1f}  dY={abs(lc[1]-pc[1]):.1f}  (accept <=5)")
     print("rendering:"); render(meshes)
+    print("exporting GLB:"); export_glb(meshes)
     print("\n(interference/float verification: run audit.py — no whitelist, volume-based)")
     return 0
 
