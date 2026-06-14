@@ -1,6 +1,6 @@
 # Tabletop Automated Pepper Grower — V1 Engineering Specification
 
-**Document status:** Draft v1.1 — revised for compact open-frame tabletop target  
+**Document status:** Draft v1.1 — revised for compact open-frame tabletop target; **circulation fan removed 2026-06-14** (all tracks agreed)  
 **Target crop:** Carolina Reaper / superhot pepper, treated as a hot-pepper profile for *Capsicum chinense* with environmental targets informed by broader pepper (*Capsicum* spp.) and controlled-environment agriculture research.  
 **Target product:** Open-source, compact, non-enclosed tabletop indoor grow unit for one productive pepper plant.  
 **Primary interface:** Zero-config appliance with LED status indicators.  
@@ -19,10 +19,11 @@ V1 is a compact, visually pleasant, open-source tabletop grow system for a singl
 - Plant-growing rules embedded as a fixed pepper profile so the user does not need to configure species or growth recipes.
 - Validation plans covering software, electronics, pump/irrigation behavior, thermal behavior, noise, mechanical fit, water safety, and real grow trials.
 
-Revision v1.1 incorporates two product decisions:
+Revision v1.1 incorporates these product decisions:
 
 - The default unit is **open-frame / non-enclosed**, assuming normal indoor room temperature around 22–25°C.
 - The default footprint is reduced; a larger “full-yield” variant remains documented for builders who prefer maximum plant size over table fit.
+- **The circulation fan is removed** (2026-06-14, agreed across mechanical, electronics, and firmware). The open frame relies on passive convection; there is no forced airflow or active humidity control, and derating/cutting the grow LED is the only lever the firmware has over canopy temperature. Climate sensing is retained for monitoring and warnings only.
 
 The system should prioritize:
 
@@ -32,7 +33,7 @@ The system should prioritize:
 4. **Open, testable, reprogrammable architecture.**
 5. **A living-room/table-friendly aesthetic.**
 
-V1 should not ship with camera-based plant diagnosis. That can become a V2 expansion module after the basic light, water, airflow, sensor, and safety loops are proven. The most useful intelligence for V1 is not “AI,” but well-tested feedback loops around light schedule, substrate moisture, reservoir state, temperature, humidity/VPD, pump safety, and fault detection.
+V1 should not ship with camera-based plant diagnosis. That can become a V2 expansion module after the basic light, water, sensor, and safety loops are proven. The most useful intelligence for V1 is not “AI,” but well-tested feedback loops around light schedule, substrate moisture, reservoir state, temperature, humidity/VPD, pump safety, and fault detection.
 
 ---
 
@@ -81,7 +82,7 @@ This is not a commercial greenhouse crop plan. It is a small indoor device plan.
 
 - The DLI target is ambitious but can be approached in a compact tabletop footprint only if the canopy area is constrained, the LED has a real PPFD map, and the plant is pruned/trained.
 - The default compact geometry trades some maximum yield for table fit and visual acceptability. This is acceptable for V1 because the target is credible indoor fruiting, not commercial yield.
-- The default design is not enclosed. It does not actively heat or cool the room. It only manages LED heat contribution, airflow, watering, and warning states.
+- The default design is not enclosed. It does not actively heat or cool the room, and (with the fan removed) it does not manage airflow. It only manages LED heat contribution, watering, and warning states.
 - A 22–25°C indoor room is acceptable for hot pepper growth. It is not severe enough to justify an enclosure in V1. Germination may still benefit from a removable heat mat or external warm-start method.
 - The system must support dimming and heat management rather than running a high-power LED blindly.
 
@@ -167,8 +168,8 @@ Design consequences:
 
 - Room temperature is assumed to be 22–25°C.
 - The firmware does not attempt to maintain an independent air-temperature setpoint.
-- The fan is for gentle canopy airflow, heat dispersion, and stale-air prevention, not active cooling below ambient.
-- LED intensity is the only meaningful heat source the device can control.
+- V1 has no circulation fan: the open frame relies on passive convection, and there is no forced airflow, heat dispersion, or active cooling below ambient.
+- LED intensity is the only meaningful heat source the device can control, and derating/cutting it is the only lever the device has over canopy temperature.
 - The system may derate the LED if canopy temperature rises, but it should not overcomplicate temperature control.
 - No humidifier, heater, refrigeration module, or sealed chamber is included in V1.
 - A removable seed-starting dome or separate heat mat may be documented for germination, but it is not part of the core appliance.
@@ -189,8 +190,7 @@ Engineering interpretation: 22–25°C room conditions are close enough to publi
 - Automated pump watering.
 - Reservoir-level sensing.
 - Temperature/humidity sensing.
-- VPD calculation.
-- Circulation fan control.
+- VPD calculation (monitor + LED-derate response; no fan in V1).
 - Leak/flood safety sensor.
 - LED status interface.
 - Local deterministic firmware control.
@@ -277,18 +277,18 @@ Required average PPFD: 23 / (16 × 0.0036) ≈ 399 µmol·m⁻²·s⁻¹
 
 ### 5.3 Temperature behavior in open-frame mode
 
-Firmware should monitor temperature and use fan/LED derating to avoid adding avoidable heat stress. It should not pretend it can cool the plant below room temperature.
+Firmware should monitor temperature and use LED derating to avoid adding avoidable heat stress. V1 has no fan, so derating/cutting the LED is the only thermal lever; it cannot cool the plant below room temperature.
 
 | Condition | Action |
 |---|---|
-| <16°C air | Climate LED amber; fan minimum only; do not increase watering due to slow uptake |
+| <16°C air | Climate LED amber; do not increase watering due to slow uptake |
 | 16–20°C | Accept; possible slower growth; no active heating in V1 |
 | 20–25°C | Normal open-room operating band |
-| 25–28°C | Normal if transient; increase fan slightly during lights-on |
-| 28–30°C | Climate LED amber if sustained; fan high; prevent additional LED heat if rising |
-| 30–32°C | Fan high; reduce LED 20–40% if LED heat is contributing |
+| 25–28°C | Normal if transient; watch for a rising trend during lights-on |
+| 28–30°C | Climate LED amber if sustained; prevent additional LED heat if rising |
+| 30–32°C | Reduce LED 20–40% if LED heat is contributing |
 | >32°C | Climate LED red; reduce LED 40–70%; pump only if substrate is dry; log heat fault |
-| >35°C | Critical over-temp; LED off or minimum; fan high; system fault if sustained |
+| >35°C | Critical over-temp; LED off or minimum; system fault if sustained |
 
 Fruit-set protection:
 
@@ -305,21 +305,21 @@ Basic VPD logic:
 
 | VPD | Interpretation | Action |
 |---:|---|---|
-| <0.4 kPa | Air too humid / low transpiration | Fan increase, avoid watering unless dry |
+| <0.4 kPa | Air too humid / low transpiration | Climate amber warning; avoid watering unless dry |
 | 0.5–1.2 kPa | Normal productive range | Normal control |
 | 1.2–1.6 kPa | Dry air / high transpiration | Watch moisture, shorter dryback allowed |
-| >1.6 kPa | Stress risk | Fan may not help; alert if persistent; avoid LED heat increase |
+| >1.6 kPa | Stress risk | Alert if persistent; avoid LED heat increase |
 
 RH guardrails:
 
 | RH | Action |
 |---:|---|
-| >85% sustained | Climate amber/red; fan high; disease-risk warning |
-| 70–85% | Accept if short-term, increase airflow |
+| >85% sustained | Climate amber/red; disease-risk warning (no fan in V1 — prompt the user to ventilate the room) |
+| 70–85% | Accept if short-term; warn if sustained |
 | 55–70% | Preferred flowering/fruiting range |
 | <40% | Dry-air warning if VPD high |
 
-V1 does not include humidification. It should only warn and adjust fan/light/watering conservatively.
+V1 has no fan and no humidification. The climate logic only **warns** on humidity and adjusts light/watering conservatively; it has no actuator that can change the air directly.
 
 ### 5.5 Substrate and potting media
 
@@ -346,7 +346,7 @@ Control target:
 
 | State | Meaning | Action |
 |---|---|---|
-| Too wet | Sensor above wet threshold for long period | Block watering; amber moisture LED; increase fan if humid |
+| Too wet | Sensor above wet threshold for long period | Block watering; amber moisture LED |
 | Target | Within range | No action |
 | Dry | Below dry threshold | Dose water in pulses |
 | Critically dry | Well below dry threshold | Dose water with stricter observation; red/amber LED if not recovering |
@@ -406,13 +406,13 @@ For optional hydroponic variant:
 
 ### 5.9 Pollination and pruning
 
-V1 should not mechanically pollinate. It should support airflow and include grow-guide instructions:
+V1 should not mechanically pollinate, and with no fan it does not provide assisted airflow. It relies on manual pollination and includes grow-guide instructions:
 
 - Gently shake plant or tap flowers several times per week during flowering.
-- Maintain airflow, but not strong wind.
+- Keep the plant in a room with gentle natural air movement, not strong wind.
 - Support branches as fruit load increases.
-- Prune only enough to maintain clearance and airflow.
-- Keep fruit from touching LED or fan.
+- Prune only enough to maintain clearance and passive airflow.
+- Keep fruit from touching the LED.
 - Leave enough leaf canopy to protect fruit from intense light and heat.
 
 Optional V2 feature:
@@ -435,7 +435,7 @@ External certified AC/DC power brick
         |
         +--> LED driver / dimmer --> grow light
         |
-        +--> DC/DC 12 V rail --> fan / pump if 12 V
+        +--> DC/DC 12 V rail --> pump (only if a 12 V pump is used)
         |
         +--> DC/DC 5 V rail --> sensors / logic
         |
@@ -448,7 +448,6 @@ MCU control board
         +--> capacitive moisture sensor
         +--> reservoir level sensor
         +--> leak sensor
-        +--> fan PWM/tach
         +--> pump MOSFET/driver
         +--> LED dimming output
         +--> front status LEDs
@@ -470,7 +469,6 @@ MIDDLE GROW ZONE
 - Plant canopy
 - Pot
 - LED fixture above
-- Fan at rear/side
 - Temp/humidity sensor shielded from direct LED heat
 - Moisture probe routed into pot
 
@@ -493,7 +491,7 @@ V1 control is deterministic:
 
 ```text
 time-of-day + plant age + sensor inputs + safety states
-→ light/fan/pump outputs
+→ light/pump outputs
 → LED user feedback
 ```
 
@@ -603,33 +601,16 @@ Required pump constraints:
 
 Pump dosing should be calibrated in firmware as `ml_per_second`, measured during assembly.
 
-### 7.4 Fan requirements
+### 7.4 Circulation fan — removed from V1
 
-Recommended fan type:
+V1 has **no circulation fan**. It was removed from the mechanical and electrical design: the open
+frame relies on passive convection, there is no forced airflow, and the only lever firmware has over
+canopy temperature is derating/cutting the grow LED (see §5.3, §9.7). With no fan there is also no
+active humidity control — the climate logic only warns.
 
-**Quiet brushless DC PWM fan**, 80 mm or 92 mm, fluid-dynamic or magnetic bearing.
-
-Required constraints:
-
-| Parameter | Target |
-|---|---:|
-| Voltage | 12 V DC |
-| Size | 80×80×25 mm or 92×92×25 mm |
-| Control | PWM preferred |
-| Tachometer | Preferred |
-| Airflow | 5–20 CFM usable range |
-| Noise | ≤20 dBA at normal speed, ≤30 dBA at max |
-| Bearing | Fluid-dynamic / SSO / magnetic |
-| Mounting | Rubber grommets |
-| Guard | Required |
-| Intake filter | Optional, removable |
-
-Airflow goal:
-
-- Gentle leaf movement.
-- No strong drying stream directly at seedling.
-- Avoid stagnant humid microclimate.
-- Maintain electronics cooling if the same airflow path is used, but avoid pulling moist plant air through electronics.
+This heading is retained as a placeholder so the rest of §7's numbering and cross-references stay
+stable. A fan could be reconsidered for a future enclosed variant; if so, restore the quiet
+80/92 mm PWM-fan-with-tach-and-guard requirements from spec v1.1.
 
 ### 7.5 Sensors
 
@@ -637,11 +618,10 @@ Airflow goal:
 
 | Sensor | Recommended part class | Placement | Purpose |
 |---|---|---|---|
-| Air temp/humidity | SHT31/SHT35/SHT40/SHT41-class digital sensor | Mid-height, shaded from LED, near canopy but not in direct fan stream | Climate/VPD |
+| Air temp/humidity | SHT31/SHT35/SHT40/SHT41-class digital sensor | Mid-height, shaded from LED, near canopy | Climate/VPD |
 | Soil/substrate moisture | Capacitive probe, corrosion-resistant | Root zone, removable | Watering decision |
 | Reservoir level | Float switch + optional analog/pressure/optical | Reservoir | Low-water safety |
 | Leak sensor | Conductive trace or sensor strip | Bottom tray below reservoir/pump | Pump lockout |
-| Fan tach | Fan output | Fan | Fault detection |
 | Pump current | Current sense resistor/INA219-class | Pump rail | Pump fault/clog/dry-run detection — **required** in V1 (watering reliability is the core function; see §23 DR-04) |
 
 #### Optional sensors
@@ -716,7 +696,6 @@ Power budget:
 |---|---:|---:|
 | LED | 50–100 W | 100 W |
 | Pump | 3–10 W | 15 W |
-| Fan | 0.5–3 W | 5 W |
 | MCU/sensors/status | <2 W | 5 W |
 | Headroom | 20% | 25% |
 
@@ -735,7 +714,7 @@ Rails:
 
 ```text
 24 V: LED driver, optional 24 V pump
-12 V: fan, optional 12 V pump
+12 V: optional 12 V pump only (rail can be omitted if a 5 V pump is used — no fan in V1)
 5 V: sensors/peripherals
 3.3 V: MCU
 ```
@@ -746,7 +725,7 @@ Rails:
 |---|---|
 | Layers | 2-layer acceptable; 4-layer preferred for cleaner power/ground |
 | Connectors | Locking JST/Molex/Wago-style; no loose Dupont for production build |
-| Test points | Every rail, I2C, UART, pump drive, fan PWM/tach, LED dimming, sensor inputs |
+| Test points | Every rail, I2C, UART, pump drive, LED dimming, sensor inputs |
 | Protection | Fuse, reverse polarity, TVS, flyback where needed, current limits |
 | Wet isolation | PCB in dry bay only; conformal coat optional but not substitute for enclosure |
 | Mounting | Standoffs, no board flex, serviceable |
@@ -759,7 +738,7 @@ Rails:
 
 Minimum engineering requirements:
 
-- Use trace-width calculator in CI or documented DRC notes for pump/fan/LED current paths.
+- Use trace-width calculator in CI or documented DRC notes for pump/LED current paths.
 - Do not route high-current LED power through thin control traces.
 - Keep LED current loop away from sensor ADC lines.
 - Separate analog moisture sensor area from high-current switching.
@@ -804,7 +783,7 @@ Preferred V1 layout is an **open-frame vertical stack**:
   LED fixture overhead, shielded from direct water path
 
 [Middle open grow area]
-  plant, support, fan, air sensor
+  plant, support, air sensor
 
 [Lower grow area]
   compact 8–10 L removable pot and drip/watering outlet
@@ -813,7 +792,7 @@ Preferred V1 layout is an **open-frame vertical stack**:
   removable 2.5–4 L reservoir, pump, filter, leak tray
 ```
 
-Do not use a sealed box as the default. The frame should be visually open, with only enough structure to hold the light, fan, cable channel, reservoir, electronics bay, and optional trellis.
+Do not use a sealed box as the default. The frame should be visually open, with only enough structure to hold the light, cable channel, reservoir, electronics bay, and optional trellis.
 
 ### 8.2 Mechanical modules
 
@@ -821,7 +800,6 @@ Do not use a sealed box as the default. The frame should be visually open, with 
 |---|---|---|
 | Frame | STEP + printable brackets | Wood/aluminum/printed hybrid |
 | Light mount | STEP + STL | Adjustable height preferred |
-| Fan mount | STEP + STL | Rubber isolation, guard |
 | Pot tray | STEP + STL | Captures overflow |
 | Reservoir bay | STEP + STL | Tool-free removal |
 | Electronics bay | STEP + STL | Dry, serviceable |
@@ -860,7 +838,6 @@ The user must be able to:
 - Remove pump/filter for cleaning.
 - Remove pot without cutting wires.
 - Replace moisture probe.
-- Replace fan.
 - Replace LED fixture.
 - Access electronics without opening wet bay.
 - Inspect tubing.
@@ -875,32 +852,30 @@ Rules:
 - No cable enters electronics bay from directly below without a drip loop and grommet.
 - Tubing should be visible or inspectable enough to find leaks.
 - Add strain relief at all moving/removable modules.
-- Use labels for pump, fan, LED, moisture, reservoir, leak.
+- Use labels for pump, LED, moisture, reservoir, leak.
 
 ### 8.6 Light/plant clearance
 
 - LED height must allow 150–300 mm clearance above typical canopy.
 - If fixed-height, design total grow zone height ≥600 mm.
-- Plant support should keep branches away from fan blades and LED.
+- Plant support should keep branches away from the LED.
 - Include pruning guidance because Carolina Reaper can outgrow the tabletop unit.
 
 ### 8.7 Acoustic design
 
-Noise target:
+Noise target. With no fan in V1, the device is effectively silent except during short pump pulses,
+so the pump is the only meaningful noise source:
 
 | Mode | Target |
 |---|---:|
-| Normal day mode | ≤30 dBA at 1 m |
+| Normal day mode | ≤30 dBA at 1 m (near-silent — no fan) |
 | Night mode | ≤25 dBA at 1 m |
 | Pump active | ≤35 dBA at 1 m, short duration |
-| Fault fan max | ≤40 dBA acceptable |
 
 Mechanical noise mitigations:
 
-- Rubber fan mounts.
 - Rubber pump pad/suction cups.
 - Avoid hard tubing vibrating against frame.
-- Use PWM fan frequency outside audible whine range.
 - Use soft-start pump if possible.
 - Avoid resonant thin panels.
 
@@ -983,12 +958,13 @@ LOW_WATER
 LEAK_DETECTED
 SENSOR_FAULT
 PUMP_FAULT
-FAN_FAULT
 LED_FAULT
 OVER_TEMP
 MAINTENANCE
 SAFE_SHUTDOWN
 ```
+
+(`FAN_FAULT` was removed in V1 — there is no fan.)
 
 State priority:
 
@@ -1012,8 +988,7 @@ On boot:
 5. Restore grow-cycle age from RTC/NVS.
 6. Determine light schedule state.
 7. Ensure pump is off.
-8. Apply fan minimum if needed.
-9. Set LEDs.
+8. Set LEDs.
 
 If RTC time is invalid:
 
@@ -1055,7 +1030,7 @@ If air temperature is high:
 
 | Condition | LED action |
 |---|---|
-| 28–30°C | No derate; fan increases |
+| 28–30°C | No derate (monitor only — no fan in V1) |
 | 30–32°C | Reduce LED up to 20% if temperature rising |
 | >32°C | Reduce LED 30–60%; climate fault |
 | >35°C | LED off/minimum; critical fault |
@@ -1065,7 +1040,7 @@ If LED heat sink sensor is added:
 | LED temp | Action |
 |---|---|
 | <60°C | Normal |
-| 60–70°C | Fan high / dim slightly |
+| 60–70°C | Dim slightly |
 | >70°C | Derate |
 | >80°C | LED off fault |
 
@@ -1155,30 +1130,27 @@ These are safety caps, not target consumption. They should be adjusted after gro
 - Maximum pulses per day: stage-dependent.
 - Pump always off on firmware crash/reset due to hardware pull-down.
 
-### 9.7 Climate/fan control
+### 9.7 Climate monitor
 
-Fan minimum:
+V1 has **no fan**, so the climate controller commands no actuator. It computes VPD, classifies the
+air for the Climate status LED, and — past 32 °C — requests an LED derate (the only way to shed heat
+without a fan). It never tries to cool below ambient.
 
-| Stage | Lights on | Lights off |
-|---|---:|---:|
-| Seedling | 15–25% | periodic 5 min/hour |
-| Vegetative | 20–35% | periodic 5–10 min/hour |
-| Flowering | 25–45% | periodic 10 min/hour |
-| Fruiting | 25–50% | periodic 10 min/hour |
+Climate classification (drives the Climate LED, §9.8):
 
-Fan boosts:
+| Condition | Climate LED | Other action |
+|---|---|---|
+| RH >85% | amber | disease-risk warning |
+| RH >90% sustained | red | disease-risk warning; prompt the user to ventilate the room |
+| VPD <0.4 kPa (too humid) | amber | avoid watering unless dry |
+| VPD >1.6 kPa (stress) | amber | alert if persistent |
+| Temp >30 °C | amber | prevent additional LED heat if rising |
+| Temp >32 °C | red | request LED derate (only heat lever) |
+| Temp <16 °C | amber | do not increase watering |
+| RH/temp outside the stage's preferred band | amber | — |
 
-| Condition | Action |
-|---|---|
-| RH >75% lights on | +15% |
-| RH >85% | +30%, amber climate |
-| VPD <0.5 kPa | +20% |
-| Temp >28°C | +20% |
-| Temp >30°C | +40% |
-| Temp >32°C | max fan, LED derate |
-| Fan tach missing | FAN_FAULT |
-
-Avoid blasting seedlings directly. Fan should produce circulation, not wind stress.
+Over-temp protection rests entirely on the LED: at the >35 °C critical threshold the safety machine
+enters OVER_TEMP and forces the LED off/minimum (§9.3, §9.5).
 
 ### 9.8 LED status logic
 
@@ -1211,7 +1183,6 @@ Required calibrations:
 | Moisture dry/wet | Factory/dev mode with chosen media |
 | Pump ml/s | Run pump into measuring cylinder for 30 s |
 | Reservoir low point | Fill-drain test |
-| Fan min PWM | Find lowest reliable spinning duty |
 | LED dim map | Measure PPFD grid at 25/50/75/100% |
 | Temp/humidity sanity | Compare against reference sensor |
 | Leak sensor | Wet test |
@@ -1223,7 +1194,6 @@ Calibration data stored in NVS/flash:
   "moisture_raw_dry": 1234,
   "moisture_raw_wet": 2870,
   "pump_ml_per_sec": 3.8,
-  "fan_min_pwm": 28,
   "led_ppfd_map": {
     "25": 120,
     "50": 240,
@@ -1302,7 +1272,7 @@ Required unit tests:
 | Pump dose calculator | ml to seconds conversion |
 | Pump safety | timeout, daily max, low water, leak lockout |
 | VPD calculator | temp/RH to kPa |
-| Fan controller | temp/RH/VPD duty behavior |
+| Climate monitor | temp/RH/VPD health classification + LED-derate request (no fan in V1) |
 | LED status | state-to-pattern mapping |
 | Fault priority | highest-priority state wins |
 | Calibration store (flash) | defaults, missing/corrupt calibration |
@@ -1321,7 +1291,6 @@ moisture_normalized
 reservoir_ml
 light_on
 led_power_percent
-fan_percent
 pump_ml_per_sec
 plant_stage
 ```
@@ -1331,8 +1300,7 @@ Simulated behaviors:
 - Moisture declines faster during light period and high VPD.
 - Pump increases moisture after delay.
 - Reservoir decreases when pump runs.
-- Fan slightly reduces humidity.
-- LED increases heat.
+- LED increases heat (no fan to disperse it — air RH tracks the room).
 - Leak sensor can be injected.
 - Sensor failure can be injected.
 
@@ -1347,8 +1315,8 @@ Required scenarios:
 | Moisture sensor stuck dry | Pump capped by daily max, fault if no response |
 | Pump disconnected | Current/timing fault if current sensor present; moisture no-rise fault otherwise |
 | Leak detected | Immediate pump off, red water/system |
-| Hot room | Fan high, LED derate, no runaway |
-| Humid night | Fan pulses, no watering unless critical dry |
+| Hot room | LED derate (only heat lever — no fan), climate red, no runaway |
+| Humid night | Climate flags red (no fan to act), no watering unless critical dry |
 | RTC invalid | Safe schedule fallback, amber system |
 | Power loss mid-watering | Pump off after reboot, event logged |
 
@@ -1360,7 +1328,6 @@ Build a HIL test fixture with:
 - Reservoir switch simulator.
 - Leak switch simulator.
 - Pump dummy load.
-- Fan tach simulator.
 - LED dimming dummy input.
 - Current measurement.
 - UART log capture.
@@ -1372,7 +1339,6 @@ HIL tests:
 - Toggle each sensor state.
 - Confirm pump output never enables during leak/low-water.
 - Confirm LED dimming command changes.
-- Confirm fan PWM changes.
 - Confirm status LED patterns.
 - Confirm watchdog resets safely.
 
@@ -1427,11 +1393,10 @@ Before ordering PCB:
 8. Verify each sensor bus.
 9. Verify each output with dummy load.
 10. Verify pump MOSFET with real pump in water.
-11. Verify fan PWM and tach.
-12. Verify LED dimming with driver.
-13. Verify status LED board.
-14. Run 24-hour dry burn-in without water.
-15. Run 24-hour wet-bay test with water but no plant.
+11. Verify LED dimming with driver.
+12. Verify status LED board.
+13. Run 24-hour dry burn-in without water.
+14. Run 24-hour wet-bay test with water but no plant.
 
 ### 11.3 PCB trace tests
 
@@ -1439,9 +1404,9 @@ Required artifacts:
 
 - Trace-width calculation for each power path.
 - Maximum current table.
-- Thermal camera image at max pump/fan/LED-control load.
+- Thermal camera image at max pump/LED-control load.
 - Voltage-drop measurement under max load.
-- MOSFET temperature measurement at 100% pump and fan.
+- MOSFET temperature measurement at 100% pump.
 - Regulator temperature measurement at worst-case ambient.
 - Connector current rating table.
 
@@ -1475,7 +1440,6 @@ Before printing/building:
 - Cable bend radius checked.
 - Tubing path checked.
 - LED height/clearance checked.
-- Fan clearance checked.
 - Electronics bay access checked.
 - Tool access checked.
 - Center of gravity checked with full reservoir and plant.
@@ -1498,7 +1462,7 @@ Acceptance:
 - No cracking.
 - No excessive force required.
 - No sharp edges near tubing.
-- No loose fan/light mounts.
+- No loose light mounts.
 - Parts survive 40°C warm environment without warping.
 
 ### 12.3 Water path verification
@@ -1529,11 +1493,10 @@ Test cases:
 
 | Case | Duration |
 |---|---:|
-| LED 50% + fan normal | 4 h |
-| LED 100% + fan normal | 4 h |
-| LED 100% + fan failed | until safety trip |
-| Hot room 30°C | 4 h |
-| Night fan off/pulse | 8 h |
+| LED 50% | 4 h |
+| LED 100% (worst-case steady heat — no fan, passive convection only) | 4 h |
+| LED 100% + hot room 30°C | until LED derate/over-temp trip |
+| Night (lights off) | 8 h |
 
 Acceptance:
 
@@ -1550,7 +1513,6 @@ Modes:
 
 - Night idle.
 - Day normal.
-- Fan max.
 - Pump active.
 - Fault mode.
 
@@ -1590,7 +1552,6 @@ Pass if:
 - Logs persist.
 - Status LEDs correct.
 - Watchdog not repeatedly firing.
-- Fan control stable.
 - No overheating.
 
 ### 13.3 Wet-run acceptance
@@ -1837,7 +1798,7 @@ Tasks:
 | M2-04 | Test reservoir sensor | Bench log | Low-level detection reliable |
 | M2-05 | Test leak sensor | Bench log | Pump lockout signal reliable |
 | M2-06 | Test pump | Flow/noise log | ml/s and noise measured |
-| M2-07 | Test fan | PWM/tach log | Min duty and noise measured |
+| M2-07 | ~~Test fan~~ | — | **Removed** — no fan in V1 |
 | M2-08 | Test LED dimming | PPFD log | PPFD map at dim levels |
 | M2-09 | Power budget | Spreadsheet | PSU sized with headroom |
 
@@ -1854,7 +1815,7 @@ Tasks:
 | M3-03 | Plant profile module | Code + tests | Age/stage tests pass |
 | M3-04 | Light controller | Code + tests | Schedule/ramp/derate tests pass |
 | M3-05 | Irrigation controller | Code + tests | Pulse/lockout tests pass |
-| M3-06 | Climate controller | Code + tests | Fan/VPD tests pass |
+| M3-06 | Climate monitor | Code + tests | VPD + climate-classification tests pass (no fan in V1) |
 | M3-07 | Safety controller | Code + tests | Fault priority tests pass |
 | M3-08 | LED status module | Code + tests | Pattern map tests pass |
 | M3-09 | Simulator | Rust host sim over `control` (Python allowed for models) | 10 required scenarios pass |
@@ -1891,7 +1852,7 @@ Tasks:
 | M5-03 | Electronics bay design | CAD | Dry service bay isolated |
 | M5-04 | Wet bay design | CAD | Reservoir/pump removable |
 | M5-05 | Light mount | CAD/STL | Adjustable or fixed with clearance |
-| M5-06 | Fan mount | CAD/STL | Guarded and isolated |
+| M5-06 | ~~Fan mount~~ | — | **Removed** — no fan in V1 |
 | M5-07 | Cable/tube routing | CAD | Drip loops and clips |
 | M5-08 | Print tolerance coupons | STL + results | Fit confirmed |
 | M5-09 | Alpha print/build | Photos + notes | Assembly feasible |
@@ -1945,7 +1906,6 @@ This is not a final BOM. It is a constraint list that the final BOM must satisfy
 | Moisture sensor | Capacitive, corrosion-resistant, replaceable |
 | Reservoir sensor | Float/optical/pressure; low-level reliable |
 | Leak sensor | Conductive trace or sensor strip |
-| Fan driver | PWM capable, tach input preferred |
 | Pump driver | Logic-level MOSFET, flyback/protection, current sense optional |
 | LED driver interface | PWM/0–10V matching selected LED driver |
 | Status LEDs | 5 positions, dimmable |
@@ -1961,7 +1921,6 @@ This is not a final BOM. It is a constraint list that the final BOM must satisfy
 | Reservoir | 2.5–4 L compact baseline, removable, cleanable; 4–6 L optional full-yield variant |
 | Tubing | Food-safe or aquarium-safe, kink-resistant |
 | Pump filter | Removable |
-| Fan guard | Required |
 | Frame | Stable with full reservoir and plant |
 | Cable clips | Included |
 | Drip tray | Required |
@@ -2003,10 +1962,9 @@ Reject lights that only advertise lumens, “equivalent watts,” or vague “re
 ### 17.2 Thermal safety
 
 - LED thermal path validated.
-- LED derates or shuts down on high temperature.
+- LED derates or shuts down on high temperature (the only thermal mitigation — V1 has no fan).
 - Printed materials near LED heat tested.
-- Driver mounted with ventilation.
-- Fan failure detected where possible.
+- Driver mounted with passive ventilation.
 - No combustible material directly touching LED heat sink.
 
 ### 17.3 Food/contact safety
@@ -2019,7 +1977,6 @@ Reject lights that only advertise lumens, “equivalent watts,” or vague “re
 
 ### 17.4 Child/pet safety
 
-- Fan guard required.
 - No exposed sharp metal.
 - No easy access to pump impeller.
 - Reservoir lid secure.
@@ -2117,9 +2074,9 @@ The following should be explicitly decided before ordering parts:
 | Display | No display |
 | User controls | Hidden reset/service only |
 | Pump | Brushless DC submersible centrifugal |
-| Fan | 80/92 mm quiet PWM PC fan |
+| Fan | None (removed from V1 — open frame, passive convection) |
 | Light | 50–80 W dimmable full-spectrum white horticultural LED; 100 W only for larger/full-yield variant |
-| Sensor set | temp/RH, moisture, reservoir low, leak, fan tach |
+| Sensor set | temp/RH, moisture, reservoir low, leak, pump current |
 | Camera | Not V1 |
 | pH/EC | Not V1 |
 | Connectivity | Optional, offline-first |
@@ -2148,7 +2105,7 @@ V1 can be tagged when all are true:
 - Board bring-up passed.
 - Trace/current report complete.
 - HIL fault tests passed.
-- Pump/fan/light outputs verified.
+- Pump/light outputs verified.
 - Sensors verified.
 - Power/thermal measurements documented.
 
@@ -2177,7 +2134,7 @@ V1 can be tagged when all are true:
 - At least one real plant trial documented.
 - No safety failures.
 - Moisture control kept plant alive and healthy.
-- Reservoir/pump/LED/fan operated reliably.
+- Reservoir/pump/LED operated reliably.
 - Known limitations listed.
 
 ---
@@ -2193,7 +2150,6 @@ Use:
 - 8–10 L removable compact pot, with 12–19 L optional full-yield variant.
 - 2.5–4 L bottom reservoir, with 4–6 L optional full-yield variant.
 - Quiet brushless DC submersible pump.
-- Quiet 80/92 mm PWM fan.
 - Capacitive soil moisture probe.
 - SHT31/SHT4x-class temp/RH sensor.
 - Reservoir low-level sensor.
